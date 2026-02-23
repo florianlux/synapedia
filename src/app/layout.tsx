@@ -2,12 +2,31 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { JsonLd } from "@/components/json-ld";
 import "./globals.css";
 
+const BASE_URL = "https://synapedia.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(BASE_URL),
   title: "Synapedia – Wissenschaftliche Aufklärungsplattform",
   description:
     "Eine evidenzbasierte Wissensdatenbank über psychoaktive Substanzen mit Fokus auf Pharmakologie, Risiken und Interaktionen.",
+  openGraph: {
+    title: "Synapedia – Wissenschaftliche Aufklärungsplattform",
+    description:
+      "Eine evidenzbasierte Wissensdatenbank über psychoaktive Substanzen mit Fokus auf Pharmakologie, Risiken und Interaktionen.",
+    type: "website",
+    url: BASE_URL,
+    siteName: "Synapedia",
+    locale: "de_DE",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Synapedia – Wissenschaftliche Aufklärungsplattform",
+    description:
+      "Eine evidenzbasierte Wissensdatenbank über psychoaktive Substanzen mit Fokus auf Pharmakologie, Risiken und Interaktionen.",
+  },
 };
 
 export default function RootLayout({
@@ -20,6 +39,31 @@ export default function RootLayout({
       <body
         className="min-h-screen bg-background font-sans text-foreground antialiased"
       >
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "Synapedia",
+            url: BASE_URL,
+            description:
+              "Eine evidenzbasierte Wissensdatenbank über psychoaktive Substanzen mit Fokus auf Pharmakologie, Risiken und Interaktionen.",
+            inLanguage: "de",
+          }}
+        />
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "Startseite",
+                item: BASE_URL,
+              },
+            ],
+          }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
