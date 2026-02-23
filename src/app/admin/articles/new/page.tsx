@@ -32,7 +32,7 @@ export default function NewArticlePage() {
     getCategories()
       .then(setCategories)
       .catch(() => {
-        // Categories could not be loaded – the text input remains usable
+        setToast({ message: "Kategorien konnten nicht geladen werden. Manuelle Eingabe möglich.", type: "error" });
       });
   }, []);
 
