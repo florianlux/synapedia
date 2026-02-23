@@ -41,7 +41,7 @@ export default function CategoriesPage() {
               </CardHeader>
               <CardContent>
                 <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">
-                  {count} {count === 1 ? "Artikel" : "Artikel"}
+                  {count} Artikel
                 </p>
                 <div className="space-y-2">
                   {categoryArticles.map((article) => (

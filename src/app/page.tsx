@@ -11,19 +11,7 @@ import {
 } from "@/components/ui/card";
 import { SearchBar } from "@/components/search-bar";
 import { demoArticles, demoTags, demoArticleTags } from "@/lib/demo-data";
-import type { RiskLevel, EvidenceStrength } from "@/lib/types";
-
-const riskLabels: Record<RiskLevel, string> = {
-  low: "Niedriges Risiko",
-  moderate: "Moderates Risiko",
-  high: "Hohes Risiko",
-};
-
-const evidenceLabels: Record<EvidenceStrength, string> = {
-  weak: "Schwache Evidenz",
-  moderate: "Moderate Evidenz",
-  strong: "Starke Evidenz",
-};
+import { riskLabels, evidenceLabels } from "@/lib/types";
 
 export default function Home() {
   const articles = demoArticles.filter((a) => a.status === "published");

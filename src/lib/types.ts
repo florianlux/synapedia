@@ -2,6 +2,18 @@ export type RiskLevel = "low" | "moderate" | "high";
 export type EvidenceStrength = "weak" | "moderate" | "strong";
 export type ArticleStatus = "draft" | "review" | "published";
 
+export const riskLabels: Record<RiskLevel, string> = {
+  low: "Niedriges Risiko",
+  moderate: "Moderates Risiko",
+  high: "Hohes Risiko",
+};
+
+export const evidenceLabels: Record<EvidenceStrength, string> = {
+  weak: "Schwache Evidenz",
+  moderate: "Moderate Evidenz",
+  strong: "Starke Evidenz",
+};
+
 export interface Article {
   id: string;
   slug: string;

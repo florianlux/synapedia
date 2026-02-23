@@ -12,13 +12,7 @@ import {
   demoArticleTags,
   demoSources,
 } from "@/lib/demo-data";
-import type { EvidenceStrength } from "@/lib/types";
-
-const evidenceLabels: Record<EvidenceStrength, string> = {
-  weak: "Schwache Evidenz",
-  moderate: "Moderate Evidenz",
-  strong: "Starke Evidenz",
-};
+import { riskLabels, evidenceLabels } from "@/lib/types";
 
 function slugify(text: string): string {
   return text
@@ -106,11 +100,7 @@ export default async function ArticlePage({
         )}
         <div className="mt-4 flex flex-wrap gap-2">
           <Badge variant={article.risk_level}>
-            {article.risk_level === "low"
-              ? "Niedriges Risiko"
-              : article.risk_level === "moderate"
-                ? "Moderates Risiko"
-                : "Hohes Risiko"}
+            {riskLabels[article.risk_level]}
           </Badge>
           <Badge variant="info">
             {evidenceLabels[article.evidence_strength]}
