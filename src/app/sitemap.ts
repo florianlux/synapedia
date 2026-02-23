@@ -16,13 +16,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/categories`, changeFrequency: "monthly", priority: 0.6 },
   ];
 
-  const articleRoutes: MetadataRoute.Sitemap = demoArticles
-    .filter((a) => a.status === "published")
-    .map((article) => ({
-      url: `${BASE_URL}/articles/${article.slug}`,
+  const articleSlugs = new Set(
+    demoArticles
+      .filter((a) => a.status === "published")
+      .map((a) => a.slug)
+  );
+
+  for (const s of substancesData) {
+    articleSlugs.add(s.slug);
+  }
+
+  const articleRoutes: MetadataRoute.Sitemap = Array.from(articleSlugs).map(
+    (slug) => ({
+      url: `${BASE_URL}/articles/${slug}`,
       changeFrequency: "weekly" as const,
       priority: 0.8,
-    }));
+    })
+  );
 
   const glossaryRoutes: MetadataRoute.Sitemap = glossaryData.map((entry) => ({
     url: `${BASE_URL}/glossary/${entry.slug}`,
@@ -30,11 +40,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  const substanceRoutes: MetadataRoute.Sitemap = substancesData.map((s) => ({
-    url: `${BASE_URL}/articles/${s.slug}`,
-    changeFrequency: "weekly" as const,
-    priority: 0.8,
-  }));
-
-  return [...staticRoutes, ...articleRoutes, ...glossaryRoutes, ...substanceRoutes];
+  return [...staticRoutes, ...articleRoutes, ...glossaryRoutes];
 }
