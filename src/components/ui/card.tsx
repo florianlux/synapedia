@@ -1,11 +1,11 @@
-import { type HTMLAttributes } from "react";
+import { type ComponentPropsWithRef } from "react";
 import { cn } from "@/lib/utils";
 
 function Card({
   className,
   ref,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) {
+}: ComponentPropsWithRef<"div">) {
   return (
     <div
       ref={ref}
@@ -22,7 +22,7 @@ function CardHeader({
   className,
   ref,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) {
+}: ComponentPropsWithRef<"div">) {
   return (
     <div
       ref={ref}
@@ -36,7 +36,7 @@ function CardTitle({
   className,
   ref,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) {
+}: ComponentPropsWithRef<"div">) {
   return (
     <div
       ref={ref}
@@ -53,9 +53,7 @@ function CardDescription({
   className,
   ref,
   ...props
-}: HTMLAttributes<HTMLParagraphElement> & {
-  ref?: React.Ref<HTMLParagraphElement>;
-}) {
+}: ComponentPropsWithRef<"p">) {
   return (
     <p
       ref={ref}
@@ -72,7 +70,7 @@ function CardContent({
   className,
   ref,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) {
+}: ComponentPropsWithRef<"div">) {
   return (
     <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
   );
@@ -82,7 +80,7 @@ function CardFooter({
   className,
   ref,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) {
+}: ComponentPropsWithRef<"div">) {
   return (
     <div
       ref={ref}

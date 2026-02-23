@@ -1,9 +1,8 @@
-import { type HTMLAttributes } from "react";
+import { type ComponentPropsWithRef } from "react";
 import { cn } from "@/lib/utils";
 
-type SeparatorProps = HTMLAttributes<HTMLDivElement> & {
+type SeparatorProps = ComponentPropsWithRef<"div"> & {
   orientation?: "horizontal" | "vertical";
-  ref?: React.Ref<HTMLDivElement>;
 };
 
 function Separator({

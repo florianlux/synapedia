@@ -1,9 +1,7 @@
-import { type HTMLAttributes } from "react";
+import { type ComponentPropsWithRef } from "react";
 import { cn } from "@/lib/utils";
 
-type ScrollAreaProps = HTMLAttributes<HTMLDivElement> & {
-  ref?: React.Ref<HTMLDivElement>;
-};
+type ScrollAreaProps = ComponentPropsWithRef<"div">;
 
 function ScrollArea({ className, children, ref, ...props }: ScrollAreaProps) {
   return (

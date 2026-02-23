@@ -1,12 +1,8 @@
-import { type SelectHTMLAttributes } from "react";
+import { type ComponentPropsWithRef } from "react";
 import { cn } from "@/lib/utils";
 
-type NativeSelectProps = Omit<
-  SelectHTMLAttributes<HTMLSelectElement>,
-  "onChange"
-> & {
+type NativeSelectProps = Omit<ComponentPropsWithRef<"select">, "onChange"> & {
   onValueChange?: (value: string) => void;
-  ref?: React.Ref<HTMLSelectElement>;
 };
 
 function NativeSelect({

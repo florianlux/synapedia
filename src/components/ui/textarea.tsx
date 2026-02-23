@@ -1,9 +1,7 @@
-import { type TextareaHTMLAttributes } from "react";
+import { type ComponentPropsWithRef } from "react";
 import { cn } from "@/lib/utils";
 
-type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
-  ref?: React.Ref<HTMLTextAreaElement>;
-};
+type TextareaProps = ComponentPropsWithRef<"textarea">;
 
 function Textarea({ className, ref, ...props }: TextareaProps) {
   return (

@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes } from "react";
+import { type ComponentPropsWithRef } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
@@ -33,10 +33,8 @@ const buttonVariants = cva(
   }
 );
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
-  VariantProps<typeof buttonVariants> & {
-    ref?: React.Ref<HTMLButtonElement>;
-  };
+type ButtonProps = ComponentPropsWithRef<"button"> &
+  VariantProps<typeof buttonVariants>;
 
 function Button({ className, variant, size, ref, ...props }: ButtonProps) {
   return (
