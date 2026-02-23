@@ -75,11 +75,11 @@ const actionLabels: Record<string, string> = {
   "article.deleted": "Artikel gelöscht",
 };
 
-const actionVariants: Record<string, "default" | "secondary" | "info"> = {
+const actionVariants: Record<string, "default" | "secondary" | "info" | "destructive"> = {
   "article.created": "info",
   "article.published": "default",
   "article.updated": "secondary",
-  "article.deleted": "destructive" as "default",
+  "article.deleted": "destructive",
 };
 
 export default function AdminAudit() {
