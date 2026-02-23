@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,17 +8,39 @@ import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Save } from "lucide-react";
+import { createArticle, updateArticle } from "@/lib/db/articles";
+import { getCategories } from "@/lib/db/categories";
+import type { Category, ArticleStatus, RiskLevel, EvidenceStrength } from "@/lib/types";
 
 export default function NewArticlePage() {
+  const [articleId, setArticleId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [slug, setSlug] = useState("");
   const [summary, setSummary] = useState("");
   const [category, setCategory] = useState("");
-  const [riskLevel, setRiskLevel] = useState("moderate");
-  const [evidenceStrength, setEvidenceStrength] = useState("moderate");
-  const [status, setStatus] = useState("draft");
+  const [riskLevel, setRiskLevel] = useState<RiskLevel>("moderate");
+  const [evidenceStrength, setEvidenceStrength] = useState<EvidenceStrength>("moderate");
+  const [status, setStatus] = useState<ArticleStatus>("draft");
   const [content, setContent] = useState("");
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch(() => {
+        setToast({ message: "Kategorien konnten nicht geladen werden. Manuelle Eingabe möglich.", type: "error" });
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   function handleTitleChange(value: string) {
     setTitle(value);
@@ -34,24 +56,73 @@ export default function NewArticlePage() {
     );
   }
 
-  function handleSave() {
-    alert("In der Demo-Version werden Änderungen nicht gespeichert.");
+  async function handleSave() {
+    if (!title || !slug || !summary) {
+      setToast({ message: "Titel, Slug und Zusammenfassung sind Pflichtfelder.", type: "error" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        title,
+        subtitle: subtitle || null,
+        slug,
+        summary,
+        content_mdx: content,
+        status,
+        risk_level: riskLevel,
+        evidence_strength: evidenceStrength,
+        category: category || null,
+        receptor: null,
+        legal_status: null,
+      };
+
+      if (articleId) {
+        await updateArticle(articleId, payload);
+        setToast({ message: "Artikel erfolgreich aktualisiert.", type: "success" });
+      } else {
+        const created = await createArticle(payload);
+        setArticleId(created.id);
+        setToast({ message: "Artikel erfolgreich erstellt.", type: "success" });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unbekannter Fehler.";
+      setToast({ message, type: "error" });
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <div className="space-y-8">
+      {/* Toast notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 rounded-md px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+            toast.type === "success"
+              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
-            Neuer Artikel
+            {articleId ? "Artikel bearbeiten" : "Neuer Artikel"}
           </h1>
           <p className="mt-1 text-neutral-500 dark:text-neutral-400">
-            Erstelle einen neuen Artikel für die Wissensdatenbank.
+            {articleId
+              ? "Bearbeite den bestehenden Artikel."
+              : "Erstelle einen neuen Artikel für die Wissensdatenbank."}
           </p>
         </div>
-        <Button onClick={handleSave}>
+        <Button onClick={handleSave} disabled={saving}>
           <Save className="mr-2 h-4 w-4" />
-          Speichern
+          {saving ? "Speichert…" : "Speichern"}
         </Button>
       </div>
 
@@ -176,17 +247,28 @@ export default function NewArticlePage() {
                 <label className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   Kategorie
                 </label>
-                <Input
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="z.B. Tryptamine"
-                />
+                {categories.length > 0 ? (
+                  <NativeSelect value={category} onValueChange={setCategory}>
+                    <option value="">– Kategorie wählen –</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                ) : (
+                  <Input
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="z.B. Tryptamine"
+                  />
+                )}
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   Risikoeinschätzung
                 </label>
-                <NativeSelect value={riskLevel} onValueChange={setRiskLevel}>
+                <NativeSelect value={riskLevel} onValueChange={(v) => setRiskLevel(v as RiskLevel)}>
                   <option value="low">Niedriges Risiko</option>
                   <option value="moderate">Moderates Risiko</option>
                   <option value="high">Hohes Risiko</option>
@@ -196,7 +278,7 @@ export default function NewArticlePage() {
                 <label className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   Evidenzstärke
                 </label>
-                <NativeSelect value={evidenceStrength} onValueChange={setEvidenceStrength}>
+                <NativeSelect value={evidenceStrength} onValueChange={(v) => setEvidenceStrength(v as EvidenceStrength)}>
                   <option value="weak">Schwache Evidenz</option>
                   <option value="moderate">Moderate Evidenz</option>
                   <option value="strong">Starke Evidenz</option>
@@ -206,7 +288,7 @@ export default function NewArticlePage() {
                 <label className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   Status
                 </label>
-                <NativeSelect value={status} onValueChange={setStatus}>
+                <NativeSelect value={status} onValueChange={(v) => setStatus(v as ArticleStatus)}>
                   <option value="draft">Entwurf</option>
                   <option value="review">In Review</option>
                   <option value="published">Veröffentlicht</option>
