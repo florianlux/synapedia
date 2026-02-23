@@ -2,6 +2,15 @@ import Link from "next/link";
 import { Brain } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+const navLinks = [
+  { href: "/", label: "Startseite" },
+  { href: "/articles", label: "Artikel" },
+  { href: "/interactions", label: "Interaktionen" },
+  { href: "/brain", label: "Gehirn" },
+  { href: "/glossary", label: "Glossar" },
+  { href: "/compare", label: "Vergleich" },
+];
+
 export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/80 backdrop-blur-lg dark:border-neutral-800 dark:bg-neutral-950/80">
@@ -12,25 +21,16 @@ export function Header() {
             Synapedia
           </span>
         </Link>
-        <nav className="hidden items-center gap-6 md:flex">
-          <Link
-            href="/"
-            className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
-          >
-            Startseite
-          </Link>
-          <Link
-            href="/articles"
-            className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
-          >
-            Artikel
-          </Link>
-          <Link
-            href="/categories"
-            className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
-          >
-            Kategorien
-          </Link>
+        <nav className="hidden items-center gap-4 lg:flex">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
         <div className="flex items-center gap-2">
           <ThemeToggle />
