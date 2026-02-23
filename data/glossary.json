@@ -1,0 +1,106 @@
+[
+  {
+    "term": "Agonist",
+    "slug": "agonist",
+    "definition": "Eine Substanz, die an einen Rezeptor bindet und dessen Aktivierung auslöst.",
+    "detail": "Ein Agonist imitiert die Wirkung eines endogenen Liganden, indem er an den Rezeptor bindet und eine intrazelluläre Signalkaskade in Gang setzt. Man unterscheidet zwischen vollen Agonisten, die eine maximale Rezeptorantwort hervorrufen, und partiellen Agonisten, die nur eine Teilaktivierung bewirken.",
+    "see_also": ["antagonist", "partieller-agonist"],
+    "sources": [
+      {"label": "Wikipedia – Agonist (Pharmakologie)", "url": "https://de.wikipedia.org/wiki/Agonist_(Pharmakologie)"}
+    ]
+  },
+  {
+    "term": "Antagonist",
+    "slug": "antagonist",
+    "definition": "Eine Substanz, die an einen Rezeptor bindet, ohne ihn zu aktivieren, und dadurch die Wirkung von Agonisten blockiert.",
+    "detail": "Antagonisten besetzen die Bindungsstelle eines Rezeptors und verhindern so die Bindung und Wirkung von Agonisten. Kompetitive Antagonisten konkurrieren direkt um die gleiche Bindungsstelle, während nicht-kompetitive Antagonisten an einer allosterischen Stelle binden und die Rezeptorfunktion verändern.",
+    "see_also": ["agonist", "partieller-agonist"],
+    "sources": [
+      {"label": "Wikipedia – Antagonist (Pharmakologie)", "url": "https://de.wikipedia.org/wiki/Antagonist_(Pharmakologie)"}
+    ]
+  },
+  {
+    "term": "Partieller Agonist",
+    "slug": "partieller-agonist",
+    "definition": "Eine Substanz, die an einen Rezeptor bindet und eine submaximale Aktivierung bewirkt.",
+    "detail": "Partielle Agonisten besitzen eine hohe Affinität zum Rezeptor, aber eine geringere intrinsische Aktivität als volle Agonisten. In Gegenwart eines vollen Agonisten können sie als funktionelle Antagonisten wirken, da sie die maximale Rezeptorantwort reduzieren.",
+    "see_also": ["agonist", "antagonist", "affinitaet"],
+    "sources": [
+      {"label": "Wikipedia – Partieller Agonist", "url": "https://de.wikipedia.org/wiki/Partieller_Agonist"}
+    ]
+  },
+  {
+    "term": "Affinität",
+    "slug": "affinitaet",
+    "definition": "Die Stärke der Bindung zwischen einem Liganden und seinem Rezeptor.",
+    "detail": "Die Affinität beschreibt, wie fest ein Ligand an einen Rezeptor bindet, und wird oft als Dissoziationskonstante (Kd) angegeben. Eine niedrige Kd bedeutet eine hohe Affinität. Die Affinität ist unabhängig von der intrinsischen Aktivität – ein Ligand kann hohe Affinität besitzen, ohne den Rezeptor zu aktivieren.",
+    "see_also": ["agonist", "antagonist"],
+    "sources": [
+      {"label": "Wikipedia – Rezeptoraffinität", "url": "https://de.wikipedia.org/wiki/Affinit%C3%A4t_(Pharmakologie)"}
+    ]
+  },
+  {
+    "term": "Reuptake-Inhibitor",
+    "slug": "reuptake-inhibitor",
+    "definition": "Eine Substanz, die die Wiederaufnahme eines Neurotransmitters in die präsynaptische Zelle hemmt.",
+    "detail": "Reuptake-Inhibitoren blockieren spezifische Transporterproteine (z. B. SERT, DAT, NET) und erhöhen dadurch die Konzentration des jeweiligen Neurotransmitters im synaptischen Spalt. Dies verlängert und verstärkt die synaptische Signalübertragung. Beispiele umfassen SSRI (Serotonin) und Kokain (Dopamin, Serotonin, Noradrenalin).",
+    "see_also": ["neurotransmitter", "serotonin-syndrom"],
+    "sources": [
+      {"label": "Wikipedia – Wiederaufnahmehemmer", "url": "https://de.wikipedia.org/wiki/Wiederaufnahmehemmer"}
+    ]
+  },
+  {
+    "term": "Serotonin-Syndrom",
+    "slug": "serotonin-syndrom",
+    "definition": "Ein potenziell lebensbedrohlicher Zustand durch übermäßige serotonerge Aktivität im ZNS.",
+    "detail": "Das Serotonin-Syndrom entsteht durch eine übermäßige Stimulation von Serotoninrezeptoren, typischerweise durch die Kombination mehrerer serotoninerger Substanzen. Symptome umfassen neuromuskuläre Hyperaktivität (Tremor, Klonus), autonome Dysfunktion (Hyperthermie, Tachykardie) und veränderten mentalen Status. Es erfordert sofortige medizinische Behandlung.",
+    "see_also": ["reuptake-inhibitor", "neurotransmitter"],
+    "sources": [
+      {"label": "Boyer & Shannon – The Serotonin Syndrome", "url": "https://pubmed.ncbi.nlm.nih.gov/15784664/"},
+      {"label": "Wikipedia – Serotoninsyndrom", "url": "https://de.wikipedia.org/wiki/Serotoninsyndrom"}
+    ]
+  },
+  {
+    "term": "Kreuztoleranz",
+    "slug": "kreuztoleranz",
+    "definition": "Die Toleranzentwicklung gegenüber einer Substanz, die gleichzeitig die Wirksamkeit einer anderen, pharmakologisch ähnlichen Substanz reduziert.",
+    "detail": "Kreuztoleranz tritt auf, wenn zwei Substanzen an denselben oder eng verwandten Rezeptorsystemen wirken. Ein klassisches Beispiel ist die Kreuztoleranz zwischen LSD, Psilocybin und Meskalin, die alle über den 5-HT2A-Rezeptor wirken. Die Toleranz entwickelt sich und bildet sich bei diesen Substanzen typischerweise innerhalb weniger Tage zurück.",
+    "see_also": ["agonist", "affinitaet"],
+    "sources": [
+      {"label": "PsychonautWiki – Cross-tolerance", "url": "https://psychonautwiki.org/wiki/Cross-tolerance"},
+      {"label": "Wikipedia – Toleranzentwicklung", "url": "https://de.wikipedia.org/wiki/Toleranzentwicklung_(Pharmakologie)"}
+    ]
+  },
+  {
+    "term": "Dissoziativa",
+    "slug": "dissoziativa",
+    "definition": "Eine Klasse psychoaktiver Substanzen, die eine Dissoziation – eine Abkopplung von Sinneswahrnehmung, Körperempfinden und Bewusstsein – bewirken.",
+    "detail": "Dissoziativa wirken primär als Antagonisten am NMDA-Rezeptor und können zusätzlich andere Rezeptorsysteme beeinflussen. Typische Vertreter sind Ketamin, PCP und DXM. Die Effekte umfassen Analgesie, veränderte Wahrnehmung und bei höherer Exposition ein Gefühl der Loslösung vom eigenen Körper.",
+    "see_also": ["antagonist", "neurotransmitter"],
+    "sources": [
+      {"label": "PsychonautWiki – Dissociatives", "url": "https://psychonautwiki.org/wiki/Dissociatives"},
+      {"label": "Wikipedia – Dissoziativum", "url": "https://de.wikipedia.org/wiki/Dissoziativum"}
+    ]
+  },
+  {
+    "term": "Entaktogen",
+    "slug": "entaktogen",
+    "definition": "Eine Substanzklasse, die Empathie, emotionale Offenheit und ein Gefühl der inneren Berührung fördert.",
+    "detail": "Der Begriff Entaktogen (griech. ‚das Innere berührend') wurde von Ralph Metzner geprägt und beschreibt Substanzen wie MDMA, die primär die Freisetzung von Serotonin, Noradrenalin und Dopamin bewirken. Im Unterschied zu klassischen Psychedelika stehen emotionale und soziale Effekte im Vordergrund, nicht Wahrnehmungsveränderungen.",
+    "see_also": ["neurotransmitter", "reuptake-inhibitor"],
+    "sources": [
+      {"label": "Wikipedia – Entaktogen", "url": "https://de.wikipedia.org/wiki/Entaktogen"},
+      {"label": "PsychonautWiki – Empathogen", "url": "https://psychonautwiki.org/wiki/Empathogen"}
+    ]
+  },
+  {
+    "term": "Neurotransmitter",
+    "slug": "neurotransmitter",
+    "definition": "Ein biochemischer Botenstoff, der Signale zwischen Nervenzellen über den synaptischen Spalt überträgt.",
+    "detail": "Neurotransmitter werden in der präsynaptischen Zelle synthetisiert und bei Erregung in den synaptischen Spalt freigesetzt. Dort binden sie an Rezeptoren der postsynaptischen Zelle und lösen erregende oder hemmende Signale aus. Zu den wichtigsten Neurotransmittern gehören Glutamat, GABA, Dopamin, Serotonin, Noradrenalin und Acetylcholin.",
+    "see_also": ["agonist", "antagonist", "reuptake-inhibitor"],
+    "sources": [
+      {"label": "Wikipedia – Neurotransmitter", "url": "https://de.wikipedia.org/wiki/Neurotransmitter"}
+    ]
+  }
+]

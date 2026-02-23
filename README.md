@@ -31,6 +31,20 @@ Eine moderne, evidenzbasierte Wissensdatenbank mit Fokus auf Pharmakologie, Risi
   - Warnbanner je nach Risikolevel
 - 🌙 Dark/Light Mode
 
+### Synapedia 2.0 Features
+
+- ⚗️ **Interaktions-Checker** (`/interactions`) – Zwei Substanzen auswählen, um kuratierte Wechselwirkungen mit Risikobewertung, Mechanismus-Erklärung und Quellen anzuzeigen. Symmetrische Normalisierung (A+B = B+A).
+- 🧠 **Rezeptor-Explorer / Digitales Gehirn** (`/brain`) – Interaktive SVG-Hirnkarte mit klickbaren Regionen und Rezeptor-Netzwerk-Graph. Side-Panel zeigt Rezeptordetails und verknüpfte Substanzen.
+- 📖 **Glossar** (`/glossary`) – Alphabetische A–Z-Navigation, Client-seitige Suche, Detail-Seiten pro Begriff mit Quellenangaben. Route: `/glossary/[slug]`.
+- ⚖️ **Substanz-Vergleich** (`/compare`) – Side-by-side-Vergleich zweier Substanzen (Klasse, Mechanismen, Rezeptoren, Risiko). Teilbar per URL-Parameter (`?a=ketamin&b=lsd`).
+- 🔍 **SEO-Optimierung** – Automatisch generierte `/sitemap.xml` und `/robots.txt`, JSON-LD Schema (WebSite, BreadcrumbList), OpenGraph + Twitter Card Meta-Tags.
+
+**Datenmodelle** (`/data/`):
+- `substances.json` – 20 Substanzen mit Rezeptoren, Mechanismen und Risikostufen
+- `interactions.json` – 20 kuratierte Interaktionspaare
+- `receptors.json` – 15 Rezeptoren/Transporter mit Beschreibung
+- `glossary.json` – 10 wissenschaftliche Fachbegriffe
+
 ### Admin-Bereich (/admin)
 - 📊 Dashboard mit Statistiken
 - ✍️ Artikel erstellen/bearbeiten (MDX Editor mit Live-Preview)
@@ -120,6 +134,12 @@ Jeder Artikel folgt einer standardisierten Struktur:
 
 ```
 synapedia/
+├── data/
+│   ├── substances.json    # Substanz-Datenmodell (20 Einträge)
+│   ├── interactions.json  # Interaktions-Paare (20 Einträge)
+│   ├── receptors.json     # Rezeptoren/Transporter (15 Einträge)
+│   ├── glossary.json      # Glossarbegriffe (10 Einträge)
+│   └── categories.json    # Kategorien
 ├── src/
 │   ├── app/
 │   │   ├── admin/          # Admin-Bereich
@@ -131,14 +151,25 @@ synapedia/
 │   │   │   └── page.tsx    # Dashboard
 │   │   ├── articles/
 │   │   │   └── [slug]/     # Artikel-Detailseite
+│   │   ├── brain/          # Rezeptor-Explorer
 │   │   ├── categories/     # Kategorien-Übersicht
+│   │   ├── compare/        # Substanz-Vergleich
+│   │   ├── glossary/       # Glossar + [slug]-Seiten
+│   │   ├── interactions/   # Interaktions-Checker
 │   │   ├── api/
 │   │   │   └── search/     # Such-API
 │   │   ├── layout.tsx      # Root-Layout
 │   │   ├── page.tsx        # Startseite
+│   │   ├── sitemap.ts      # Auto-generierte Sitemap
+│   │   ├── robots.ts       # Robots.txt
 │   │   └── globals.css     # Globale Styles
 │   ├── components/
 │   │   ├── ui/             # shadcn/ui Basiskomponenten
+│   │   ├── brain-explorer.tsx       # Gehirn-/Rezeptor-Explorer
+│   │   ├── compare-tool.tsx         # Vergleichstool
+│   │   ├── glossary-list.tsx        # Glossar-Interaktive Liste
+│   │   ├── interaction-checker.tsx  # Interaktions-Checker
+│   │   ├── json-ld.tsx     # JSON-LD Schema-Komponente
 │   │   ├── header.tsx      # Seitenheader
 │   │   ├── footer.tsx      # Seitenfooter
 │   │   ├── search-bar.tsx  # Suchleiste

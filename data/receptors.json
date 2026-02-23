@@ -1,0 +1,137 @@
+[
+  {
+    "id": "r:NMDA",
+    "label": "NMDA",
+    "type": "ionotropic",
+    "system": "glutamate",
+    "description": "Der NMDA-Rezeptor ist ein ionotroper Glutamatrezeptor, der eine zentrale Rolle bei synaptischer Plastizität, Lernen und Gedächtnisbildung spielt. Er benötigt sowohl Glutamat als auch Glycin als Co-Agonisten zur Aktivierung.",
+    "risk_notes": "Eine Blockade durch Antagonisten kann dissoziative Zustände auslösen; chronische Inhibition kann neurotoxische Effekte begünstigen.",
+    "related_substances": ["sub:ketamine", "sub:pcp", "sub:dxm", "sub:ethanol"]
+  },
+  {
+    "id": "r:GABA-A",
+    "label": "GABA-A",
+    "type": "ionotropic",
+    "system": "GABA",
+    "description": "Der GABA-A-Rezeptor ist ein ligandengesteuerter Chloridkanal und der wichtigste inhibitorische Rezeptor im zentralen Nervensystem. Er besitzt multiple allosterische Bindungsstellen für verschiedene Substanzklassen.",
+    "risk_notes": "Übermäßige Aktivierung kann zu Atemdepression, Sedierung und Koma führen. Besondere Gefahr bei Kombination mehrerer GABAerger Substanzen.",
+    "related_substances": ["sub:benzodiazepine", "sub:ethanol", "sub:ghb"]
+  },
+  {
+    "id": "r:5-HT2A",
+    "label": "5-HT2A",
+    "type": "metabotropic",
+    "system": "serotonin",
+    "description": "Der 5-HT2A-Rezeptor ist ein Serotonin-Rezeptor der Klasse Gq-gekoppelter GPCRs. Er ist der primäre molekulare Angriffspunkt klassischer Psychedelika und spielt eine Rolle bei Kognition und Wahrnehmung.",
+    "risk_notes": "Starke Aktivierung kann intensive Wahrnehmungsveränderungen und psychotomimetische Effekte auslösen.",
+    "related_substances": ["sub:lsd", "sub:psilocybin", "sub:dmt", "sub:mescaline", "sub:2cb"]
+  },
+  {
+    "id": "r:5-HT1A",
+    "label": "5-HT1A",
+    "type": "metabotropic",
+    "system": "serotonin",
+    "description": "Der 5-HT1A-Rezeptor ist ein Gi/Go-gekoppelter Serotoninrezeptor, der als Autorezeptor auf serotonergen Neuronen und als Heterorezeptor in verschiedenen Hirnregionen vorkommt. Er moduliert Angst, Stimmung und Kognition.",
+    "risk_notes": "Agonismus kann anxiolytische Effekte vermitteln; Wechselwirkungen mit serotonergen Substanzen sind möglich.",
+    "related_substances": ["sub:lsd", "sub:psilocybin", "sub:dmt"]
+  },
+  {
+    "id": "r:mu-opioid",
+    "label": "μ-Opioid",
+    "type": "metabotropic",
+    "system": "opioid",
+    "description": "Der μ-Opioid-Rezeptor (MOR) ist ein Gi-gekoppelter GPCR, der Analgesie, Euphorie und Atemdepression vermittelt. Er ist der primäre Zielrezeptor der meisten klinisch eingesetzten Opioide.",
+    "risk_notes": "Agonismus kann schwere Atemdepression und physische Abhängigkeit verursachen. Besondere Gefahr bei Kombination mit ZNS-Depressiva.",
+    "related_substances": ["sub:kratom"]
+  },
+  {
+    "id": "r:kappa-opioid",
+    "label": "κ-Opioid",
+    "type": "metabotropic",
+    "system": "opioid",
+    "description": "Der κ-Opioid-Rezeptor (KOR) ist ein Gi-gekoppelter GPCR, der Dysphorie, Sedierung und dissoziative Effekte vermitteln kann. Er wird mit Stress- und Suchtmechanismen in Verbindung gebracht.",
+    "risk_notes": "Aktivierung kann dysphorische und halluzinogene Zustände hervorrufen.",
+    "related_substances": ["sub:kratom"]
+  },
+  {
+    "id": "r:D1",
+    "label": "D1",
+    "type": "metabotropic",
+    "system": "dopamine",
+    "description": "Der D1-Rezeptor ist ein Gs-gekoppelter Dopaminrezeptor, der in Kortex, Striatum und limbischem System exprimiert wird. Er spielt eine zentrale Rolle bei Motivation, Belohnung und Arbeitsgedächtnis.",
+    "risk_notes": "Übermäßige dopaminerge Stimulation kann zu Unruhe und psychotischen Symptomen beitragen.",
+    "related_substances": ["sub:cocaine", "sub:amphetamine", "sub:methamphetamine"]
+  },
+  {
+    "id": "r:D2",
+    "label": "D2",
+    "type": "metabotropic",
+    "system": "dopamine",
+    "description": "Der D2-Rezeptor ist ein Gi-gekoppelter Dopaminrezeptor mit hoher Dichte im Striatum. Er ist ein wichtiges Ziel für Antipsychotika und moduliert motorische Funktionen sowie Belohnungsverarbeitung.",
+    "risk_notes": "Chronische Stimulation kann Sensibilisierung und psychotomimetische Effekte begünstigen.",
+    "related_substances": ["sub:lsd", "sub:cocaine", "sub:amphetamine", "sub:methamphetamine"]
+  },
+  {
+    "id": "r:CB1",
+    "label": "CB1",
+    "type": "metabotropic",
+    "system": "endocannabinoid",
+    "description": "Der CB1-Rezeptor ist ein Gi/Go-gekoppelter Cannabinoidrezeptor, der vorwiegend im zentralen Nervensystem exprimiert wird. Er moduliert Neurotransmitterfreisetzung und ist Teil des Endocannabinoidsystems.",
+    "risk_notes": "Chronische Aktivierung kann kognitive Beeinträchtigungen und Abhängigkeit begünstigen.",
+    "related_substances": ["sub:thc"]
+  },
+  {
+    "id": "r:CB2",
+    "label": "CB2",
+    "type": "metabotropic",
+    "system": "endocannabinoid",
+    "description": "Der CB2-Rezeptor ist ein Gi-gekoppelter Cannabinoidrezeptor, der hauptsächlich auf Immunzellen und in geringerem Maße im ZNS exprimiert wird. Er moduliert Entzündungsprozesse und Immunantworten.",
+    "risk_notes": "Direkte neuropsychiatrische Risiken sind gering; Immunmodulation bei chronischer Aktivierung möglich.",
+    "related_substances": ["sub:thc"]
+  },
+  {
+    "id": "r:SERT",
+    "label": "SERT",
+    "type": "transporter",
+    "system": "serotonin",
+    "description": "Der Serotonintransporter (SERT/5-HTT) ist ein Natrium-abhängiger Monoamintransporter, der Serotonin aus dem synaptischen Spalt zurück in die präsynaptische Zelle transportiert. Er ist das primäre Ziel von SSRI und MDMA.",
+    "risk_notes": "Hemmung oder Umkehr des Transports kann die synaptische Serotoninkonzentration stark erhöhen; Kombination mehrerer serotoninerger Substanzen birgt Serotoninsyndrom-Risiko.",
+    "related_substances": ["sub:ssri", "sub:mdma", "sub:cocaine", "sub:dxm"]
+  },
+  {
+    "id": "r:NET",
+    "label": "NET",
+    "type": "transporter",
+    "system": "norepinephrine",
+    "description": "Der Noradrenalintransporter (NET) ist ein Monoamintransporter, der Noradrenalin aus dem synaptischen Spalt zurücktransportiert. Er wird von verschiedenen Stimulanzien und Antidepressiva beeinflusst.",
+    "risk_notes": "Hemmung führt zu erhöhter sympathomimetischer Aktivität mit kardiovaskulären Risiken.",
+    "related_substances": ["sub:cocaine", "sub:amphetamine", "sub:methamphetamine", "sub:mdma"]
+  },
+  {
+    "id": "r:DAT",
+    "label": "DAT",
+    "type": "transporter",
+    "system": "dopamine",
+    "description": "Der Dopamintransporter (DAT) ist ein Natrium-abhängiger Monoamintransporter, der Dopamin aus dem synaptischen Spalt entfernt. Er ist ein zentrales Ziel von Stimulanzien und spielt eine Schlüsselrolle im Belohnungssystem.",
+    "risk_notes": "Blockade oder Umkehrtransport erhöht die dopaminerge Aktivität und kann Abhängigkeit sowie kardiovaskuläre Risiken begünstigen.",
+    "related_substances": ["sub:cocaine", "sub:amphetamine", "sub:methamphetamine", "sub:pcp"]
+  },
+  {
+    "id": "r:nACh",
+    "label": "nACh",
+    "type": "ionotropic",
+    "system": "acetylcholine",
+    "description": "Nikotinische Acetylcholinrezeptoren (nAChR) sind ligandengesteuerte Ionenkanäle, die durch Acetylcholin und Nikotin aktiviert werden. Sie spielen eine Rolle bei Kognition, Aufmerksamkeit und neuromuskulärer Übertragung.",
+    "risk_notes": "Chronische Aktivierung führt zu Rezeptor-Upregulation und kann ein hohes Abhängigkeitspotenzial vermitteln.",
+    "related_substances": ["sub:nicotine"]
+  },
+  {
+    "id": "r:AMPA",
+    "label": "AMPA",
+    "type": "ionotropic",
+    "system": "glutamate",
+    "description": "Der AMPA-Rezeptor ist ein ionotroper Glutamatrezeptor, der die schnelle exzitatorische synaptische Übertragung im ZNS vermittelt. Er arbeitet eng mit NMDA-Rezeptoren bei der synaptischen Plastizität zusammen.",
+    "risk_notes": "Übermäßige Aktivierung kann exzitotoxische Zellschäden verursachen; positive allosterische Modulatoren werden als Nootropika erforscht.",
+    "related_substances": ["sub:ethanol"]
+  }
+]
