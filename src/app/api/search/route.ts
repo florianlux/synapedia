@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
           a.summary.toLowerCase().includes(query) ||
           a.content_mdx.toLowerCase().includes(query))
     )
-    .map(({ content_mdx, ...rest }) => rest);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    .map(({ content_mdx: _, ...rest }) => rest);
 
   return NextResponse.json(results);
 }
