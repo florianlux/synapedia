@@ -87,7 +87,7 @@ export default async function ArticlePage({
     <div className="mx-auto max-w-6xl px-4 py-8">
       {/* Back link */}
       <Link
-        href="/"
+        href="/articles"
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-200"
       >
         <ArrowLeft className="h-4 w-4" />

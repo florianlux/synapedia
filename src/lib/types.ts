@@ -1,4 +1,4 @@
-export type RiskLevel = "low" | "moderate" | "high";
+export type RiskLevel = "low" | "moderate" | "high" | "unknown";
 export type EvidenceStrength = "weak" | "moderate" | "strong";
 export type ArticleStatus = "draft" | "review" | "published";
 
@@ -6,6 +6,7 @@ export const riskLabels: Record<RiskLevel, string> = {
   low: "Niedriges Risiko",
   moderate: "Moderates Risiko",
   high: "Hohes Risiko",
+  unknown: "Unbekanntes Risiko",
 };
 
 export const evidenceLabels: Record<EvidenceStrength, string> = {
@@ -25,6 +26,8 @@ export interface Article {
   risk_level: RiskLevel;
   evidence_strength: EvidenceStrength;
   category: string | null;
+  receptor: string | null;
+  legal_status: string | null;
   created_at: string;
   updated_at: string;
   published_at: string | null;
