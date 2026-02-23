@@ -38,11 +38,22 @@ function extractHeadings(mdx: string): TocHeading[] {
   return headings;
 }
 
+function extractText(node: React.ReactNode): string {
+  if (typeof node === "string") return node;
+  if (typeof node === "number") return String(node);
+  if (!node) return "";
+  if (Array.isArray(node)) return node.map(extractText).join("");
+  if (typeof node === "object" && "props" in node) {
+    return extractText((node as React.ReactElement<{ children?: React.ReactNode }>).props.children);
+  }
+  return "";
+}
+
 // Custom MDX components that add IDs to headings for TOC linking
 function createHeadingComponent(level: 2 | 3) {
   const Tag = `h${level}` as const;
   return function HeadingComponent({ children }: { children?: React.ReactNode }) {
-    const text = typeof children === "string" ? children : String(children ?? "");
+    const text = extractText(children);
     const id = slugify(text);
     return <Tag id={id}>{children}</Tag>;
   };

@@ -120,7 +120,7 @@ export default function NewArticlePage() {
                   <Textarea
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="## Kurzfazit&#10;&#10;Inhalt hier eingeben…"
+                    placeholder={"## Kurzfazit\n\nInhalt hier eingeben…"}
                     rows={20}
                     className="min-h-[400px] font-mono text-sm"
                   />
