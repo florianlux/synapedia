@@ -343,7 +343,7 @@ export function BrainExplorer({ receptors, substances }: BrainExplorerProps) {
 
         <TabsContent value="receptor-network">
           <Card className="mt-2 border-neutral-800 bg-neutral-950/60">
-            <CardContent className="overflow-x-auto p-2 sm:p-4">
+            <CardContent className="p-2 sm:p-4">
               <ReceptorNetworkSVG
                 receptors={receptors}
                 onSelectReceptor={selectReceptor}
@@ -586,7 +586,7 @@ function ReceptorNetworkSVG({
     <div className="flex justify-center">
       <svg
         viewBox="0 0 800 550"
-        className="w-full min-w-[500px]"
+        className="w-full"
         role="img"
         aria-label="Rezeptor-Netzwerk-Graph"
       >
