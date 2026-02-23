@@ -1,18 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
-import { AlertTriangle, Search, ExternalLink } from "lucide-react";
+import { useState, useMemo } from "react";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-
-interface Substance {
-  id: string;
-  slug: string;
-  title: string;
-  class_primary: string;
-  [key: string]: unknown;
-}
+import {
+  SubstanceSearch,
+  type SubstanceOption,
+} from "@/components/substance-search";
 
 interface Source {
   label: string;
@@ -48,101 +43,16 @@ const riskVariant: Record<string, "high" | "moderate" | "low" | "unknown"> = {
 };
 
 interface InteractionCheckerProps {
-  substances: Substance[];
+  substances: SubstanceOption[];
   interactions: Interaction[];
-}
-
-function SubstanceSearch({
-  label,
-  substances,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  substances: Substance[];
-  selected: Substance | null;
-  onSelect: (s: Substance | null) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const filtered = useMemo(() => {
-    if (query.length < 1) return [];
-    const q = query.toLowerCase();
-    return substances.filter(
-      (s) =>
-        s.title.toLowerCase().includes(q) ||
-        s.class_primary.toLowerCase().includes(q)
-    );
-  }, [query, substances]);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div ref={wrapperRef} className="relative flex-1">
-      <label className="mb-1.5 block text-sm font-medium text-neutral-400">
-        {label}
-      </label>
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
-        <Input
-          placeholder="Substanz suchen…"
-          className="pl-9"
-          value={selected ? selected.title : query}
-          onChange={(e) => {
-            if (selected) onSelect(null);
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => {
-            if (!selected && query.length >= 1) setOpen(true);
-          }}
-        />
-      </div>
-      {open && filtered.length > 0 && !selected && (
-        <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-neutral-700 bg-neutral-900 shadow-lg">
-          {filtered.map((s) => (
-            <li key={s.id}>
-              <button
-                type="button"
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-neutral-800"
-                onClick={() => {
-                  onSelect(s);
-                  setQuery(s.title);
-                  setOpen(false);
-                }}
-              >
-                <span className="font-medium text-neutral-100">{s.title}</span>
-                <span className="text-xs text-neutral-500">
-                  {s.class_primary}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
 }
 
 export function InteractionChecker({
   substances,
   interactions,
 }: InteractionCheckerProps) {
-  const [subA, setSubA] = useState<Substance | null>(null);
-  const [subB, setSubB] = useState<Substance | null>(null);
+  const [subA, setSubA] = useState<SubstanceOption | null>(null);
+  const [subB, setSubB] = useState<SubstanceOption | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
 
   const result = useMemo<Interaction | null | "none">(() => {
