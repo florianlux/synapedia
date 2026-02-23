@@ -1,0 +1,282 @@
+[
+  {
+    "a": "sub:mdma",
+    "b": "sub:ssri",
+    "risk": "high",
+    "headline": "Erhöhtes Risiko: Serotoninbezogene Komplikationen",
+    "mechanism_conflict": ["SERT-Umkehrtransport + SERT-Blockade = serotonerge Überaktivierung"],
+    "explanation": "MDMA bewirkt eine massive Serotoninfreisetzung über den SERT, während SSRI denselben Transporter blockieren. Die Kombination kann die serotonerge Neurotransmission unvorhersehbar beeinflussen und das Risiko eines Serotoninsyndroms erhöhen.",
+    "harm_reduction": ["Die gleichzeitige Einnahme von MDMA und SSRI wird in der Fachliteratur als pharmakologisch riskant beschrieben."],
+    "sources": [
+      {"label": "Gillman PK – Monoamine oxidase inhibitors, opioid analgesics and serotonin toxicity", "url": "https://pubmed.ncbi.nlm.nih.gov/15784664/"},
+      {"label": "Wikipedia – Serotoninsyndrom", "url": "https://de.wikipedia.org/wiki/Serotoninsyndrom"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:maoi",
+    "b": "sub:mdma",
+    "risk": "high",
+    "headline": "Lebensbedrohlich: Serotoninsyndrom-Gefahr",
+    "mechanism_conflict": ["MAO-Hemmung + massive Serotoninfreisetzung"],
+    "explanation": "MAO-Inhibitoren verhindern den Abbau von Monoaminen. In Kombination mit der durch MDMA ausgelösten Serotoninfreisetzung kann ein lebensbedrohliches Serotoninsyndrom entstehen.",
+    "harm_reduction": ["Diese Kombination wird in der medizinischen Literatur als potenziell lebensbedrohlich eingestuft."],
+    "sources": [
+      {"label": "Gillman PK – Serotonin Toxicity", "url": "https://pubmed.ncbi.nlm.nih.gov/16279840/"},
+      {"label": "PsychonautWiki – MDMA Interactions", "url": "https://psychonautwiki.org/wiki/MDMA"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:benzodiazepine",
+    "b": "sub:ethanol",
+    "risk": "high",
+    "headline": "Schwere ZNS-Depression: Atemdepression möglich",
+    "mechanism_conflict": ["GABA-A-Potenzierung + GABA-A-Modulation = additive ZNS-Depression"],
+    "explanation": "Beide Substanzen verstärken die GABAerge Neurotransmission am GABA-A-Rezeptor. Die additive Wirkung kann zu schwerer Sedierung, Atemdepression und Bewusstlosigkeit führen.",
+    "harm_reduction": ["Die Fachliteratur beschreibt diese Kombination als eine der häufigsten Ursachen für substanzbezogene Atemdepression."],
+    "sources": [
+      {"label": "WHO – Benzodiazepine Interactions", "url": "https://www.who.int/"},
+      {"label": "Wikipedia – Benzodiazepine", "url": "https://de.wikipedia.org/wiki/Benzodiazepine"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:lsd",
+    "b": "sub:ssri",
+    "risk": "moderate",
+    "headline": "Abgeschwächte Wirkung und unklare Risiken",
+    "mechanism_conflict": ["5-HT2A-Agonismus + chronische SERT-Blockade = Rezeptor-Downregulation"],
+    "explanation": "Chronische SSRI-Einnahme kann zu einer Downregulation von 5-HT2A-Rezeptoren führen, was die psychedelische Wirkung von LSD abschwächen kann. Serotoninerge Wechselwirkungen sind dennoch möglich.",
+    "harm_reduction": ["Die Wechselwirkung ist pharmakologisch komplex und individuell unterschiedlich."],
+    "sources": [
+      {"label": "Bonson et al. – Chronic SSRI and psychedelics", "url": "https://pubmed.ncbi.nlm.nih.gov/8788508/"},
+      {"label": "PsychonautWiki – LSD Interactions", "url": "https://psychonautwiki.org/wiki/LSD"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:psilocybin",
+    "b": "sub:thc",
+    "risk": "moderate",
+    "headline": "Verstärkte psychoaktive Effekte möglich",
+    "mechanism_conflict": ["5-HT2A-Agonismus + CB1-Agonismus = synergistische Wahrnehmungsveränderung"],
+    "explanation": "Cannabis kann die psychedelische Wirkung von Psilocybin verstärken, da beide Substanzen über unterschiedliche Rezeptorsysteme wahrnehmungsverändernde Effekte auslösen. Die Kombination kann unvorhersehbare Intensitätssteigerungen bewirken.",
+    "harm_reduction": ["Die synergistische Wirkung kann die psychologische Belastung unvorhersehbar erhöhen."],
+    "sources": [
+      {"label": "PsychonautWiki – Psilocybin Interactions", "url": "https://psychonautwiki.org/wiki/Psilocybin"},
+      {"label": "Wikipedia – Psilocybin", "url": "https://de.wikipedia.org/wiki/Psilocybin"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:ethanol",
+    "b": "sub:ketamine",
+    "risk": "high",
+    "headline": "Additive ZNS-Depression und erhöhte Aspirationsgefahr",
+    "mechanism_conflict": ["NMDA-Antagonismus + GABAerge Potenzierung = additive ZNS-Depression"],
+    "explanation": "Ketamin und Ethanol wirken beide dämpfend auf das zentrale Nervensystem über unterschiedliche Mechanismen. Die Kombination erhöht das Risiko für Bewusstlosigkeit, Übelkeit und Aspiration.",
+    "harm_reduction": ["Medizinische Quellen beschreiben eine erhöhte Gefahr für Atemdepression und Bewusstlosigkeit bei gleichzeitiger Einnahme."],
+    "sources": [
+      {"label": "PsychonautWiki – Ketamine Interactions", "url": "https://psychonautwiki.org/wiki/Ketamine"},
+      {"label": "Wikipedia – Ketamin", "url": "https://de.wikipedia.org/wiki/Ketamin"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:ethanol",
+    "b": "sub:ghb",
+    "risk": "high",
+    "headline": "Lebensbedrohlich: Schwere Atemdepression",
+    "mechanism_conflict": ["GABA-B-Agonismus + GABA-A-Potenzierung = synergistische ZNS-Depression"],
+    "explanation": "GHB und Ethanol wirken beide als ZNS-Depressiva über das GABAerge System. Die Kombination kann zu schwerer Atemdepression, Bewusstlosigkeit und im schlimmsten Fall zum Tod führen.",
+    "harm_reduction": ["Diese Kombination gilt in der Toxikologie als besonders gefährlich aufgrund der engen therapeutischen Breite von GHB."],
+    "sources": [
+      {"label": "PsychonautWiki – GHB Interactions", "url": "https://psychonautwiki.org/wiki/GHB"},
+      {"label": "Wikipedia – Gamma-Hydroxybuttersäure", "url": "https://de.wikipedia.org/wiki/Gamma-Hydroxybutters%C3%A4ure"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:cocaine",
+    "b": "sub:ethanol",
+    "risk": "high",
+    "headline": "Bildung von Cocaethylen: Erhöhte Kardiotoxizität",
+    "mechanism_conflict": ["Hepatische Transesterifikation → Cocaethylen-Bildung"],
+    "explanation": "Bei gleichzeitiger Einnahme von Kokain und Ethanol bildet sich in der Leber Cocaethylen, ein aktiver Metabolit mit längerer Halbwertszeit. Cocaethylen erhöht die kardiotoxischen Risiken erheblich.",
+    "harm_reduction": ["Cocaethylen ist pharmakologisch gut dokumentiert und besitzt eine höhere Toxizität als Kokain allein."],
+    "sources": [
+      {"label": "Harris et al. – Cocaethylene", "url": "https://pubmed.ncbi.nlm.nih.gov/12954796/"},
+      {"label": "Wikipedia – Cocaethylen", "url": "https://de.wikipedia.org/wiki/Cocaethylen"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:amphetamine",
+    "b": "sub:mdma",
+    "risk": "high",
+    "headline": "Erhöhte kardiovaskuläre und neurotoxische Belastung",
+    "mechanism_conflict": ["Doppelte Monoaminfreisetzung über DAT/NET/SERT"],
+    "explanation": "Beide Substanzen bewirken eine Freisetzung von Monoaminen über ähnliche Transporter. Die Kombination kann die kardiovaskuläre Belastung und das neurotoxische Potenzial synergistisch erhöhen.",
+    "harm_reduction": ["Die pharmakologische Überlappung beider Substanzen kann additive und synergistische Belastungen erzeugen."],
+    "sources": [
+      {"label": "PsychonautWiki – MDMA Interactions", "url": "https://psychonautwiki.org/wiki/MDMA"},
+      {"label": "PsychonautWiki – Amphetamine", "url": "https://psychonautwiki.org/wiki/Amphetamine"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:ethanol",
+    "b": "sub:thc",
+    "risk": "moderate",
+    "headline": "Verstärkte Sedierung und kognitive Beeinträchtigung",
+    "mechanism_conflict": ["GABAerge + cannabinoide ZNS-Effekte"],
+    "explanation": "Alkohol und Cannabis wirken über verschiedene Rezeptorsysteme sedierend auf das ZNS. Die Kombination kann Übelkeit, Schwindel und stärkere kognitive Einschränkungen bewirken.",
+    "harm_reduction": ["Studien zeigen, dass Cannabis die Aufnahme von Ethanol beschleunigen kann, was die Sedierung verstärkt."],
+    "sources": [
+      {"label": "Hartman et al. – Cannabis and alcohol effects", "url": "https://pubmed.ncbi.nlm.nih.gov/25735201/"},
+      {"label": "PsychonautWiki – Cannabis Interactions", "url": "https://psychonautwiki.org/wiki/Cannabis"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:amphetamine",
+    "b": "sub:caffeine",
+    "risk": "moderate",
+    "headline": "Additive sympathomimetische Stimulation",
+    "mechanism_conflict": ["Katecholaminfreisetzung + Adenosin-Antagonismus = kardiovaskuläre Belastung"],
+    "explanation": "Koffein verstärkt als Adenosinrezeptor-Antagonist die Wachheit, während Amphetamin die Katecholaminfreisetzung steigert. Die Kombination erhöht die sympathomimetische Belastung des Herz-Kreislauf-Systems.",
+    "harm_reduction": ["Die Kombination kann kardiovaskuläre Parameter wie Herzfrequenz und Blutdruck additiv erhöhen."],
+    "sources": [
+      {"label": "Wikipedia – Amphetamin", "url": "https://de.wikipedia.org/wiki/Amphetamin"},
+      {"label": "Wikipedia – Koffein", "url": "https://de.wikipedia.org/wiki/Koffein"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:lsd",
+    "b": "sub:mdma",
+    "risk": "moderate",
+    "headline": "Verstärkte serotonerge Aktivität",
+    "mechanism_conflict": ["5-HT2A-Agonismus + SERT-Umkehrtransport = erhöhte serotonerge Last"],
+    "explanation": "LSD aktiviert direkt 5-HT2A-Rezeptoren, während MDMA die Serotoninfreisetzung fördert. Die Kombination kann zu einer verstärkten serotonergen Stimulation und erhöhter kardiovaskulärer Belastung führen.",
+    "harm_reduction": ["Die serotonerge Gesamtbelastung ist pharmakologisch erhöht; ein Serotoninsyndrom ist bei dieser Kombination seltener als bei MAO-Inhibitoren, aber nicht ausgeschlossen."],
+    "sources": [
+      {"label": "PsychonautWiki – LSD Interactions", "url": "https://psychonautwiki.org/wiki/LSD"},
+      {"label": "PsychonautWiki – MDMA Interactions", "url": "https://psychonautwiki.org/wiki/MDMA"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:mdma",
+    "b": "sub:psilocybin",
+    "risk": "moderate",
+    "headline": "Synergistische psychoaktive Intensivierung",
+    "mechanism_conflict": ["SERT-Umkehrtransport + 5-HT2A-Agonismus"],
+    "explanation": "MDMA erhöht die synaptische Serotoninkonzentration, während Psilocin direkt an 5-HT2A-Rezeptoren bindet. Die Kombination kann zu einer verstärkten und unvorhersehbaren psychedelischen Erfahrung führen.",
+    "harm_reduction": ["Die pharmakologische Synergie kann die psychologische Belastung erhöhen und ist schwer vorhersehbar."],
+    "sources": [
+      {"label": "PsychonautWiki – Psilocybin Interactions", "url": "https://psychonautwiki.org/wiki/Psilocybin"},
+      {"label": "PsychonautWiki – MDMA", "url": "https://psychonautwiki.org/wiki/MDMA"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:ketamine",
+    "b": "sub:mdma",
+    "risk": "moderate",
+    "headline": "Kombination dissoziativer und empathogener Effekte",
+    "mechanism_conflict": ["NMDA-Antagonismus + Monoaminfreisetzung"],
+    "explanation": "Ketamin blockiert NMDA-Rezeptoren, während MDMA Monoamine freisetzt. Die Kombination kann unvorhersehbare neuropsychologische Effekte und eine erhöhte kardiovaskuläre Belastung verursachen.",
+    "harm_reduction": ["Die unterschiedlichen Wirkmechanismen können in Kombination schwer einschätzbare Effekte erzeugen."],
+    "sources": [
+      {"label": "PsychonautWiki – Ketamine Interactions", "url": "https://psychonautwiki.org/wiki/Ketamine"},
+      {"label": "PsychonautWiki – MDMA", "url": "https://psychonautwiki.org/wiki/MDMA"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:dmt",
+    "b": "sub:ssri",
+    "risk": "high",
+    "headline": "Serotonerge Wechselwirkung: Risiko eines Serotoninsyndroms",
+    "mechanism_conflict": ["5-HT2A-Agonismus + SERT-Blockade = serotonerge Überaktivierung"],
+    "explanation": "DMT ist ein potenter 5-HT2A-Agonist. In Kombination mit SSRI, die den Serotoninabbau verlangsamen, kann eine übermäßige serotonerge Stimulation entstehen, die ein Serotoninsyndrom auslösen kann.",
+    "harm_reduction": ["Die medizinische Fachliteratur beschreibt serotonerge Komplikationen bei der Kombination von Tryptaminen und SSRI."],
+    "sources": [
+      {"label": "Callaway & Grob – Ayahuasca and SSRI", "url": "https://pubmed.ncbi.nlm.nih.gov/9684390/"},
+      {"label": "PsychonautWiki – DMT Interactions", "url": "https://psychonautwiki.org/wiki/DMT"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:benzodiazepine",
+    "b": "sub:kratom",
+    "risk": "high",
+    "headline": "Additive Atemdepression: ZNS-Depressiva-Kombination",
+    "mechanism_conflict": ["GABA-A-Modulation + μ-Opioid-Agonismus = additive Atemdepression"],
+    "explanation": "Benzodiazepine wirken über GABA-A-Rezeptoren sedierend, während Kratom-Alkaloide an μ-Opioid-Rezeptoren binden. Die Kombination kann eine klinisch relevante Atemdepression bewirken.",
+    "harm_reduction": ["Die Kombination von GABAergen Substanzen und Opioiden wird in der Notfallmedizin als besonders risikoreich eingestuft."],
+    "sources": [
+      {"label": "FDA – Kratom Safety Information", "url": "https://www.fda.gov/news-events/public-health-focus/fda-and-kratom"},
+      {"label": "PsychonautWiki – Kratom Interactions", "url": "https://psychonautwiki.org/wiki/Kratom"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:2cb",
+    "b": "sub:mdma",
+    "risk": "high",
+    "headline": "Starke serotonerge Synergie und kardiovaskuläre Belastung",
+    "mechanism_conflict": ["5-HT2A-Agonismus + SERT-Umkehrtransport = serotonerge Überaktivierung"],
+    "explanation": "2C-B aktiviert 5-HT2A-Rezeptoren direkt, während MDMA die Serotoninfreisetzung steigert. Die Kombination erzeugt eine erhebliche serotonerge Belastung und kann kardiovaskuläre Nebenwirkungen verstärken.",
+    "harm_reduction": ["Die serotonerge Gesamtbelastung durch beide Substanzen zusammen übersteigt die Einzelwirkungen deutlich."],
+    "sources": [
+      {"label": "PsychonautWiki – 2C-B Interactions", "url": "https://psychonautwiki.org/wiki/2C-B"},
+      {"label": "PsychonautWiki – MDMA Interactions", "url": "https://psychonautwiki.org/wiki/MDMA"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:pcp",
+    "b": "sub:thc",
+    "risk": "moderate",
+    "headline": "Verstärkte dissoziative und psychotomimetische Effekte",
+    "mechanism_conflict": ["NMDA-Antagonismus + CB1-Agonismus = synergistische Wahrnehmungsstörung"],
+    "explanation": "PCP wirkt als NMDA-Antagonist mit zusätzlichen dopaminergen Effekten, während THC CB1-Rezeptoren aktiviert. Die Kombination kann dissoziative und psychotomimetische Effekte unvorhersehbar verstärken.",
+    "harm_reduction": ["Die Kombination wird in der Literatur mit einem erhöhten Risiko für psychotische Episoden assoziiert."],
+    "sources": [
+      {"label": "PsychonautWiki – PCP Interactions", "url": "https://psychonautwiki.org/wiki/PCP"},
+      {"label": "Wikipedia – Phencyclidin", "url": "https://de.wikipedia.org/wiki/Phencyclidin"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:dxm",
+    "b": "sub:ssri",
+    "risk": "high",
+    "headline": "Serotoninsyndrom: Doppelte serotonerge Wirkung",
+    "mechanism_conflict": ["SERT-Inhibition (DXM) + SERT-Inhibition (SSRI) = serotonerge Krise"],
+    "explanation": "DXM hemmt die Wiederaufnahme von Serotonin über den SERT, ebenso wie SSRI. Die gleichzeitige Hemmung kann zu einem gefährlichen Anstieg der synaptischen Serotoninkonzentration und einem Serotoninsyndrom führen.",
+    "harm_reduction": ["In der klinischen Pharmakologie ist diese Interaktion gut dokumentiert und wird als kontraindiziert betrachtet."],
+    "sources": [
+      {"label": "Boyer & Shannon – Serotonin Syndrome", "url": "https://pubmed.ncbi.nlm.nih.gov/15784664/"},
+      {"label": "Wikipedia – Dextromethorphan", "url": "https://de.wikipedia.org/wiki/Dextromethorphan"}
+    ],
+    "last_reviewed": "2026-02-24"
+  },
+  {
+    "a": "sub:nicotine",
+    "b": "sub:thc",
+    "risk": "low",
+    "headline": "Geringes Risiko: Additive milde Effekte",
+    "mechanism_conflict": ["nACh-Agonismus + CB1-Agonismus"],
+    "explanation": "Nikotin und THC wirken über unterschiedliche Rezeptorsysteme. Die gleichzeitige Anwendung kann milde additive Effekte wie erhöhte Herzfrequenz bewirken, gilt aber pharmakologisch als vergleichsweise risikoarm.",
+    "harm_reduction": ["Die Kombination wird in der Literatur als pharmakologisch wenig interaktiv beschrieben, wobei kardiovaskuläre Parameter leicht beeinflusst werden können."],
+    "sources": [
+      {"label": "PsychonautWiki – Cannabis Interactions", "url": "https://psychonautwiki.org/wiki/Cannabis"},
+      {"label": "Wikipedia – Nikotin", "url": "https://de.wikipedia.org/wiki/Nikotin"}
+    ],
+    "last_reviewed": "2026-02-24"
+  }
+]
