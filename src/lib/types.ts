@@ -89,3 +89,81 @@ export interface ArticleVersion {
   change_summary: string | null;
   created_at: string;
 }
+
+// ---------------------------------------------------------------------------
+// Substance types
+// ---------------------------------------------------------------------------
+
+export type SubstanceStatus = "draft" | "review" | "published" | "archived";
+
+export interface Substance {
+  id: string;
+  slug: string;
+  name: string;
+  aliases: string[];
+  class_primary: string | null;
+  class_secondary: string | null;
+  status: SubstanceStatus;
+  risk_level: RiskLevel;
+  summary: string | null;
+  source_license: string | null;
+  source_license_url: string | null;
+  imported_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubstanceSource {
+  id: string;
+  substance_id: string;
+  source_url: string;
+  source_domain: string;
+  source_title: string | null;
+  fetched_at: string | null;
+  raw_excerpt: string | null;
+  parsed_json: Record<string, unknown> | null;
+  confidence: number;
+  created_at: string;
+}
+
+export type JobType = "import_psychonautwiki" | "generate_article" | "refresh";
+export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+
+export interface SubstanceJob {
+  id: string;
+  type: JobType;
+  status: JobStatus;
+  payload: Record<string, unknown>;
+  substance_id: string | null;
+  attempts: number;
+  max_attempts: number;
+  priority: number;
+  error: string | null;
+  result_json: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface DomainAllowlistEntry {
+  id: string;
+  domain: string;
+  enabled: boolean;
+  rate_limit_ms: number;
+  created_at: string;
+}
+
+export type GeneratedArticleStatus = "draft" | "review" | "published";
+
+export interface GeneratedArticle {
+  id: string;
+  substance_id: string;
+  article_id: string | null;
+  status: GeneratedArticleStatus;
+  content_mdx: string;
+  citations: { url: string; title?: string; imported_at?: string }[];
+  model_info: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}

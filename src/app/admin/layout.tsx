@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield } from "lucide-react";
+import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, FlaskConical } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/articles", label: "Artikel", icon: FileText },
+  { href: "/admin/substances", label: "Substanz", icon: FlaskConical },
   { href: "/admin/sources", label: "Quellen", icon: BookOpen },
   { href: "/admin/media", label: "Medien", icon: Image },
   { href: "/admin/audit", label: "Audit-Log", icon: ScrollText },
