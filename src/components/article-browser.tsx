@@ -308,8 +308,7 @@ export function ArticleBrowser({
 
       {/* Results count */}
       <div className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">
-        {filtered.length}{" "}
-        {filtered.length === 1 ? "Artikel" : "Artikel"} gefunden
+        {filtered.length} Artikel gefunden
       </div>
 
       {/* Article grid */}
