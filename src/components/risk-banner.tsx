@@ -1,5 +1,5 @@
 import type { RiskLevel } from "@/lib/types";
-import { AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
+import { AlertTriangle, HelpCircle, ShieldAlert, ShieldCheck } from "lucide-react";
 
 const riskConfig: Record<
   RiskLevel,
@@ -22,6 +22,12 @@ const riskConfig: Record<
       "border-l-4 border-red-500 bg-red-50 text-red-800 dark:bg-red-950/30 dark:text-red-300",
     text: "Hohes Risikoprofil – Erhebliche gesundheitliche Risiken",
     Icon: ShieldAlert,
+  },
+  unknown: {
+    className:
+      "border-l-4 border-neutral-500 bg-neutral-50 text-neutral-800 dark:bg-neutral-950/30 dark:text-neutral-300",
+    text: "Unbekanntes Risikoprofil – Unzureichende Datenlage",
+    Icon: HelpCircle,
   },
 };
 

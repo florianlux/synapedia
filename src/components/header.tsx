@@ -20,6 +20,12 @@ export function Header() {
             Startseite
           </Link>
           <Link
+            href="/articles"
+            className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
+          >
+            Artikel
+          </Link>
+          <Link
             href="/categories"
             className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
           >
