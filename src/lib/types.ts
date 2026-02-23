@@ -61,6 +61,14 @@ export interface ArticleSource {
   citation_order: number;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  created_at: string;
+}
+
 export interface AuditLog {
   id: string;
   user_id: string | null;
