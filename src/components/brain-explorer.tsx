@@ -821,7 +821,7 @@ function ReceptorDetail({
           />
           {receptor.label}
         </CardTitle>
-        <CardDescription className="flex flex-wrap gap-2 pt-1">
+        <div className="flex flex-wrap gap-2 pt-1 text-sm text-neutral-500 dark:text-neutral-400">
           <Badge variant="outline" className="text-xs">
             {receptor.type}
           </Badge>
@@ -835,7 +835,7 @@ function ReceptorDetail({
           >
             {SYSTEM_LABELS[receptor.system] ?? receptor.system}
           </Badge>
-        </CardDescription>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-4 px-0">
