@@ -21,6 +21,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import * as url from "node:url";
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -36,7 +38,11 @@ const RATE_LIMIT_MS = 2000;
 /** Cache validity in milliseconds (24 hours) */
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-const DATA_DIR = path.resolve(import.meta.dirname ?? __dirname, "..", "data");
+const SCRIPT_DIR =
+  typeof __dirname !== "undefined"
+    ? __dirname
+    : path.dirname(url.fileURLToPath(import.meta.url));
+const DATA_DIR = path.resolve(SCRIPT_DIR, "..", "data");
 const SUBSTANCES_FILE = path.join(DATA_DIR, "substances.json");
 const CATEGORIES_FILE = path.join(DATA_DIR, "categories.json");
 
@@ -375,10 +381,17 @@ export async function importSubstances(force = false): Promise<{
   return { substances, categories };
 }
 
-// CLI entry point
-const args = process.argv.slice(2);
-const force = args.includes("--force");
-importSubstances(force).catch((err) => {
-  console.error("Import failed:", err);
-  process.exit(1);
-});
+// CLI entry point — only runs when executed directly, not when imported as a module
+const isDirectRun =
+  typeof require !== "undefined"
+    ? require.main === module
+    : process.argv[1] && import.meta.url === url.pathToFileURL(process.argv[1]).href;
+
+if (isDirectRun) {
+  const args = process.argv.slice(2);
+  const force = args.includes("--force");
+  importSubstances(force).catch((err) => {
+    console.error("Import failed:", err);
+    process.exit(1);
+  });
+}
