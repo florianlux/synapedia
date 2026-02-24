@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Brain, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -17,12 +16,6 @@ const navLinks = [
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const pathname = usePathname();
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/80 backdrop-blur-lg dark:border-neutral-800 dark:bg-neutral-950/80">
@@ -69,6 +62,7 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={() => setMobileOpen(false)}
                 className="block rounded-md px-3 py-2 text-base font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-50"
               >
                 {link.label}
