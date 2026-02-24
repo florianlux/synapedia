@@ -55,20 +55,29 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // Supabase returns empty array for limit(0), but the query succeeding means the table exists
-      // To discover actual columns, select a single row
-      const { data: sampleRow } = await supabase
+      // Supabase returns empty array for limit(0), but the query succeeding means the table exists.
+      // Try selecting expected columns explicitly to verify they exist.
+      const colCheckQuery = expectedCols.join(",");
+      const { error: colError } = await supabase
         .from(table)
-        .select("*")
-        .limit(1)
-        .maybeSingle();
+        .select(colCheckQuery)
+        .limit(0);
 
-      const actualCols = sampleRow ? Object.keys(sampleRow) : [];
+      // If the column check query fails, find which columns are missing
+      const missing: string[] = [];
+      if (colError) {
+        for (const col of expectedCols) {
+          const { error: singleColErr } = await supabase
+            .from(table)
+            .select(col)
+            .limit(0);
+          if (singleColErr) {
+            missing.push(col);
+          }
+        }
+      }
 
-      // If no rows exist, we still know the table exists (no error from limit(0))
-      const missing = actualCols.length > 0
-        ? expectedCols.filter((col) => !actualCols.includes(col))
-        : [];
+      const actualCols = expectedCols.filter((col) => !missing.includes(col));
 
       results.push({
         table,
