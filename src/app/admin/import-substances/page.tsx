@@ -89,7 +89,9 @@ function mergeSummaries(summaries: ImportSummary[]): ImportSummary {
     merged.skipped += s.skipped;
     merged.failed += s.failed;
     merged.pubchem_not_found += s.pubchem_not_found;
-    totalConfidence += s.avg_confidence * s.total;
+    if (s.total > 0) {
+      totalConfidence += s.avg_confidence * s.total;
+    }
   }
   merged.avg_confidence = merged.total > 0 ? Math.round(totalConfidence / merged.total) : 0;
   return merged;

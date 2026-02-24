@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[import-substances] Starting batch: ${items.length} items, dryRun=${dryRun}, skipAi=${skipAi}, skipPubChem=${skipPubChem}`,
+      `[import-substances] Starting batch: ${items.length} items, runId=${runId ?? "none"}, dryRun=${dryRun}, skipAi=${skipAi}, skipPubChem=${skipPubChem}`,
     );
 
     const result = await runImport(items, {
