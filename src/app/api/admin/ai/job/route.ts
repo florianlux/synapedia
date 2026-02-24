@@ -12,7 +12,6 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .schema("synapedia")
       .from("ai_jobs")
       .select("*")
       .eq("id", id)

@@ -9,7 +9,6 @@ type JobInsert = {
 export async function createJob(job: JobInsert) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("ai_jobs")
     .insert({ ...job, status: "queued" as AiJobStatus })
     .select()
@@ -26,7 +25,6 @@ export async function createJob(job: JobInsert) {
 export async function getJob(id: string) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("ai_jobs")
     .select("*")
     .eq("id", id)
@@ -46,7 +44,6 @@ export async function updateJob(
 ) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("ai_jobs")
     .update(updates)
     .eq("id", id)
@@ -64,7 +61,6 @@ export async function updateJob(
 export async function listJobs(status?: AiJobStatus) {
   const supabase = createClient();
   let query = supabase
-    .schema("synapedia")
     .from("ai_jobs")
     .select("*")
     .order("created_at", { ascending: false });

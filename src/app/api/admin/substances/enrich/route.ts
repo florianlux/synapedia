@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
 
     // Get the substance
     const { data: substance, error: fetchError } = await supabase
-      .schema("synapedia")
       .from("substances")
       .select("*")
       .eq("id", substanceId)
@@ -45,7 +44,6 @@ export async function POST(request: NextRequest) {
 
     // Update job status to running
     await supabase
-      .schema("synapedia")
       .from("enrichment_jobs")
       .update({ status: "running", phase: "facts", updated_at: new Date().toISOString() })
       .eq("substance_id", substanceId)
@@ -56,7 +54,6 @@ export async function POST(request: NextRequest) {
     const pubchem = await fetchPubChemFacts(substance.name);
 
     await supabase
-      .schema("synapedia")
       .from("enrichment_jobs")
       .update({ phase: "targets", updated_at: new Date().toISOString() })
       .eq("substance_id", substanceId)
@@ -68,7 +65,6 @@ export async function POST(request: NextRequest) {
     const targets = chemblResult?.targets ?? [];
 
     await supabase
-      .schema("synapedia")
       .from("enrichment_jobs")
       .update({ phase: "summary", updated_at: new Date().toISOString() })
       .eq("substance_id", substanceId)
@@ -77,7 +73,6 @@ export async function POST(request: NextRequest) {
     // Phase C: Build structured summary
     const { assembleEnrichmentData } = await import("@/lib/substances/enrichment-pipeline");
     const { data: allSubstances } = await supabase
-      .schema("synapedia")
       .from("substances")
       .select("slug, tags")
       .neq("id", substanceId);
@@ -95,7 +90,6 @@ export async function POST(request: NextRequest) {
     );
 
     await supabase
-      .schema("synapedia")
       .from("enrichment_jobs")
       .update({ phase: "crosslink", updated_at: new Date().toISOString() })
       .eq("substance_id", substanceId)
@@ -110,14 +104,12 @@ export async function POST(request: NextRequest) {
         source: "pubchem",
       }));
       await supabase
-        .schema("synapedia")
         .from("substance_aliases")
         .upsert(aliases, { onConflict: "alias,substance_id" });
     }
 
     if (pubchem?.iupacName) {
       await supabase
-        .schema("synapedia")
         .from("substance_aliases")
         .upsert([{
           substance_id: substanceId,
@@ -129,7 +121,6 @@ export async function POST(request: NextRequest) {
 
     // Update the substance with enrichment data
     const { error: updateError } = await supabase
-      .schema("synapedia")
       .from("substances")
       .update({
         external_ids: enrichmentData.external_ids,
@@ -150,7 +141,6 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       // Mark job as error
       await supabase
-        .schema("synapedia")
         .from("enrichment_jobs")
         .update({
           status: "error",
@@ -165,7 +155,6 @@ export async function POST(request: NextRequest) {
 
     // Mark job as done
     await supabase
-      .schema("synapedia")
       .from("enrichment_jobs")
       .update({
         status: "done",
@@ -202,7 +191,6 @@ export async function GET(request: NextRequest) {
     const supabase = createClient();
 
     const { data: jobs, error } = await supabase
-      .schema("synapedia")
       .from("enrichment_jobs")
       .select("*")
       .order("created_at", { ascending: false })

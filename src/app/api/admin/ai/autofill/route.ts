@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
     // Create AI job record
     const supabase = await createClient();
     const { data: job, error: jobError } = await supabase
-      .schema("synapedia")
       .from("ai_jobs")
       .insert({
         type: "autofill",
@@ -52,7 +51,6 @@ export async function POST(request: NextRequest) {
     // Update job with result
     if (job) {
       await supabase
-        .schema("synapedia")
         .from("ai_jobs")
         .update({ status: "done", output_json: output })
         .eq("id", job.id);
