@@ -71,6 +71,7 @@ interface Citation {
 
 interface BatchJob {
   id: string;
+  name: string;
   type: string;
   status: string;
   created_at: string;
@@ -254,6 +255,84 @@ export default function ContentCreatorPage() {
   };
 
   /* ---------- Batch ---------- */
+  const processBatchItem = async (name: string): Promise<BatchJob> => {
+    try {
+      // Pull data
+      const pullRes = await fetch("/api/admin/content-creator/pull", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const pullData = await pullRes.json();
+
+      // Generate (also upserts draft to DB)
+      const genRes = await fetch("/api/admin/content-creator/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          substanceName: name,
+          slug: slugify(name),
+          wikidata: pullData.wikidata,
+          pubchem: pullData.pubchem,
+        }),
+      });
+      const genData = await genRes.json();
+
+      if (genData.blocked) {
+        return {
+          id: crypto.randomUUID(),
+          name,
+          type: "generate",
+          status: "blocked",
+          created_at: new Date().toISOString(),
+          error: genData.blockedReasons?.join(", "),
+        };
+      }
+
+      // Save draft via publish endpoint
+      const pubRes = await fetch("/api/admin/content-creator/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          substanceName: name,
+          slug: slugify(name),
+          contentMdx: genData.contentMdx,
+          citations: genData.citations,
+          publish: false,
+        }),
+      });
+      const pubData = await pubRes.json();
+
+      if (pubRes.ok) {
+        return {
+          id: pubData.articleId || crypto.randomUUID(),
+          name,
+          type: "map_to_article",
+          status: "succeeded",
+          created_at: new Date().toISOString(),
+        };
+      } else {
+        return {
+          id: crypto.randomUUID(),
+          name,
+          type: "map_to_article",
+          status: "failed",
+          created_at: new Date().toISOString(),
+          error: pubData.error,
+        };
+      }
+    } catch (err) {
+      return {
+        id: crypto.randomUUID(),
+        name,
+        type: "batch",
+        status: "failed",
+        created_at: new Date().toISOString(),
+        error: err instanceof Error ? err.message : "Fehler",
+      };
+    }
+  };
+
   const handleBatch = async () => {
     const names = batchSubstances
       .split("\n")
@@ -271,83 +350,59 @@ export default function ContentCreatorPage() {
     let failed = 0;
 
     for (const name of names) {
-      try {
-        // Pull data
-        const pullRes = await fetch("/api/admin/content-creator/pull", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
-        });
-        const pullData = await pullRes.json();
+      const job = await processBatchItem(name);
+      setBatchJobs((prev) => [...prev, job]);
 
-        // Generate
-        const genRes = await fetch("/api/admin/content-creator/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            substanceName: name,
-            slug: slugify(name),
-            wikidata: pullData.wikidata,
-            pubchem: pullData.pubchem,
-          }),
-        });
-        const genData = await genRes.json();
-
-        if (genData.blocked) {
-          failed++;
-          setBatchJobs((prev) => [...prev, {
-            id: crypto.randomUUID(),
-            type: "generate",
-            status: "blocked",
-            created_at: new Date().toISOString(),
-            error: genData.blockedReasons?.join(", "),
-          }]);
-          addLog(`⚠ ${name}: blockiert`);
-        } else {
-          // Map to article (draft)
-          const pubRes = await fetch("/api/admin/content-creator/publish", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              substanceName: name,
-              slug: slugify(name),
-              contentMdx: genData.contentMdx,
-              citations: genData.citations,
-              publish: false,
-            }),
-          });
-          const pubData = await pubRes.json();
-
-          if (pubRes.ok) {
-            done++;
-            setBatchJobs((prev) => [...prev, {
-              id: pubData.articleId || crypto.randomUUID(),
-              type: "map_to_article",
-              status: "succeeded",
-              created_at: new Date().toISOString(),
-            }]);
-            addLog(`✓ ${name}: Draft erstellt`);
-          } else {
-            failed++;
-            setBatchJobs((prev) => [...prev, {
-              id: crypto.randomUUID(),
-              type: "map_to_article",
-              status: "failed",
-              created_at: new Date().toISOString(),
-              error: pubData.error,
-            }]);
-            addLog(`✗ ${name}: ${pubData.error}`);
-          }
-        }
-      } catch (err) {
+      if (job.status === "succeeded") {
+        done++;
+        addLog(`✓ ${name}: Draft erstellt`);
+      } else if (job.status === "blocked") {
         failed++;
-        addLog(`✗ ${name}: ${err instanceof Error ? err.message : "Fehler"}`);
+        addLog(`⚠ ${name}: blockiert`);
+      } else {
+        failed++;
+        addLog(`✗ ${name}: ${job.error ?? "Fehler"}`);
       }
 
       setBatchProgress({ total: names.length, done, failed });
     }
 
     addLog(`Batch abgeschlossen: ${done} erfolgreich, ${failed} fehlgeschlagen`);
+    setBatchRunning(false);
+  };
+
+  const handleRetryFailed = async () => {
+    const failedJobs = batchJobs.filter((j) => j.status === "failed" || j.status === "blocked");
+    if (failedJobs.length === 0) return;
+
+    setBatchRunning(true);
+    const failedNames = failedJobs.map((j) => j.name);
+    addLog(`Wiederhole ${failedNames.length} fehlgeschlagene Items…`);
+
+    // Remove failed jobs from current list
+    setBatchJobs((prev) => prev.filter((j) => j.status === "succeeded"));
+
+    const total = batchProgress.total;
+    let done = batchProgress.done;
+    let failed = 0;
+    setBatchProgress({ total, done, failed });
+
+    for (const name of failedNames) {
+      const job = await processBatchItem(name);
+      setBatchJobs((prev) => [...prev, job]);
+
+      if (job.status === "succeeded") {
+        done++;
+        addLog(`✓ ${name}: Draft erstellt (Retry)`);
+      } else {
+        failed++;
+        addLog(`✗ ${name}: ${job.error ?? "Fehler"} (Retry)`);
+      }
+
+      setBatchProgress({ total, done, failed });
+    }
+
+    addLog(`Retry abgeschlossen: ${done} erfolgreich, ${failed} fehlgeschlagen`);
     setBatchRunning(false);
   };
 
@@ -755,12 +810,24 @@ export default function ContentCreatorPage() {
                         ) : (
                           <XCircle className="h-3 w-3 text-red-500" />
                         )}
-                        <span className="flex-1 truncate">{job.type}</span>
+                        <span className="flex-1 truncate font-medium">{job.name}</span>
                         <Badge variant="outline" className="text-[10px]">{job.status}</Badge>
                         {job.error && <span className="truncate text-red-500">{job.error}</span>}
                       </div>
                     ))}
                   </div>
+                )}
+
+                {/* Retry failed items */}
+                {!batchRunning && batchJobs.some((j) => j.status === "failed" || j.status === "blocked") && (
+                  <Button
+                    onClick={handleRetryFailed}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Fehlgeschlagene wiederholen ({batchJobs.filter((j) => j.status === "failed" || j.status === "blocked").length})
+                  </Button>
                 )}
 
                 {batchJobs.length === 0 && !batchRunning && (
