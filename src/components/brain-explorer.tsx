@@ -762,7 +762,7 @@ function SidePanel({
       <aside
         aria-label="Detail-Panel"
         className={[
-          "fixed z-50 overflow-y-auto border-neutral-800 bg-neutral-950/95 backdrop-blur-md transition-transform duration-300 ease-in-out",
+          "ds-side-panel fixed z-50 overflow-y-auto border-neutral-800 bg-neutral-950/95 backdrop-blur-md",
           // Mobile: bottom sheet
           "inset-x-0 bottom-0 max-h-[70vh] rounded-t-2xl border-t p-6",
           // Desktop: right panel

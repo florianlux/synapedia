@@ -203,6 +203,84 @@ npm run start    # Production Server starten
 npm run lint     # ESLint ausführen
 ```
 
+## Design System
+
+Synapedia verwendet ein modulares CSS Design System mit wissenschaftlich-technischer Ästhetik. Dark Mode ist Standard.
+
+### Architektur
+
+| Datei | Inhalt |
+|-------|--------|
+| `src/app/design-system.css` | CSS Design Tokens (Farben, Spacing, Radius, Shadows, Typography) |
+| `src/app/components.css` | Wiederverwendbare Komponentenstile |
+| `src/app/globals.css` | Tailwind-Integration, MDX-Styles, Brand-Animationen |
+
+### Design Tokens
+
+- **Farben:** Dark-Mode-First mit `--ds-bg-*`, `--ds-text-*`, `--ds-border-*` Tokens
+- **Accent:** Cyan (`--ds-accent`) und Neuro Purple (`--ds-purple`) nur gezielt eingesetzt
+- **Risk Colors:** Grün (niedrig), Gelb (moderat), Rot (hoch), Grau (unbekannt) mit `--ds-risk-*` Tokens
+- **Evidence Colors:** Cyan (stark), Lila (moderat), Grau (schwach) mit `--ds-evidence-*` Tokens
+- **Spacing:** 4px–64px Skala (`--ds-space-1` bis `--ds-space-16`)
+- **Radius:** 6px–24px + pill (`--ds-radius-sm` bis `--ds-radius-full`)
+- **Shadows:** sm/md/lg + Glow-Varianten (`--ds-shadow-glow-accent`, `--ds-shadow-glow-purple`)
+
+### Typografie
+
+- **Headings:** Space Grotesk (via `--ds-font-heading`)
+- **Body:** Inter (via `--ds-font-body`)
+- **Basis-Größe:** 16px, responsive scaling ab 640px
+- **Line-Heights:** tight (1.25), normal (1.5), relaxed (1.75)
+
+### Komponenten-Klassen
+
+| CSS-Klasse | Verwendung |
+|------------|-----------|
+| `.ds-card` / `.ds-card-lift` / `.ds-card-glow` | Kartenkomponenten mit Hover-Effekten |
+| `.ds-mechanism-box` | Mechanismus-Erklärungsbox (lila Akzent) |
+| `.ds-receptor-tag` | Rezeptor-Tags mit Dot-Indikator |
+| `.ds-risk-badge[data-risk]` | Risiko-Badges (low/moderate/high/unknown) |
+| `.ds-evidence-badge[data-evidence]` | Evidenz-Badges (strong/moderate/weak) |
+| `.ds-section-label` | Uppercase Section-Labels |
+| `.ds-toc` / `.ds-toc-title` | Sticky Inhaltsverzeichnis |
+| `.ds-search-container` / `.ds-search-input` / `.ds-search-dropdown` | Suchleiste mit Dropdown |
+| `.ds-sources-panel` | Quellenbox |
+| `.ds-version-footer` | Versionierungs-Footer |
+| `.ds-side-panel` | Slide-in Side Panel |
+| `.ds-compare-grid` | Vergleichs-Layout (responsive Grid) |
+
+### Animationen
+
+- **Transitions:** 200–300ms ease (`--ds-transition-base`, `--ds-transition-smooth`)
+- **Hover Lift:** `.ds-hover-lift` – translateY(-2px) auf Hover
+- **Glow on Interaction:** `.ds-glow-on-hover` – Accent-Glow nur bei Hover/Focus
+- **Fade In:** `.ds-fade-in` – Subtiles Einblenden
+- **Reduced Motion:** Alle Animationen respektieren `prefers-reduced-motion`
+
+### Verwendung
+
+```css
+/* Design Token direkt nutzen */
+.my-element {
+  background: var(--ds-bg-elevated);
+  border: 1px solid var(--ds-border-primary);
+  border-radius: var(--ds-radius-lg);
+  padding: var(--ds-space-4);
+  transition: all var(--ds-transition-smooth);
+}
+```
+
+```html
+<!-- Komponenten-Klassen nutzen -->
+<div class="ds-card ds-card-lift ds-glow-on-hover">...</div>
+<span class="ds-risk-badge" data-risk="moderate">Moderat</span>
+<span class="ds-evidence-badge" data-evidence="strong">Starke Evidenz</span>
+<div class="ds-mechanism-box">
+  <h3 class="ds-mechanism-title">Mechanismus</h3>
+  <ul><li>...</li></ul>
+</div>
+```
+
 ## Lizenz
 
 MIT

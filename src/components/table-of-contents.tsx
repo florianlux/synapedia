@@ -35,19 +35,19 @@ export function TableOfContents({ headings }: { headings: TocHeading[] }) {
 
   return (
     <nav className="space-y-1 text-sm">
-      <p className="mb-3 font-semibold text-neutral-900 dark:text-neutral-100">
+      <p className="ds-toc-title mb-3 font-semibold font-[family-name:var(--ds-font-heading)] text-neutral-900 dark:text-neutral-100">
         Inhaltsverzeichnis
       </p>
       {headings.map((heading) => (
         <a
           key={heading.id}
           href={`#${heading.id}`}
-          className={`block rounded-md px-3 py-1.5 transition-colors ${
+          className={`block rounded-md px-3 py-1.5 transition-colors ds-transition ${
             heading.level === 3 ? "pl-6" : ""
           } ${
             activeId === heading.id
-              ? "bg-cyan-100 font-medium text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300"
-              : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
+              ? "active bg-cyan-100 font-medium text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300 border-l-2 border-cyan-500"
+              : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 border-l-2 border-transparent"
           }`}
         >
           {heading.text}

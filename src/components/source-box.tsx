@@ -5,8 +5,8 @@ export function SourceBox({ sources }: { sources: Source[] }) {
   if (sources.length === 0) return null;
 
   return (
-    <section className="mt-12 rounded-lg border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-900">
-      <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+    <section className="ds-sources-panel mt-12 rounded-lg border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-900">
+      <h2 className="ds-sources-title mb-4 flex items-center gap-2 text-lg font-semibold font-[family-name:var(--ds-font-heading)]">
         <BookOpen className="h-5 w-5" />
         Quellen
       </h2>

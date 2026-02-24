@@ -69,14 +69,14 @@ export function GlossaryList({ entries }: GlossaryListProps) {
       </div>
 
       {/* A-Z Navigation */}
-      <nav className="sticky top-16 z-10 -mx-4 mb-8 flex flex-wrap gap-1 bg-[#0a0a0a]/80 px-4 py-3 backdrop-blur-sm">
+      <nav className="sticky top-16 z-10 -mx-4 mb-8 flex flex-wrap gap-1 bg-[var(--ds-bg-primary)]/80 px-4 py-3 backdrop-blur-sm dark:bg-[#0a0a0a]/80">
         {alphabet.map((letter) => {
           const isAvailable = availableLetters.has(letter);
           return isAvailable ? (
             <a
               key={letter}
               href={`#letter-${letter}`}
-              className="flex h-8 w-8 items-center justify-center rounded text-sm font-medium text-cyan-500 transition-colors hover:bg-cyan-500/10 hover:text-cyan-400"
+              className="flex h-8 w-8 items-center justify-center rounded text-sm font-medium text-cyan-500 ds-transition hover:bg-cyan-500/10 hover:text-cyan-400"
             >
               {letter}
             </a>
@@ -100,12 +100,12 @@ export function GlossaryList({ entries }: GlossaryListProps) {
 
       {grouped.map(([letter, terms]) => (
         <section key={letter} id={`letter-${letter}`} className="mb-10">
-          <h2 className="mb-4 border-b border-neutral-800 pb-2 text-2xl font-bold text-cyan-500">
+          <h2 className="mb-4 border-b border-neutral-800 pb-2 text-2xl font-bold text-cyan-500 font-[family-name:var(--ds-font-heading)]">
             {letter}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {terms.map((entry) => (
-              <Card key={entry.slug}>
+              <Card key={entry.slug} className="ds-card-lift ds-glow-on-hover">
                 <CardHeader>
                   <CardTitle className="text-lg">{entry.term}</CardTitle>
                   <CardDescription className="line-clamp-2">

@@ -101,7 +101,7 @@ export default async function ArticlePage({
 
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1 className="font-[family-name:var(--ds-font-heading)] text-3xl font-bold tracking-tight sm:text-4xl">
           {article.title}
         </h1>
         {article.subtitle && (
@@ -110,12 +110,12 @@ export default async function ArticlePage({
           </p>
         )}
         <div className="mt-4 flex flex-wrap gap-2">
-          <Badge variant={article.risk_level}>
+          <span className="ds-risk-badge" data-risk={article.risk_level}>
             {riskLabels[article.risk_level]}
-          </Badge>
-          <Badge variant="info">
+          </span>
+          <span className="ds-evidence-badge" data-evidence={article.evidence_strength}>
             {evidenceLabels[article.evidence_strength]}
-          </Badge>
+          </span>
           {article.category && (
             <Badge variant="outline">{article.category}</Badge>
           )}
@@ -131,7 +131,7 @@ export default async function ArticlePage({
       <div className="flex gap-10">
         {/* Sticky TOC (desktop) */}
         <aside className="hidden w-64 shrink-0 lg:block">
-          <div className="sticky top-24">
+          <div className="ds-toc">
             <TableOfContents headings={headings} />
           </div>
         </aside>
@@ -140,6 +140,14 @@ export default async function ArticlePage({
         <article className="mdx-content min-w-0 flex-1">
           {content}
           <SourceBox sources={sources} />
+
+          {/* Version Footer */}
+          <div className="ds-version-footer">
+            <span>Letzte Aktualisierung: {new Date(article.updated_at).toLocaleDateString("de-DE")}</span>
+            {article.published_at && (
+              <span>Erstveröffentlichung: {new Date(article.published_at).toLocaleDateString("de-DE")}</span>
+            )}
+          </div>
         </article>
       </div>
     </div>
