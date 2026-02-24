@@ -73,7 +73,7 @@ export default function TemplatesPage() {
           <p className="col-span-full text-sm text-neutral-500">Laden…</p>
         )}
         {templates.map((tpl) => (
-          <Link key={tpl.id} href={`/admin/templates/${tpl.id}`}>
+          <Link key={tpl.id} href={`/admin/templates/${tpl.slug}`}>
             <Card className="cursor-pointer transition-colors hover:border-cyan-500/40">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

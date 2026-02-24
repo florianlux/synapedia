@@ -17,6 +17,7 @@ export default function NewTemplatePage() {
   ]);
   const [links, setLinks] = useState<TemplateLink[]>([]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
@@ -85,6 +86,7 @@ export default function NewTemplatePage() {
     }
 
     setSaving(true);
+    setError(null);
     try {
       const { createTemplate } = await import("@/lib/db/templates");
       await createTemplate({
@@ -95,6 +97,7 @@ export default function NewTemplatePage() {
       setToast({ message: "Template erfolgreich erstellt.", type: "success" });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Speichern fehlgeschlagen.";
+      setError(message);
       setToast({ message, type: "error" });
     } finally {
       setSaving(false);
@@ -135,6 +138,12 @@ export default function NewTemplatePage() {
           {saving ? "Speichert…" : "Speichern"}
         </Button>
       </div>
+
+      {error && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+          <p className="text-sm font-medium text-red-800 dark:text-red-200">{error}</p>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
