@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain } from "lucide-react";
+import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical } from "lucide-react";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/articles", label: "Artikel", icon: FileText },
+  { href: "/admin/substances", label: "Substanzen", icon: FlaskConical },
   { href: "/admin/templates", label: "Templates", icon: Boxes },
   { href: "/admin/sources", label: "Quellen", icon: BookOpen },
   { href: "/admin/media", label: "Medien", icon: Image },
