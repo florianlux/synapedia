@@ -376,10 +376,10 @@ export function reportMissingCitations(substances: Substance[]): string[] {
 // ---------------------------------------------------------------------------
 
 const PROHIBITED_PATTERNS: { pattern: RegExp; label: string }[] = [
-  { pattern: /\b\d+\s*(mg|µg|ug|ml|g)\b/i, label: "specific dosage amount" },
+  { pattern: /\b(take|nimm|nehme?n?\s+sie)\s+\d+\s*(mg|µg|ug|ml|g)\b/i, label: "dosage instruction" },
   { pattern: /\b(buy|purchase|order|shop|vendor|darknet|dnm)\b/i, label: "procurement language" },
-  { pattern: /\b(dose|dosierung|einnehmen|einnahme|konsumieren)\b/i, label: "consumption instruction" },
-  { pattern: /\b(how to (take|use|consume|inject|smoke|snort))\b/i, label: "usage instruction" },
+  { pattern: /\b(anleitung|schritt.für.schritt|how to (take|use|consume|inject|smoke|snort))\b/i, label: "usage instruction" },
+  { pattern: /\b(bestellen|kaufen|bezugsquelle|lieferant)\b/i, label: "procurement language (DE)" },
 ];
 
 interface ProhibitedFlag {
