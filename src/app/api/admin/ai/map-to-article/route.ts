@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
 
     // 3. Create article in draft status
     const { data: article, error: articleError } = await supabase
-      .schema("synapedia")
       .from("articles")
       .insert({
         title,
