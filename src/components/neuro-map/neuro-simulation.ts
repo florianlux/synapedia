@@ -63,7 +63,7 @@ export function simulationTick(
     b.vy -= fy;
   }
 
-  /* ---- centre gravity ---- */
+  /* ---- center gravity ---- */
   for (const n of nodes) {
     n.vx += (cx - n.x) * CENTER_GRAVITY;
     n.vy += (cy - n.y) * CENTER_GRAVITY;

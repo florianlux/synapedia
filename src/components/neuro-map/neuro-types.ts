@@ -73,7 +73,7 @@ export interface NeuroLink {
   risk?: string;
 }
 
-/** Substance class → colour mapping */
+/** Substance class → color mapping */
 export const CLASS_COLORS: Record<string, string> = {
   Dissoziativa: "#06b6d4",   // cyan
   Psychedelika: "#a855f7",   // purple
@@ -87,7 +87,7 @@ export const CLASS_COLORS: Record<string, string> = {
 
 export const DEFAULT_NODE_COLOR = "#71717a"; // zinc-500
 
-/** Receptor overlay colour mapping (neon style) */
+/** Receptor overlay color mapping (neon style) */
 export const RECEPTOR_COLORS: Record<string, string> = {
   "μ-Opioid": "#ef4444",
   "NMDA": "#06b6d4",

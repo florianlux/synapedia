@@ -250,7 +250,7 @@ export function NeuroMap({ substances, interactions }: NeuroMapProps) {
         const isSelected = selected?.id === node.id || compareNode?.id === node.id;
         const isHovered = hovered?.id === node.id;
         const matchesSearch =
-          searchLower && node.label.toLowerCase().includes(searchLower);
+          searchLower.length > 0 && node.label.toLowerCase().includes(searchLower);
         const dimmed =
           searchLower.length > 0 && !matchesSearch;
 
