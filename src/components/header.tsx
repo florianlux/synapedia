@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Brain, Menu, X } from "lucide-react";
+import { Brain, Lock, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const navLinks = [
@@ -13,6 +13,8 @@ const navLinks = [
   { href: "/glossary", label: "Glossar" },
   { href: "/compare", label: "Vergleich" },
 ];
+
+const adminEnabled = process.env.NEXT_PUBLIC_ADMIN_ENABLED === "true";
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -38,6 +40,15 @@ export function Header() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          {adminEnabled && (
+            <Link
+              href="/admin"
+              className="hidden items-center gap-1 text-xs text-neutral-400/50 transition-colors duration-200 hover:text-teal-300 dark:text-white/50 dark:hover:text-teal-300 lg:flex"
+            >
+              <Lock className="h-3 w-3" />
+              Admin
+            </Link>
+          )}
           <ThemeToggle />
           <button
             type="button"
@@ -68,6 +79,16 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            {adminEnabled && (
+              <Link
+                href="/admin"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-1 rounded-md px-3 py-2 text-xs text-neutral-400/50 transition-colors duration-200 hover:bg-neutral-100 hover:text-teal-300 dark:text-white/50 dark:hover:bg-neutral-800 dark:hover:text-teal-300"
+              >
+                <Lock className="h-3 w-3" />
+                Admin
+              </Link>
+            )}
           </div>
         </nav>
       )}
