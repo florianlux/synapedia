@@ -47,12 +47,14 @@ const SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
  */
 export function sanitizeSubstancePayload<T extends Record<string, unknown>>(
   payload: T,
+  allowedColumns?: ReadonlySet<string>,
 ): Partial<T> {
+  const columns = allowedColumns ?? STATIC_SUBSTANCES_COLUMNS;
   const clean: Record<string, unknown> = {};
   const extras: Record<string, unknown> = {};
 
   for (const key of Object.keys(payload)) {
-    if (SUBSTANCES_COLUMNS.has(key)) {
+    if (columns.has(key)) {
       clean[key] = payload[key];
     } else {
       extras[key] = payload[key];
@@ -75,4 +77,17 @@ export function sanitizeSubstancePayload<T extends Record<string, unknown>>(
   }
 
   return clean as Partial<T>;
+}
+
+/**
+ * Pick the best onConflict column for upsert based on available columns.
+ *
+ * Preference order: canonical_name → slug → name.
+ */
+export function pickOnConflict(
+  allowedColumns: ReadonlySet<string>,
+): string {
+  if (allowedColumns.has("canonical_name")) return "canonical_name";
+  if (allowedColumns.has("slug")) return "slug";
+  return "name";
 }

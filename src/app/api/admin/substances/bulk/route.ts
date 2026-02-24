@@ -5,7 +5,8 @@ import { BulkImportRequestSchema, SubstanceDraftSchema, type SubstanceDraft } fr
 import { buildAllSources } from "@/lib/substances/connectors";
 import { contentSafetyFilter } from "@/lib/substances/content-safety";
 import { canonicalizeName, resolveSynonym, parseCsvTsv, deduplicateNames } from "@/lib/substances/canonicalize";
-import { sanitizeSubstancePayload } from "@/lib/substances/sanitize";
+import { sanitizeSubstancePayload, pickOnConflict } from "@/lib/substances/sanitize";
+import { getAllowedColumns } from "@/lib/substances/sanitize-server";
 import type { ImportSourceType } from "@/lib/substances/schema";
 import type { DeduplicatedEntry } from "@/lib/substances/canonicalize";
 
@@ -234,7 +235,11 @@ async function processBatch(
         external_ids: {},
         enrichment: {},
       };
-      const sanitizedRow = sanitizeSubstancePayload(rawRow);
+      const sanitizedRow = sanitizeSubstancePayload(rawRow, allowedColumns);
+
+      // Ensure the onConflict column is present in the sanitized row
+      const effectiveConflict =
+        onConflictColumn in sanitizedRow ? onConflictColumn : "name";
 
       // Determine status: update existing or create new
       const isUpdate = !!existing;
@@ -242,7 +247,7 @@ async function processBatch(
       // Upsert with onConflict on slug to handle duplicates
       const { data: upserted, error: upsertError } = await supabase
         .from("substances")
-        .upsert(sanitizedRow, { onConflict: "slug" })
+        .upsert(sanitizedRow, { onConflict: effectiveConflict })
         .select("id")
         .single();
 
