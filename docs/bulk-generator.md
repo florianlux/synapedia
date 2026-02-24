@@ -16,13 +16,13 @@ Admin UI (/admin/substances)
       1. Normalize name → slug
       2. Create draft entry (status='draft')
       3. Generate source references (PsychonautWiki, drugcom.de, PubMed, Reddit)
-      4. Store in synapedia.substances + synapedia.substance_sources
+      4. Store in public.substances + public.substance_sources
     → Return summary + per-item results
 ```
 
 ### Database Schema
 
-#### `synapedia.substances`
+#### `public.substances`
 | Column | Type | Description |
 |--------|------|-------------|
 | id | uuid | Primary key |
@@ -41,7 +41,7 @@ Admin UI (/admin/substances)
 | status | text | draft \| review \| published |
 | created_at | timestamptz | Creation timestamp |
 
-#### `synapedia.substance_sources`
+#### `public.substance_sources`
 | Column | Type | Description |
 |--------|------|-------------|
 | id | uuid | Primary key |
@@ -55,7 +55,7 @@ Admin UI (/admin/substances)
 | license_note | text | ToS/robots compliance note |
 | confidence | float | 0..1 source reliability proxy |
 
-#### `synapedia.reddit_reports`
+#### `public.reddit_reports`
 | Column | Type | Description |
 |--------|------|-------------|
 | id | uuid | Primary key |
@@ -171,7 +171,7 @@ A substance draft fails validation if:
 - Verify migration `00004_substances.sql` has been applied
 
 ### Bulk import returns errors for all items
-- Verify the `synapedia.substances` table exists
+- Verify the `public.substances` table exists
 - Check RLS policies are in place
 - Verify Supabase service role key if using authenticated requests
 

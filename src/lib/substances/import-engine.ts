@@ -3,7 +3,7 @@
  *
  * Pipeline per substance:
  *   fetchWikidata → normalize → optional PubChem enrich → AI enrich
- *   → validate → upsert into synapedia.substances (unless dryRun)
+ *   → validate → upsert into public.substances (unless dryRun)
  *
  * Design principles:
  * - PubChem is best-effort; 404 → not_found, never fails the run

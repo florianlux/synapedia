@@ -14,9 +14,6 @@ import type { DeduplicatedEntry } from "@/lib/substances/canonicalize";
 /** Batch size for processing substances */
 const BATCH_SIZE = 25;
 
-/** Schema name used for all DB operations */
-const DB_SCHEMA = "synapedia";
-
 type BulkResultStatus = "created" | "updated" | "skipped" | "failed";
 type PubChemStatus = "found" | "not_found" | "error";
 
@@ -91,6 +88,12 @@ export async function POST(request: NextRequest) {
     // Create admin Supabase client (uses SERVICE_ROLE_KEY, bypasses RLS)
     const supabase = createAdminClient();
 
+    // Runtime diagnostic (development only)
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[bulk] Supabase configured:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+      console.log("[bulk] Using default public schema");
+    }
+
     // Resolve allowed DB columns and conflict target once for all batches
     const allowedColumns = await getAllowedColumns();
     const onConflictColumn = pickOnConflict(allowedColumns);
@@ -117,7 +120,6 @@ export async function POST(request: NextRequest) {
     // Log the import (best-effort, don't fail the response)
     try {
       await supabase
-        .schema(DB_SCHEMA)
         .from("import_logs")
         .insert({
           admin_user: request.headers.get("x-admin-user") || "admin",
@@ -164,7 +166,6 @@ async function processBatch(
     try {
       // Check if already exists by slug or canonical_name
       const { data: existingBySlug } = await supabase
-        .schema(DB_SCHEMA)
         .from("substances")
         .select("id")
         .eq("slug", slug)
@@ -172,7 +173,6 @@ async function processBatch(
 
       const { data: existingByCanonical } = !existingBySlug
         ? await supabase
-            .schema(DB_SCHEMA)
             .from("substances")
             .select("id")
             .eq("canonical_name", name)
@@ -183,7 +183,6 @@ async function processBatch(
 
       // Also check aliases for dedup
       const { data: aliasMatch } = await supabase
-        .schema(DB_SCHEMA)
         .from("substance_aliases")
         .select("substance_id")
         .eq("alias", name.toLowerCase())
@@ -294,7 +293,6 @@ async function processBatch(
 
       // Upsert with onConflict on slug to handle duplicates
       const { data: upserted, error: upsertError } = await supabase
-        .schema(DB_SCHEMA)
         .from("substances")
         .upsert(sanitizedRow, { onConflict: effectiveConflict })
         .select("id")
@@ -317,7 +315,6 @@ async function processBatch(
           source: "csv_import",
         }));
         await supabase
-          .schema(DB_SCHEMA)
           .from("substance_aliases")
           .insert(aliases);
       }
@@ -326,7 +323,6 @@ async function processBatch(
       if (options.fetchSources) {
         const sources = buildAllSources(name, substanceId);
         const { error: sourceError } = await supabase
-          .schema(DB_SCHEMA)
           .from("substance_sources")
           .insert(sources);
 
@@ -338,7 +334,6 @@ async function processBatch(
       // Queue enrichment job if requested
       if (queueEnrichment) {
         await supabase
-          .schema(DB_SCHEMA)
           .from("enrichment_jobs")
           .insert({
             substance_id: substanceId,

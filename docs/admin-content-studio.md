@@ -63,7 +63,7 @@ If neither is set, AI features are disabled with clear UI indicators.
 
 ### Migration: `00003_content_studio.sql`
 
-New tables added to the `synapedia` schema:
+New tables added to the `public` schema:
 
 - **templates** – Article structure blueprints with `schema_json`
 - **media** – Media files with metadata (tags, alt text, dimensions)
