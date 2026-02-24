@@ -118,9 +118,9 @@ CREATE POLICY article_templates_select ON article_templates
 CREATE POLICY article_templates_all ON article_templates
     FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- generated_articles
+-- generated_articles (only authenticated can read, to prevent exposure of drafts/blocked content)
 CREATE POLICY generated_articles_select ON generated_articles
-    FOR SELECT TO anon, authenticated USING (true);
+    FOR SELECT TO authenticated USING (true);
 CREATE POLICY generated_articles_all ON generated_articles
     FOR ALL TO authenticated USING (true) WITH CHECK (true);
 

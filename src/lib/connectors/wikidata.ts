@@ -72,6 +72,9 @@ SELECT ?item ?itemLabel ?itemDescription ?cas ?inchi ?inchiKey ?smiles ?pubchem 
  * Fetch substance by Wikidata QID directly.
  */
 export async function fetchWikidataByQid(qid: string): Promise<WikidataSubstanceData | null> {
+  // Validate QID format (must be Q followed by digits)
+  if (!/^Q\d+$/.test(qid)) return null;
+
   const query = `
 SELECT ?itemLabel ?itemDescription ?cas ?inchi ?inchiKey ?smiles ?pubchem ?chembl ?drugbank WHERE {
   BIND(wd:${escapeSparql(qid)} AS ?item)
@@ -161,5 +164,11 @@ function extractQid(uri?: string): string {
 }
 
 function escapeSparql(input: string): string {
-  return input.replace(/[\\"]/g, "\\$&");
+  return input
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/\t/g, "\\t");
 }
