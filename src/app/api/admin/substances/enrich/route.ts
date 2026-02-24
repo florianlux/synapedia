@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  sanitizeSubstancePayload,
+  sanitizeAliasPayload,
+  sanitizeEnrichmentJobPayload,
+} from "@/lib/substances/sanitize";
 
 /**
  * POST /api/admin/substances/enrich
@@ -29,7 +33,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const supabase = createAdminClient();
+    // Use server client for API routes (not the browser client)
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
 
     // Get the substance
     const { data: substance, error: fetchError } = await supabase
@@ -45,7 +51,13 @@ export async function POST(request: NextRequest) {
     // Update job status to running
     await supabase
       .from("enrichment_jobs")
-      .update({ status: "running", phase: "facts", updated_at: new Date().toISOString() })
+      .update(
+        sanitizeEnrichmentJobPayload({
+          status: "running",
+          phase: "facts",
+          updated_at: new Date().toISOString(),
+        }),
+      )
       .eq("substance_id", substanceId)
       .eq("status", "queued");
 
@@ -55,7 +67,12 @@ export async function POST(request: NextRequest) {
 
     await supabase
       .from("enrichment_jobs")
-      .update({ phase: "targets", updated_at: new Date().toISOString() })
+      .update(
+        sanitizeEnrichmentJobPayload({
+          phase: "targets",
+          updated_at: new Date().toISOString(),
+        }),
+      )
       .eq("substance_id", substanceId)
       .eq("status", "running");
 
@@ -66,7 +83,12 @@ export async function POST(request: NextRequest) {
 
     await supabase
       .from("enrichment_jobs")
-      .update({ phase: "summary", updated_at: new Date().toISOString() })
+      .update(
+        sanitizeEnrichmentJobPayload({
+          phase: "summary",
+          updated_at: new Date().toISOString(),
+        }),
+      )
       .eq("substance_id", substanceId)
       .eq("status", "running");
 
@@ -91,63 +113,94 @@ export async function POST(request: NextRequest) {
 
     await supabase
       .from("enrichment_jobs")
-      .update({ phase: "crosslink", updated_at: new Date().toISOString() })
+      .update(
+        sanitizeEnrichmentJobPayload({
+          phase: "crosslink",
+          updated_at: new Date().toISOString(),
+        }),
+      )
       .eq("substance_id", substanceId)
       .eq("status", "running");
 
-    // Phase D: Store aliases from PubChem synonyms
+    // Phase D: Store aliases from PubChem synonyms (non-blocking)
     if (pubchem?.synonyms && pubchem.synonyms.length > 0) {
-      const aliases = pubchem.synonyms.map((syn) => ({
-        substance_id: substanceId,
-        alias: syn,
-        alias_type: "synonym" as const,
-        source: "pubchem",
-      }));
-      await supabase
-        .from("substance_aliases")
-        .upsert(aliases, { onConflict: "alias,substance_id" });
+      try {
+        const aliases = pubchem.synonyms.map((syn) =>
+          sanitizeAliasPayload({
+            substance_id: substanceId,
+            alias: syn,
+            alias_type: "synonym" as const,
+            source: "pubchem",
+          }),
+        );
+        // Insert individually, ignoring duplicates, instead of upsert with
+        // composite onConflict which can trigger PostgREST constraint errors.
+        for (const alias of aliases) {
+          const { error: aliasErr } = await supabase
+            .from("substance_aliases")
+            .insert(alias);
+          if (aliasErr && aliasErr.code !== "23505") {
+            console.error(`[enrich] Alias insert error:`, aliasErr.message);
+          }
+        }
+      } catch (aliasErr) {
+        console.error(`[enrich] Alias batch error:`, aliasErr instanceof Error ? aliasErr.message : String(aliasErr));
+      }
     }
 
     if (pubchem?.iupacName) {
-      await supabase
-        .from("substance_aliases")
-        .upsert([{
-          substance_id: substanceId,
-          alias: pubchem.iupacName,
-          alias_type: "iupac" as const,
-          source: "pubchem",
-        }], { onConflict: "alias,substance_id" });
+      try {
+        const { error: iupacErr } = await supabase
+          .from("substance_aliases")
+          .insert(
+            sanitizeAliasPayload({
+              substance_id: substanceId,
+              alias: pubchem.iupacName,
+              alias_type: "iupac" as const,
+              source: "pubchem",
+            }),
+          );
+        if (iupacErr && iupacErr.code !== "23505") {
+          console.error(`[enrich] IUPAC alias error:`, iupacErr.message);
+        }
+      } catch (iupacErr) {
+        console.error(`[enrich] IUPAC alias error:`, iupacErr instanceof Error ? iupacErr.message : String(iupacErr));
+      }
     }
 
     // Update the substance with enrichment data
     const { error: updateError } = await supabase
       .from("substances")
-      .update({
-        external_ids: enrichmentData.external_ids,
-        canonical_name: enrichmentData.canonical_name,
-        tags: enrichmentData.tags,
-        related_slugs: enrichmentData.related_slugs,
-        summary: enrichmentData.summary || substance.summary,
-        mechanism: enrichmentData.mechanism || substance.mechanism,
-        enrichment: enrichmentData.enrichment,
-        confidence: {
-          ...(substance.confidence ?? {}),
-          summary: pubchem ? 0.4 : 0,
-          mechanism: targets.length > 0 ? 0.5 : 0,
-        },
-      })
+      .update(
+        sanitizeSubstancePayload({
+          external_ids: enrichmentData.external_ids,
+          canonical_name: enrichmentData.canonical_name,
+          tags: enrichmentData.tags,
+          related_slugs: enrichmentData.related_slugs,
+          summary: enrichmentData.summary || substance.summary,
+          mechanism: enrichmentData.mechanism || substance.mechanism,
+          enrichment: enrichmentData.enrichment,
+          confidence: {
+            ...(substance.confidence ?? {}),
+            summary: pubchem ? 0.4 : 0,
+            mechanism: targets.length > 0 ? 0.5 : 0,
+          },
+        }),
+      )
       .eq("id", substanceId);
 
     if (updateError) {
       // Mark job as error
       await supabase
         .from("enrichment_jobs")
-        .update({
-          status: "error",
-          phase: "error",
-          error_message: updateError.message,
-          updated_at: new Date().toISOString(),
-        })
+        .update(
+          sanitizeEnrichmentJobPayload({
+            status: "error",
+            phase: "error",
+            error_message: updateError.message,
+            updated_at: new Date().toISOString(),
+          }),
+        )
         .eq("substance_id", substanceId);
 
       return NextResponse.json({ error: updateError.message }, { status: 500 });
@@ -156,11 +209,13 @@ export async function POST(request: NextRequest) {
     // Mark job as done
     await supabase
       .from("enrichment_jobs")
-      .update({
-        status: "done",
-        phase: "done",
-        updated_at: new Date().toISOString(),
-      })
+      .update(
+        sanitizeEnrichmentJobPayload({
+          status: "done",
+          phase: "done",
+          updated_at: new Date().toISOString(),
+        }),
+      )
       .eq("substance_id", substanceId);
 
     return NextResponse.json({
@@ -187,7 +242,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = createAdminClient();
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
 
     const { data: jobs, error } = await supabase
       .from("enrichment_jobs")

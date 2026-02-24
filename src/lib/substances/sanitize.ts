@@ -1,17 +1,18 @@
 /**
- * Sanitize payloads before inserting into public.substances.
+ * Sanitize payloads before inserting into Supabase tables.
  *
- * Prevents PostgREST "schema cache" errors caused by sending columns
- * that do not exist in the database table.
+ * Prevents PostgREST "Could not find the …" / "schema cache" errors
+ * caused by sending columns that do not exist in the database table.
  *
- * Unknown keys are not discarded — they are stored in the `meta` jsonb
- * column so no data is lost.
- *
- * The allowlist mirrors the columns from migrations 00004 + 00005 + 00007.
- * If columns are added/removed later, update this set.
+ * Each allowlist mirrors the columns from migrations 00004 + 00005.
+ * If columns are added/removed later, update the corresponding set.
  */
 
-/** All known columns of public.substances (migrations 00004 + 00005 + 00007). */
+/* ------------------------------------------------------------------ */
+/*  Column allowlists                                                 */
+/* ------------------------------------------------------------------ */
+
+/** public.substances (migrations 00004 + 00005). */
 const SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
   // 00004_substances.sql
   "id",
@@ -39,13 +40,62 @@ const SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
   "meta",
 ]);
 
-/**
- * Remove any keys from `payload` that are not columns in public.substances.
- * Unknown keys are merged into the `meta` jsonb field instead of being lost.
- *
- * @returns A new object containing only allowed keys, with extras in `meta`.
- */
-export function sanitizeSubstancePayload<T extends Record<string, unknown>>(
+/** public.substance_sources (migration 00004). */
+const SUBSTANCE_SOURCES_COLUMNS: ReadonlySet<string> = new Set([
+  "id",
+  "substance_id",
+  "source_name",
+  "source_url",
+  "source_type",
+  "retrieved_at",
+  "snippet",
+  "snippet_hash",
+  "license_note",
+  "confidence",
+]);
+
+/** public.substance_aliases (migration 00005). */
+const SUBSTANCE_ALIASES_COLUMNS: ReadonlySet<string> = new Set([
+  "id",
+  "substance_id",
+  "alias",
+  "alias_type",
+  "source",
+  "created_at",
+]);
+
+/** public.enrichment_jobs (migration 00005). */
+const ENRICHMENT_JOBS_COLUMNS: ReadonlySet<string> = new Set([
+  "id",
+  "substance_id",
+  "phase",
+  "status",
+  "error_message",
+  "attempts",
+  "created_at",
+  "updated_at",
+]);
+
+/** public.import_logs (migration 00005). */
+const IMPORT_LOGS_COLUMNS: ReadonlySet<string> = new Set([
+  "id",
+  "admin_user",
+  "source_type",
+  "source_detail",
+  "total_count",
+  "created_count",
+  "skipped_count",
+  "error_count",
+  "created_at",
+]);
+
+/* ------------------------------------------------------------------ */
+/*  Generic sanitizer                                                 */
+/* ------------------------------------------------------------------ */
+
+function sanitizePayload<T extends Record<string, unknown>>(
+  tableName: string,
+  allowedColumns: ReadonlySet<string>,
   payload: T,
   allowedColumns?: ReadonlySet<string>,
 ): Partial<T> {
@@ -54,40 +104,52 @@ export function sanitizeSubstancePayload<T extends Record<string, unknown>>(
   const extras: Record<string, unknown> = {};
 
   for (const key of Object.keys(payload)) {
-    if (columns.has(key)) {
+    if (allowedColumns.has(key)) {
       clean[key] = payload[key];
     } else {
       extras[key] = payload[key];
     }
   }
 
-  // Merge extras into meta (preserving any existing meta from the payload)
-  if (Object.keys(extras).length > 0) {
-    const existingMeta =
-      typeof clean.meta === "object" && clean.meta !== null
-        ? (clean.meta as Record<string, unknown>)
-        : {};
-    clean.meta = { ...existingMeta, ...extras };
-
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(
-        `[sanitizeSubstancePayload] Moved unknown columns to meta: ${Object.keys(extras).join(", ")}`,
-      );
-    }
+  if (discarded.length > 0 && process.env.NODE_ENV !== "production") {
+    console.warn(
+      `[sanitize:${tableName}] Discarded unknown columns: ${discarded.join(", ")}`,
+    );
   }
 
   return clean as Partial<T>;
 }
 
-/**
- * Pick the best onConflict column for upsert based on available columns.
- *
- * Preference order: canonical_name → slug → name.
- */
-export function pickOnConflict(
-  allowedColumns: ReadonlySet<string>,
-): string {
-  if (allowedColumns.has("canonical_name")) return "canonical_name";
-  if (allowedColumns.has("slug")) return "slug";
-  return "name";
+/* ------------------------------------------------------------------ */
+/*  Public helpers (one per table)                                    */
+/* ------------------------------------------------------------------ */
+
+export function sanitizeSubstancePayload<T extends Record<string, unknown>>(
+  payload: T,
+): Partial<T> {
+  return sanitizePayload("substances", SUBSTANCES_COLUMNS, payload);
+}
+
+export function sanitizeSourcePayload<T extends Record<string, unknown>>(
+  payload: T,
+): Partial<T> {
+  return sanitizePayload("substance_sources", SUBSTANCE_SOURCES_COLUMNS, payload);
+}
+
+export function sanitizeAliasPayload<T extends Record<string, unknown>>(
+  payload: T,
+): Partial<T> {
+  return sanitizePayload("substance_aliases", SUBSTANCE_ALIASES_COLUMNS, payload);
+}
+
+export function sanitizeEnrichmentJobPayload<T extends Record<string, unknown>>(
+  payload: T,
+): Partial<T> {
+  return sanitizePayload("enrichment_jobs", ENRICHMENT_JOBS_COLUMNS, payload);
+}
+
+export function sanitizeImportLogPayload<T extends Record<string, unknown>>(
+  payload: T,
+): Partial<T> {
+  return sanitizePayload("import_logs", IMPORT_LOGS_COLUMNS, payload);
 }

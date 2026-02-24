@@ -5,8 +5,13 @@ import { BulkImportRequestSchema, SubstanceDraftSchema, type SubstanceDraft } fr
 import { buildAllSources } from "@/lib/substances/connectors";
 import { contentSafetyFilter } from "@/lib/substances/content-safety";
 import { canonicalizeName, resolveSynonym, parseCsvTsv, deduplicateNames } from "@/lib/substances/canonicalize";
-import { sanitizeSubstancePayload, pickOnConflict } from "@/lib/substances/sanitize";
-import { getAllowedColumns } from "@/lib/substances/sanitize-server";
+import {
+  sanitizeSubstancePayload,
+  sanitizeSourcePayload,
+  sanitizeAliasPayload,
+  sanitizeEnrichmentJobPayload,
+  sanitizeImportLogPayload,
+} from "@/lib/substances/sanitize";
 import type { ImportSourceType } from "@/lib/substances/schema";
 import type { DeduplicatedEntry } from "@/lib/substances/canonicalize";
 
@@ -22,6 +27,11 @@ interface BulkResultItem {
   error?: string;
   id?: string;
 }
+
+/** Allowed values for import_logs.source_type CHECK constraint. */
+const VALID_IMPORT_SOURCE_TYPES: ReadonlySet<string> = new Set([
+  "seed_pack", "paste", "csv", "fetch",
+]);
 
 /**
  * POST /api/admin/substances/bulk
@@ -43,35 +53,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Ungültiger Request-Body." }, { status: 400 });
     }
 
-    const parsed = BulkImportRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Validierungsfehler.", details: parsed.error.flatten() },
-        { status: 400 }
-      );
-    }
+  const { names, options } = parsed.data;
 
-    const { names, options } = parsed.data;
+  // Extract import metadata from request
+  const rawImportSource = (body as Record<string, unknown>)?.importSource as string | undefined;
+  const importSource: ImportSourceType =
+    rawImportSource && VALID_IMPORT_SOURCE_TYPES.has(rawImportSource)
+      ? (rawImportSource as ImportSourceType)
+      : "paste";
+  const importDetail = ((body as Record<string, unknown>)?.importDetail as string) || "";
+  const queueEnrichment = ((body as Record<string, unknown>)?.queueEnrichment as boolean) ?? false;
+  const csvContent = ((body as Record<string, unknown>)?.csvContent as string) || "";
 
-    // Extract import metadata from request
-    const importSource: ImportSourceType = (
-      (body as Record<string, unknown>)?.importSource as ImportSourceType
-    ) || "paste";
-    const importDetail = ((body as Record<string, unknown>)?.importDetail as string) || "";
-    const queueEnrichment = ((body as Record<string, unknown>)?.queueEnrichment as boolean) ?? false;
-    const csvContent = ((body as Record<string, unknown>)?.csvContent as string) || "";
-
-    // Handle CSV mode: parse CSV and extract names + synonyms
-    let processNames = names;
-    let csvSynonyms: Record<string, string[]> = {};
-    if (importSource === "csv" && csvContent) {
-      const entries = parseCsvTsv(csvContent);
-      processNames = entries.map((e) => e.name);
-      csvSynonyms = {};
-      for (const entry of entries) {
-        if (entry.synonyms.length > 0) {
-          csvSynonyms[entry.name] = entry.synonyms;
-        }
+  // Handle CSV mode: parse CSV and extract names + synonyms
+  let processNames = names;
+  let csvSynonyms: Record<string, string[]> = {};
+  if (importSource === "csv" && csvContent) {
+    const entries = parseCsvTsv(csvContent);
+    processNames = entries.map((e) => e.name);
+    csvSynonyms = {};
+    for (const entry of entries) {
+      if (entry.synonyms.length > 0) {
+        csvSynonyms[entry.name] = entry.synonyms;
       }
     }
 
@@ -146,50 +149,45 @@ export async function POST(request: NextRequest) {
     id?: string;
   }[] = [];
 
-  // Create Supabase client with service-role key to bypass RLS
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) {
-    return NextResponse.json(
-      { error: "Server-Konfiguration unvollständig (Supabase)." },
-      { status: 500 }
-    );
-  }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-  // Fetch allowed columns once for the whole batch (cached for 10 min)
-  const allowedColumns = await getAllowedColumns();
-  const onConflictColumn = pickOnConflict(allowedColumns);
+  // Create Supabase server client ONCE, outside the loop.
+  // Using the server client (createServerClient) instead of the browser client
+  // prevents PostgREST errors in server-side API routes.
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
 
   // Process each substance
   for (const entry of deduplicated) {
     const { canonicalName: name, slug } = entry;
 
     try {
-      // Check if already exists by slug or canonical_name
-      const { data: existingBySlug } = await supabase
+      // Check if already exists by slug
+      const { data: existing, error: existsError } = await supabase
         .from("substances")
         .select("id")
         .eq("slug", slug)
         .maybeSingle();
 
-      const { data: existingByCanonical } = !existingBySlug
-        ? await supabase
-            .from("substances")
-            .select("id")
-            .eq("canonical_name", name)
-            .maybeSingle()
-        : { data: existingBySlug };
+      if (existsError) {
+        results.push({ name, slug, status: "error", message: existsError.message });
+        continue;
+      }
 
-      const existing = existingBySlug || existingByCanonical;
+      if (existing) {
+        results.push({ name, slug, status: "skipped", message: "Existiert bereits." });
+        continue;
+      }
 
       // Also check aliases for dedup
-      const { data: aliasMatch } = await supabase
+      const { data: aliasMatch, error: aliasCheckError } = await supabase
         .from("substance_aliases")
         .select("substance_id")
         .eq("alias", name.toLowerCase())
         .maybeSingle();
+
+      if (aliasCheckError) {
+        console.error(`[bulk] Alias check for ${name}:`, aliasCheckError.message);
+        // Non-fatal: continue with insert even if alias check fails
+      }
 
       if (aliasMatch) {
         results.push({ name, slug, status: "skipped", error: "Alias existiert bereits." });
@@ -260,58 +258,88 @@ export async function POST(request: NextRequest) {
       const effectiveConflict =
         onConflictColumn in sanitizedRow ? onConflictColumn : "name";
 
-      // Determine status: update existing or create new
-      const isUpdate = !!existing;
-
-      // Upsert with onConflict on slug to handle duplicates
-      const { data: upserted, error: upsertError } = await supabase
+      // Insert the substance. Use plain insert (not upsert) because we
+      // already verified the slug does not exist. This avoids PostgREST
+      // "Could not find the … key" errors when the DB constraint name
+      // does not match the onConflict parameter.
+      const { data: inserted, error: insertError } = await supabase
         .from("substances")
-        .upsert(sanitizedRow, { onConflict: effectiveConflict })
+        .insert(sanitizedRow)
         .select("id")
         .single();
 
-      if (upsertError) {
-        results.push({ name, slug, status: "failed", error: upsertError.message });
+      if (insertError) {
+        // Handle unique-constraint race condition gracefully
+        if (insertError.code === "23505") {
+          results.push({ name, slug, status: "skipped", message: "Existiert bereits (concurrent)." });
+        } else {
+          results.push({ name, slug, status: "error", message: insertError.message });
+        }
         continue;
       }
 
       const substanceId = upserted.id;
 
-      // Store synonyms from CSV as aliases
+      // Store synonyms from CSV as aliases (non-blocking)
       const synonymsForThis = csvSynonyms[entry.originalName] ?? [];
       if (synonymsForThis.length > 0) {
-        const aliases = synonymsForThis.map((syn) => ({
-          substance_id: substanceId,
-          alias: syn,
-          alias_type: "synonym" as const,
-          source: "csv_import",
-        }));
-        await supabase
-          .from("substance_aliases")
-          .insert(aliases);
-      }
-
-      // Create source references
-      if (options.fetchSources) {
-        const sources = buildAllSources(name, substanceId);
-        const { error: sourceError } = await supabase
-          .from("substance_sources")
-          .insert(sources);
-
-        if (sourceError) {
-          console.error(`[bulk] Sources for ${name}:`, sourceError.message);
+        try {
+          const aliases = synonymsForThis.map((syn) =>
+            sanitizeAliasPayload({
+              substance_id: substanceId,
+              alias: syn,
+              alias_type: "synonym" as const,
+              source: "csv_import",
+            }),
+          );
+          const { error: aliasError } = await supabase
+            .from("substance_aliases")
+            .insert(aliases);
+          if (aliasError) {
+            console.error(`[bulk] Aliases for ${name}:`, aliasError.message);
+          }
+        } catch (aliasErr) {
+          console.error(`[bulk] Aliases for ${name}:`, aliasErr instanceof Error ? aliasErr.message : String(aliasErr));
         }
       }
 
-      // Queue enrichment job if requested
+      // Create source references (non-blocking)
+      if (options.fetchSources) {
+        try {
+          const rawSources = buildAllSources(name, substanceId);
+          const sources = rawSources.map((s) =>
+            sanitizeSourcePayload(s as Record<string, unknown>),
+          );
+          const { error: sourceError } = await supabase
+            .from("substance_sources")
+            .insert(sources);
+
+          if (sourceError) {
+            console.error(`[bulk] Sources for ${name}:`, sourceError.message);
+          }
+        } catch (srcErr) {
+          console.error(`[bulk] Sources for ${name}:`, srcErr instanceof Error ? srcErr.message : String(srcErr));
+        }
+      }
+
+      // Queue enrichment job if requested (non-blocking)
       if (queueEnrichment) {
-        await supabase
-          .from("enrichment_jobs")
-          .insert({
-            substance_id: substanceId,
-            phase: "pending",
-            status: "queued",
-          });
+        try {
+          const { error: jobError } = await supabase
+            .from("enrichment_jobs")
+            .insert(
+              sanitizeEnrichmentJobPayload({
+                substance_id: substanceId,
+                phase: "pending",
+                status: "queued",
+              }),
+            );
+          if (jobError) {
+            console.error(`[bulk] Enrichment job for ${name}:`, jobError.message);
+          }
+        } catch (jobErr) {
+          console.error(`[bulk] Enrichment job for ${name}:`, jobErr instanceof Error ? jobErr.message : String(jobErr));
+        }
       }
 
       results.push({
@@ -326,5 +354,34 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return results;
+  const summary = {
+    total: deduplicated.length,
+    created: results.filter((r) => r.status === "created").length,
+    skipped: results.filter((r) => r.status === "skipped").length,
+    errors: results.filter((r) => r.status === "error").length,
+  };
+
+  // Log the import (non-blocking)
+  try {
+    const { error: logError } = await supabase
+      .from("import_logs")
+      .insert(
+        sanitizeImportLogPayload({
+          admin_user: request.headers.get("x-admin-user") || "admin",
+          source_type: importSource,
+          source_detail: importDetail,
+          total_count: summary.total,
+          created_count: summary.created,
+          skipped_count: summary.skipped,
+          error_count: summary.errors,
+        }),
+      );
+    if (logError) {
+      console.error("[bulk] Import logging failed:", logError.message);
+    }
+  } catch (logErr) {
+    console.error("[bulk] Import logging failed:", logErr);
+  }
+
+  return NextResponse.json({ summary, results });
 }
