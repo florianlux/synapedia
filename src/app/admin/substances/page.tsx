@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -16,11 +17,15 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Search, Upload, FlaskConical, CheckCircle, AlertTriangle, XCircle, Eye } from "lucide-react";
+import {
+  Search, Upload, FlaskConical, CheckCircle, AlertTriangle,
+  XCircle, Eye, Loader2, Database, FileText, Globe, Package,
+} from "lucide-react";
 import type { SubstanceRow } from "@/lib/substances/schema";
-import { SUBSTANCE_SEED_LIST } from "@/lib/substances/seed-list";
+import { SEED_PACKS, getAllSeedNames, getSeedPackNames } from "@/lib/substances/seed-packs";
 
 type StatusFilter = "draft" | "review" | "published" | "";
+type ImportMode = "seed_pack" | "paste" | "csv" | "fetch";
 
 interface BulkResult {
   name: string;
@@ -36,6 +41,14 @@ interface BulkSummary {
   errors: number;
 }
 
+interface EnrichmentJobSummary {
+  total: number;
+  queued: number;
+  running: number;
+  done: number;
+  error: number;
+}
+
 export default function AdminSubstances() {
   const [substances, setSubstances] = useState<SubstanceRow[]>([]);
   const [search, setSearch] = useState("");
@@ -44,14 +57,26 @@ export default function AdminSubstances() {
 
   // Bulk import state
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [importMode, setImportMode] = useState<ImportMode>("paste");
   const [bulkNames, setBulkNames] = useState("");
+  const [csvContent, setCsvContent] = useState("");
+  const [selectedSeedPack, setSelectedSeedPack] = useState("");
+  const [fetchCategory, setFetchCategory] = useState("");
   const [bulkFetchSources, setBulkFetchSources] = useState(true);
   const [bulkGenerateDraft, setBulkGenerateDraft] = useState(true);
   const [bulkQueueReddit, setBulkQueueReddit] = useState(true);
+  const [queueEnrichment, setQueueEnrichment] = useState(false);
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkResults, setBulkResults] = useState<BulkResult[] | null>(null);
   const [bulkSummary, setBulkSummary] = useState<BulkSummary | null>(null);
   const [bulkError, setBulkError] = useState<string | null>(null);
+
+  // Queue status
+  const [enrichmentSummary, setEnrichmentSummary] = useState<EnrichmentJobSummary | null>(null);
+  const [showQueueStatus, setShowQueueStatus] = useState(false);
+
+  // Preview list
+  const [previewNames, setPreviewNames] = useState<string[]>([]);
 
   // Review detail state
   const [reviewSubstance, setReviewSubstance] = useState<SubstanceRow | null>(null);
@@ -73,6 +98,19 @@ export default function AdminSubstances() {
     loadSubstances();
   }, [loadSubstances]);
 
+  // Update preview when input changes
+  useEffect(() => {
+    let names: string[] = [];
+    if (importMode === "paste") {
+      names = bulkNames.split("\n").map((n) => n.trim()).filter((n) => n.length > 0);
+    } else if (importMode === "seed_pack") {
+      names = selectedSeedPack === "__all__" ? getAllSeedNames() : getSeedPackNames(selectedSeedPack);
+    } else if (importMode === "csv") {
+      names = csvContent.split("\n").slice(0, 20).map((l) => l.split(/[,\t]/)[0]?.trim()).filter(Boolean);
+    }
+    setPreviewNames(names.slice(0, 50));
+  }, [importMode, bulkNames, selectedSeedPack, csvContent]);
+
   const filtered = substances.filter((s) => {
     if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.slug.includes(search.toLowerCase())) {
       return false;
@@ -81,16 +119,28 @@ export default function AdminSubstances() {
     return true;
   });
 
+  const getImportNames = (): string[] => {
+    switch (importMode) {
+      case "paste":
+        return bulkNames.split("\n").map((n) => n.trim()).filter((n) => n.length > 0);
+      case "seed_pack":
+        return selectedSeedPack === "__all__" ? getAllSeedNames() : getSeedPackNames(selectedSeedPack);
+      case "csv":
+        return csvContent.split("\n").map((l) => l.split(/[,\t]/)[0]?.trim()).filter(Boolean);
+      case "fetch":
+        return fetchCategory ? [fetchCategory] : [];
+      default:
+        return [];
+    }
+  };
+
   const handleBulkImport = async () => {
     setBulkRunning(true);
     setBulkResults(null);
     setBulkSummary(null);
     setBulkError(null);
 
-    const names = bulkNames
-      .split("\n")
-      .map((n) => n.trim())
-      .filter((n) => n.length > 0);
+    const names = getImportNames();
 
     if (names.length === 0) {
       setBulkError("Keine Substanznamen eingegeben.");
@@ -109,6 +159,10 @@ export default function AdminSubstances() {
             generateDraft: bulkGenerateDraft,
             queueRedditScan: bulkQueueReddit,
           },
+          importSource: importMode,
+          importDetail: importMode === "seed_pack" ? selectedSeedPack : "",
+          queueEnrichment,
+          csvContent: importMode === "csv" ? csvContent : "",
         }),
       });
 
@@ -119,7 +173,6 @@ export default function AdminSubstances() {
       } else {
         setBulkResults(data.results);
         setBulkSummary(data.summary);
-        // Reload substances
         loadSubstances();
       }
     } catch (err) {
@@ -129,8 +182,18 @@ export default function AdminSubstances() {
     }
   };
 
-  const handleLoadSeedList = () => {
-    setBulkNames(SUBSTANCE_SEED_LIST.join("\n"));
+  const handleRunEnrichment = async () => {
+    // Trigger enrichment for all queued jobs
+    try {
+      const res = await fetch("/api/admin/substances/enrich");
+      if (res.ok) {
+        const data = await res.json();
+        setEnrichmentSummary(data.summary);
+        setShowQueueStatus(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch enrichment status:", err);
+    }
   };
 
   const handleStatusChange = async (id: string, newStatus: "draft" | "review" | "published") => {
@@ -187,11 +250,39 @@ export default function AdminSubstances() {
             Substanz-Datenbank verwalten, importieren und reviewen.
           </p>
         </div>
-        <Button onClick={() => setShowBulkModal(true)}>
-          <Upload className="mr-2 h-4 w-4" />
-          Bulk Import (HQ)
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={handleRunEnrichment}>
+            <Database className="mr-2 h-4 w-4" />
+            Queue Status
+          </Button>
+          <Button onClick={() => setShowBulkModal(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Bulk Import
+          </Button>
+        </div>
       </div>
+
+      {/* Enrichment Queue Status Banner */}
+      {showQueueStatus && enrichmentSummary && (
+        <Card>
+          <CardContent className="py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="font-medium">Enrichment Queue:</span>
+                <span className="text-cyan-600">{enrichmentSummary.queued} queued</span>
+                <span className="text-blue-600">{enrichmentSummary.running} running</span>
+                <span className="text-green-600">{enrichmentSummary.done} done</span>
+                {enrichmentSummary.error > 0 && (
+                  <span className="text-red-600">{enrichmentSummary.error} errors</span>
+                )}
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowQueueStatus(false)}>
+                ×
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search & Filter */}
       <div className="flex flex-wrap gap-3">
@@ -252,6 +343,15 @@ export default function AdminSubstances() {
                           {substance.name}
                         </button>
                         <p className="text-xs text-neutral-500 dark:text-neutral-400">/{substance.slug}</p>
+                        {substance.tags && substance.tags.length > 0 && (
+                          <div className="mt-0.5 flex flex-wrap gap-1">
+                            {substance.tags.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-[10px] px-1 py-0">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 pr-4">
                         <Badge variant="secondary">{substance.status}</Badge>
@@ -263,7 +363,7 @@ export default function AdminSubstances() {
                         <div className="flex items-center gap-2">
                           <div className="h-2 w-16 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
                             <div
-                              className="h-full rounded-full bg-cyan-500"
+                              className="h-full rounded-full bg-cyan-500 transition-[width] duration-300 motion-reduce:transition-none"
                               style={{ width: `${avgConf * 100}%` }}
                             />
                           </div>
@@ -304,34 +404,136 @@ export default function AdminSubstances() {
           <DialogHeader>
             <DialogTitle>
               <FlaskConical className="mr-2 inline h-5 w-5 text-cyan-500" />
-              Bulk Import (HQ)
+              Bulk Import
             </DialogTitle>
             <DialogDescription>
-              Gib eine Liste von Substanznamen ein (eine pro Zeile). Jede Substanz wird als Draft mit Quellenreferenzen erstellt.
+              Importiere Substanzen über verschiedene Quellen. Jede Substanz wird als Draft erstellt.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
-            <div>
-              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1 block">
-                Substanznamen (eine pro Zeile)
-              </label>
-              <Textarea
-                placeholder={"Psilocybin\nLSD\nMDMA\nKetamin\n…"}
-                value={bulkNames}
-                onChange={(e) => setBulkNames(e.target.value)}
-                className="min-h-[200px] font-mono text-sm"
-              />
-              <div className="mt-1 flex items-center justify-between">
-                <span className="text-xs text-neutral-500">
-                  {bulkNames.split("\n").filter((n) => n.trim()).length} Substanzen
-                </span>
-                <Button variant="ghost" size="sm" onClick={handleLoadSeedList}>
-                  120 Seed-Liste laden
-                </Button>
-              </div>
-            </div>
+            {/* Import Mode Tabs */}
+            <Tabs defaultValue="paste" value={importMode} onValueChange={(v) => setImportMode(v as ImportMode)}>
+              <TabsList className="w-full grid grid-cols-4">
+                <TabsTrigger value="seed_pack">
+                  <Package className="mr-1 h-3.5 w-3.5" />
+                  Seed Pack
+                </TabsTrigger>
+                <TabsTrigger value="paste">
+                  <FileText className="mr-1 h-3.5 w-3.5" />
+                  Paste
+                </TabsTrigger>
+                <TabsTrigger value="csv">
+                  <Upload className="mr-1 h-3.5 w-3.5" />
+                  CSV/TSV
+                </TabsTrigger>
+                <TabsTrigger value="fetch">
+                  <Globe className="mr-1 h-3.5 w-3.5" />
+                  Fetch
+                </TabsTrigger>
+              </TabsList>
 
+              {/* Seed Pack Tab */}
+              <TabsContent value="seed_pack">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block">
+                    Seed Pack auswählen
+                  </label>
+                  <NativeSelect
+                    value={selectedSeedPack}
+                    onValueChange={setSelectedSeedPack}
+                    className="w-full"
+                  >
+                    <option value="">Pack wählen…</option>
+                    <option value="__all__">Alle Packs ({getAllSeedNames().length} Substanzen)</option>
+                    {SEED_PACKS.map((pack) => (
+                      <option key={pack.id} value={pack.id}>
+                        {pack.label} ({pack.substances.length})
+                      </option>
+                    ))}
+                  </NativeSelect>
+                  {selectedSeedPack && (
+                    <p className="text-xs text-neutral-500">
+                      {selectedSeedPack === "__all__"
+                        ? `${getAllSeedNames().length} Substanzen aus allen Packs`
+                        : `${getSeedPackNames(selectedSeedPack).length} Substanzen: ${SEED_PACKS.find(p => p.id === selectedSeedPack)?.description}`}
+                    </p>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Paste Tab */}
+              <TabsContent value="paste">
+                <div>
+                  <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1 block">
+                    Substanznamen (eine pro Zeile)
+                  </label>
+                  <Textarea
+                    placeholder={"Psilocybin\nLSD\nMDMA\nKetamin\n…"}
+                    value={bulkNames}
+                    onChange={(e) => setBulkNames(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                  />
+                  <span className="text-xs text-neutral-500 mt-1 block">
+                    {bulkNames.split("\n").filter((n) => n.trim()).length} Substanzen
+                  </span>
+                </div>
+              </TabsContent>
+
+              {/* CSV Tab */}
+              <TabsContent value="csv">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block">
+                    CSV/TSV einfügen (Spalten: name, synonyms, notes)
+                  </label>
+                  <Textarea
+                    placeholder={"name,synonyms,notes\nPsilocybin,Magic Mushrooms;Shrooms,Serotonin-Agonist\nLSD,Acid;Lucy,"}
+                    value={csvContent}
+                    onChange={(e) => setCsvContent(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                  />
+                  <p className="text-xs text-neutral-500">
+                    Synonyme mit Semikolon trennen. Erste Zeile wird als Header erkannt falls &quot;name&quot; enthalten.
+                  </p>
+                </div>
+              </TabsContent>
+
+              {/* Fetch Tab */}
+              <TabsContent value="fetch">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block">
+                    Wikidata-Kategorie-ID oder PubChem-Suche
+                  </label>
+                  <Input
+                    placeholder="z.B. Q21174726 (psychoactive drugs) oder Substanzname"
+                    value={fetchCategory}
+                    onChange={(e) => setFetchCategory(e.target.value)}
+                  />
+                  <p className="text-xs text-neutral-500">
+                    Gib eine Wikidata-Entity-ID ein (Q...) um Substanzen aus der Kategorie abzurufen,
+                    oder einen Namen für PubChem-Lookup.
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* Live Preview */}
+            {previewNames.length > 0 && (
+              <div className="rounded-lg border border-neutral-200 dark:border-neutral-700 p-3">
+                <p className="text-xs font-medium text-neutral-500 mb-2">
+                  Vorschau ({previewNames.length}{previewNames.length === 50 ? "+" : ""} Substanzen)
+                </p>
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                  {previewNames.map((name, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">
+                      {name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Options */}
             <div className="space-y-2">
               <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Optionen</p>
               <label className="flex items-center gap-2 text-sm">
@@ -361,8 +563,18 @@ export default function AdminSubstances() {
                 />
                 Reddit-Scan in Queue
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={queueEnrichment}
+                  onChange={(e) => setQueueEnrichment(e.target.checked)}
+                  className="rounded"
+                />
+                Enrichment in Background-Queue (PubChem + ChEMBL)
+              </label>
             </div>
 
+            {/* Error */}
             {bulkError && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
                 <XCircle className="mr-1.5 inline h-4 w-4" />
@@ -370,6 +582,7 @@ export default function AdminSubstances() {
               </div>
             )}
 
+            {/* Summary */}
             {bulkSummary && (
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-900">
                 <p className="text-sm font-medium mb-2">Import-Ergebnis</p>
@@ -394,6 +607,7 @@ export default function AdminSubstances() {
               </div>
             )}
 
+            {/* Per-item results with status chips and error details */}
             {bulkResults && (
               <div className="max-h-48 overflow-y-auto rounded border border-neutral-200 dark:border-neutral-700">
                 <table className="w-full text-xs">
@@ -409,10 +623,7 @@ export default function AdminSubstances() {
                       <tr key={i} className="border-b border-neutral-100 dark:border-neutral-800">
                         <td className="px-2 py-1">{r.name}</td>
                         <td className="px-2 py-1">
-                          {r.status === "created" && <CheckCircle className="inline h-3 w-3 text-green-500" />}
-                          {r.status === "skipped" && <AlertTriangle className="inline h-3 w-3 text-yellow-500" />}
-                          {r.status === "error" && <XCircle className="inline h-3 w-3 text-red-500" />}
-                          {" "}{r.status}
+                          <StatusChip status={r.status} />
                         </td>
                         <td className="px-2 py-1 text-neutral-500">{r.message ?? ""}</td>
                       </tr>
@@ -432,9 +643,16 @@ export default function AdminSubstances() {
             </Button>
             <Button
               onClick={handleBulkImport}
-              disabled={bulkRunning || bulkNames.trim().length === 0}
+              disabled={bulkRunning || getImportNames().length === 0}
             >
-              {bulkRunning ? "Importiert…" : "Run HQ Bulk Import"}
+              {bulkRunning ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" />
+                  Importiert…
+                </>
+              ) : (
+                `Import (${getImportNames().length})`
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -450,10 +668,28 @@ export default function AdminSubstances() {
                 <DialogTitle>{reviewSubstance.name}</DialogTitle>
                 <DialogDescription>
                   /{reviewSubstance.slug} · Status: {reviewSubstance.status}
+                  {reviewSubstance.tags && reviewSubstance.tags.length > 0 && (
+                    <span className="ml-2">
+                      · Tags: {reviewSubstance.tags.join(", ")}
+                    </span>
+                  )}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="mt-4 space-y-4">
+                {/* Enrichment info */}
+                {reviewSubstance.enrichment && Object.keys(reviewSubstance.enrichment).length > 0 && (
+                  <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm dark:border-cyan-800 dark:bg-cyan-950">
+                    <Database className="mr-1.5 inline h-4 w-4 text-cyan-600" />
+                    <span className="font-medium">Enriched</span>
+                    {reviewSubstance.external_ids?.pubchem_cid && (
+                      <span className="ml-2 text-xs text-neutral-500">
+                        PubChem CID: {String(reviewSubstance.external_ids.pubchem_cid)}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Confidence overview */}
                 <div>
                   <p className="text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">Confidence pro Abschnitt</p>
@@ -463,7 +699,7 @@ export default function AdminSubstances() {
                         <span className="w-28 text-neutral-600 dark:text-neutral-400 capitalize">{section}</span>
                         <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
                           <div
-                            className="h-full rounded-full bg-cyan-500"
+                            className="h-full rounded-full bg-cyan-500 transition-[width] duration-300 motion-reduce:transition-none"
                             style={{ width: `${(value as number) * 100}%` }}
                           />
                         </div>
@@ -480,6 +716,18 @@ export default function AdminSubstances() {
                   <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">
                     <AlertTriangle className="mr-1.5 inline h-4 w-4" />
                     Fehlende Quellen: {getMissingCitations(reviewSubstance).join(", ")}
+                  </div>
+                )}
+
+                {/* Related substances */}
+                {reviewSubstance.related_slugs && reviewSubstance.related_slugs.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Verwandte Substanzen</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {reviewSubstance.related_slugs.map((slug) => (
+                        <Badge key={slug} variant="secondary" className="text-xs">{slug}</Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -547,6 +795,23 @@ export default function AdminSubstances() {
 }
 
 /* ---------- Helper Components ---------- */
+
+function StatusChip({ status }: { status: "created" | "skipped" | "error" }) {
+  const config = {
+    created: { icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950", label: "Erstellt" },
+    skipped: { icon: AlertTriangle, color: "text-yellow-600", bg: "bg-yellow-50 dark:bg-yellow-950", label: "Übersprungen" },
+    error: { icon: XCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", label: "Fehler" },
+  }[status];
+
+  const Icon = config.icon;
+
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${config.color} ${config.bg}`}>
+      <Icon className="h-3 w-3" />
+      {config.label}
+    </span>
+  );
+}
 
 function ReviewSection({ title, content }: { title: string; content: string }) {
   if (!content || content === "{}" || content === "[]") {
