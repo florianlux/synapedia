@@ -148,11 +148,21 @@ async function processBatch(
 
     try {
       // Check if already exists by slug or canonical_name
-      const { data: existing } = await supabase
+      const { data: existingBySlug } = await supabase
         .from("substances")
         .select("id")
-        .or(`slug.eq.${slug},canonical_name.eq.${name}`)
+        .eq("slug", slug)
         .maybeSingle();
+
+      const { data: existingByCanonical } = !existingBySlug
+        ? await supabase
+            .from("substances")
+            .select("id")
+            .eq("canonical_name", name)
+            .maybeSingle()
+        : { data: existingBySlug };
+
+      const existing = existingBySlug || existingByCanonical;
 
       // Also check aliases for dedup
       const { data: aliasMatch } = await supabase

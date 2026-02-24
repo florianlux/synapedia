@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * POST /api/admin/substances/enrich
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Get the substance
     const { data: substance, error: fetchError } = await supabase
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data: jobs, error } = await supabase
       .from("enrichment_jobs")

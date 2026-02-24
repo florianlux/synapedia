@@ -18,6 +18,13 @@ export function createAdminClient() {
     throw new Error("Supabase URL and key must be configured.");
   }
 
+  if (!serviceRoleKey) {
+    console.warn(
+      "[createAdminClient] SUPABASE_SERVICE_ROLE_KEY not set — falling back to anon key. " +
+      "RLS will NOT be bypassed. Set the key in production.",
+    );
+  }
+
   return createSupabaseClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });

@@ -41,7 +41,6 @@ interface BulkSummary {
   updated: number;
   skipped: number;
   failed: number;
-  errors?: number;
 }
 
 interface EnrichmentJobSummary {
@@ -607,7 +606,7 @@ export default function AdminSubstances() {
                     <p className="text-xs text-neutral-500">Übersprungen</p>
                   </div>
                   <div>
-                    <p className="text-lg font-bold text-red-600">{bulkSummary.failed ?? bulkSummary.errors ?? 0}</p>
+                    <p className="text-lg font-bold text-red-600">{bulkSummary.failed ?? 0}</p>
                     <p className="text-xs text-neutral-500">Fehler</p>
                   </div>
                 </div>
