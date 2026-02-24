@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { BulkImportRequestSchema, SubstanceDraftSchema, type SubstanceDraft } from "@/lib/substances/schema";
 import { buildAllSources } from "@/lib/substances/connectors";
 import { contentSafetyFilter } from "@/lib/substances/content-safety";
@@ -72,14 +73,14 @@ export async function POST(request: NextRequest) {
     id?: string;
   }[] = [];
 
+  // Create server-side Supabase client once (not per iteration)
+  const supabase = await createClient();
+
   // Process each substance
   for (const entry of deduplicated) {
     const { canonicalName: name, slug } = entry;
 
     try {
-      // Dynamic import to avoid issues when Supabase is not configured
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
 
       // Check if already exists by slug
       const { data: existing } = await supabase
@@ -232,8 +233,6 @@ export async function POST(request: NextRequest) {
 
   // Log the import
   try {
-    const { createClient } = await import("@/lib/supabase/client");
-    const supabase = createClient();
     await supabase
       .from("import_logs")
       .insert({
