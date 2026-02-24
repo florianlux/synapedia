@@ -85,12 +85,17 @@ export async function POST(request: NextRequest) {
     // Create admin Supabase client (uses SERVICE_ROLE_KEY, bypasses RLS)
     const supabase = createAdminClient();
 
+    // Resolve allowed DB columns and conflict target once for all batches
+    const allowedColumns = await getAllowedColumns();
+    const onConflictColumn = pickOnConflict(allowedColumns);
+
     // Process in batches of BATCH_SIZE
     const results: BulkResultItem[] = [];
     for (let i = 0; i < deduplicated.length; i += BATCH_SIZE) {
       const batch = deduplicated.slice(i, i + BATCH_SIZE);
       const batchResults = await processBatch(
         supabase, batch, csvSynonyms, options, queueEnrichment,
+        allowedColumns, onConflictColumn,
       );
       results.push(...batchResults);
     }
@@ -131,39 +136,22 @@ export async function POST(request: NextRequest) {
   }
 }
 
-  // Canonicalize + resolve synonyms + deduplicate
-  const resolvedNames = processNames.map((n) => {
-    const canonical = canonicalizeName(n);
-    return resolveSynonym(canonical);
-  });
-  const deduplicated = deduplicateNames(resolvedNames);
+/**
+ * Process a batch of deduplicated substance entries.
+ * Each entry is handled independently — one failure does not abort the batch.
+ */
+async function processBatch(
+  supabase: ReturnType<typeof createAdminClient>,
+  batch: DeduplicatedEntry[],
+  csvSynonyms: Record<string, string[]>,
+  options: { fetchSources: boolean; generateDraft: boolean; queueRedditScan: boolean },
+  queueEnrichment: boolean,
+  allowedColumns: ReadonlySet<string>,
+  onConflictColumn: string,
+): Promise<BulkResultItem[]> {
+  const results: BulkResultItem[] = [];
 
-  const results: {
-    name: string;
-    slug: string;
-    status: "created" | "skipped" | "error";
-    message?: string;
-    id?: string;
-  }[] = [];
-
-  // Create Supabase client with service-role key to bypass RLS
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) {
-    return NextResponse.json(
-      { error: "Server-Konfiguration unvollständig (Supabase)." },
-      { status: 500 }
-    );
-  }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-  // Fetch allowed columns once for the whole batch (cached for 10 min)
-  const allowedColumns = await getAllowedColumns();
-  const onConflictColumn = pickOnConflict(allowedColumns);
-
-  // Process each substance
-  for (const entry of deduplicated) {
+  for (const entry of batch) {
     const { canonicalName: name, slug } = entry;
 
     try {
