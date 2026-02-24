@@ -174,3 +174,41 @@ export interface GraphEdge {
   origin: string;
   created_at: string;
 }
+
+// Article Templates (AI article generation)
+
+export interface ArticleTemplate {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  prompt_system: string;
+  prompt_user: string;
+  output_schema: Record<string, unknown>;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type GeneratedArticleStatus = "draft" | "blocked" | "review" | "mapped";
+
+export interface GeneratedArticle {
+  id: string;
+  substance_id: string | null;
+  template_key: string;
+  content_mdx: string;
+  citations: GeneratedCitation[];
+  model_info: Record<string, unknown>;
+  status: GeneratedArticleStatus;
+  blocked_reasons: string[];
+  article_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GeneratedCitation {
+  url: string;
+  title: string;
+  fetched_at?: string;
+  license?: string;
+}
