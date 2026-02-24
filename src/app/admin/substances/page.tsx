@@ -134,13 +134,15 @@ export default function AdminSubstances() {
     }
   };
 
-  const handleBulkImport = async () => {
+  const handleBulkImport = async (overrideNames?: string[]) => {
     setBulkRunning(true);
-    setBulkResults(null);
-    setBulkSummary(null);
+    if (!overrideNames) {
+      setBulkResults(null);
+      setBulkSummary(null);
+    }
     setBulkError(null);
 
-    const names = getImportNames();
+    const names = overrideNames ?? getImportNames();
 
     if (names.length === 0) {
       setBulkError("Keine Substanznamen eingegeben.");
@@ -171,8 +173,24 @@ export default function AdminSubstances() {
       if (!res.ok) {
         setBulkError(data.error || "Import fehlgeschlagen.");
       } else {
-        setBulkResults(data.results);
-        setBulkSummary(data.summary);
+        if (overrideNames && bulkResults) {
+          // Merge retry results into existing results
+          const retried = new Set(overrideNames);
+          const kept = bulkResults.filter(
+            (r) => !retried.has(r.name),
+          );
+          const merged = [...kept, ...data.results];
+          setBulkResults(merged);
+          setBulkSummary({
+            total: merged.length,
+            created: merged.filter((r: BulkResult) => r.status === "created").length,
+            skipped: merged.filter((r: BulkResult) => r.status === "skipped").length,
+            errors: merged.filter((r: BulkResult) => r.status === "error").length,
+          });
+        } else {
+          setBulkResults(data.results);
+          setBulkSummary(data.summary);
+        }
         loadSubstances();
       }
     } catch (err) {
@@ -180,6 +198,15 @@ export default function AdminSubstances() {
     } finally {
       setBulkRunning(false);
     }
+  };
+
+  const handleRetryFailed = () => {
+    if (!bulkResults) return;
+    const failedNames = bulkResults
+      .filter((r) => r.status === "error")
+      .map((r) => r.name);
+    if (failedNames.length === 0) return;
+    handleBulkImport(failedNames);
   };
 
   const handleRunEnrichment = async () => {
@@ -642,7 +669,7 @@ export default function AdminSubstances() {
               Schließen
             </Button>
             <Button
-              onClick={handleBulkImport}
+              onClick={() => handleBulkImport()}
               disabled={bulkRunning || getImportNames().length === 0}
             >
               {bulkRunning ? (
@@ -654,6 +681,16 @@ export default function AdminSubstances() {
                 `Import (${getImportNames().length})`
               )}
             </Button>
+            {bulkResults && bulkResults.some((r) => r.status === "error") && (
+              <Button
+                variant="outline"
+                onClick={handleRetryFailed}
+                disabled={bulkRunning}
+              >
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Fehlgeschlagene wiederholen ({bulkResults.filter((r) => r.status === "error").length})
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
