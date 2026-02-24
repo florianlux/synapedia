@@ -10,14 +10,6 @@ import { getAllowedColumns } from "@/lib/substances/sanitize-server";
 import type { ImportSourceType } from "@/lib/substances/schema";
 import type { DeduplicatedEntry } from "@/lib/substances/canonicalize";
 
-/** Create admin Supabase client (uses SERVICE_ROLE_KEY, bypasses RLS) */
-function createAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
-}
-
 /** Batch size for processing substances */
 const BATCH_SIZE = 25;
 
