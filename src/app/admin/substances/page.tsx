@@ -186,8 +186,9 @@ export default function AdminSubstances() {
           setBulkSummary({
             total: merged.length,
             created: merged.filter((r: BulkResult) => r.status === "created").length,
+            updated: merged.filter((r: BulkResult) => r.status === "updated").length,
             skipped: merged.filter((r: BulkResult) => r.status === "skipped").length,
-            errors: merged.filter((r: BulkResult) => r.status === "error").length,
+            failed: merged.filter((r: BulkResult) => r.status === "failed" || r.status === "error").length,
           });
         } else {
           setBulkResults(data.results);

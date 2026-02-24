@@ -85,12 +85,17 @@ export async function POST(request: NextRequest) {
     // Create admin Supabase client (uses SERVICE_ROLE_KEY, bypasses RLS)
     const supabase = createAdminClient();
 
+    // Resolve allowed DB columns and conflict target once for all batches
+    const allowedColumns = await getAllowedColumns();
+    const onConflictColumn = pickOnConflict(allowedColumns);
+
     // Process in batches of BATCH_SIZE
     const results: BulkResultItem[] = [];
     for (let i = 0; i < deduplicated.length; i += BATCH_SIZE) {
       const batch = deduplicated.slice(i, i + BATCH_SIZE);
       const batchResults = await processBatch(
         supabase, batch, csvSynonyms, options, queueEnrichment,
+        allowedColumns, onConflictColumn,
       );
       results.push(...batchResults);
     }
@@ -141,6 +146,8 @@ async function processBatch(
   csvSynonyms: Record<string, string[]>,
   options: { fetchSources: boolean; generateDraft: boolean; queueRedditScan: boolean },
   queueEnrichment: boolean,
+  allowedColumns: ReadonlySet<string>,
+  onConflictColumn: string,
 ): Promise<BulkResultItem[]> {
   const results: BulkResultItem[] = [];
 

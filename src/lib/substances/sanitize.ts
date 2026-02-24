@@ -12,7 +12,7 @@
  */
 
 /** All known columns of public.substances (migrations 00004 + 00005 + 00007). */
-const SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
+export const STATIC_SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
   // 00004_substances.sql
   "id",
   "name",
