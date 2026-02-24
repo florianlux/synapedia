@@ -1,11 +1,39 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { demoArticles } from "@/lib/demo-data";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/select";
+import { Plus, Search } from "lucide-react";
 import Link from "next/link";
+import type { Article, ArticleStatus } from "@/lib/types";
 
 export default function AdminArticles() {
+  const [articles, setArticles] = useState<Article[]>(demoArticles);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ArticleStatus | "">("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Try loading from DB, fallback to demo
+    import("@/lib/db/articles")
+      .then(({ getArticles }) => getArticles())
+      .then(setArticles)
+      .catch(() => setArticles(demoArticles))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = articles.filter((a) => {
+    if (search && !a.title.toLowerCase().includes(search.toLowerCase()) && !a.slug.includes(search.toLowerCase())) {
+      return false;
+    }
+    if (statusFilter && a.status !== statusFilter) return false;
+    return true;
+  });
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -21,9 +49,34 @@ export default function AdminArticles() {
         </Link>
       </div>
 
+      {/* Search & Filter */}
+      <div className="flex flex-wrap gap-3">
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+          <Input
+            placeholder="Artikel suchen…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <NativeSelect
+          value={statusFilter}
+          onValueChange={(v) => setStatusFilter(v as ArticleStatus | "")}
+          className="w-40"
+        >
+          <option value="">Alle Status</option>
+          <option value="draft">Entwurf</option>
+          <option value="review">In Review</option>
+          <option value="published">Veröffentlicht</option>
+        </NativeSelect>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>Alle Artikel ({demoArticles.length})</CardTitle>
+          <CardTitle>
+            {loading ? "Laden…" : `${filtered.length} Artikel`}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -38,14 +91,14 @@ export default function AdminArticles() {
                 </tr>
               </thead>
               <tbody>
-                {demoArticles.map((article) => (
+                {filtered.map((article) => (
                   <tr
                     key={article.id}
                     className="border-b border-neutral-100 dark:border-neutral-800/50"
                   >
                     <td className="py-3 pr-4">
                       <Link
-                        href={`/articles/${article.slug}`}
+                        href={`/admin/articles/${article.id}`}
                         className="font-medium text-neutral-900 hover:text-cyan-500 dark:text-neutral-50"
                       >
                         {article.title}
