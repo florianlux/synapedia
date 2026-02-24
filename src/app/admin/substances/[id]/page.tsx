@@ -395,7 +395,7 @@ export default function SubstanceDetailPage() {
                     <TabsTrigger value="mdx">MDX Quelltext</TabsTrigger>
                   </TabsList>
                   <TabsContent value="preview">
-                    <div className="prose prose-neutral dark:prose-invert max-w-none rounded-md border border-neutral-200 p-4 dark:border-neutral-800 max-h-[500px] overflow-y-auto">
+                    <div role="region" aria-label="Artikelvorschau" className="prose prose-neutral dark:prose-invert max-w-none rounded-md border border-neutral-200 p-4 dark:border-neutral-800 max-h-[500px] overflow-y-auto">
                       {result.content_mdx.split("\n").map((line, i) => {
                         if (line.startsWith("### "))
                           return <h3 key={i} className="mt-4 mb-2 text-lg font-semibold">{line.slice(4)}</h3>;

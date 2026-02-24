@@ -10,7 +10,7 @@ werden nur als Draft gespeichert — Publish ist nur manuell nach Review möglic
 
 ```env
 # Pflicht für AI-Generierung
-OPENAI_API_KEY=sk-...
+OPENAI_API_KEY=your-openai-api-key
 
 # Pflicht für DB-Zugang
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co

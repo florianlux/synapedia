@@ -105,7 +105,13 @@ export function buildPrompts(input: GenerateArticleInput): {
   userPrompt = userPrompt.replace("{{CITATIONS_JSON}}", buildCitationsJson(substance));
   userPrompt = userPrompt.replace("{{LANGUAGE}}", language === "en" ? "English" : "Deutsch");
   userPrompt = userPrompt.replace("{{TONE}}", tone);
-  userPrompt = userPrompt.replace("{{LENGTH}}", length === "short" ? "kurz (~500 Wörter)" : length === "long" ? "ausführlich (~2000 Wörter)" : "mittel (~1000 Wörter)");
+
+  const lengthLabels: Record<string, string> = {
+    short: "kurz (~500 Wörter)",
+    long: "ausführlich (~2000 Wörter)",
+    medium: "mittel (~1000 Wörter)",
+  };
+  userPrompt = userPrompt.replace("{{LENGTH}}", lengthLabels[length] || lengthLabels.medium);
 
   // Build citations from sources
   const citations: GeneratedCitation[] = sources.map((s) => ({

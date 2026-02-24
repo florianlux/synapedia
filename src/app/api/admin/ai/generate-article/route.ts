@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         substance_id: substanceId,
         template_key: templateKey,
         content_mdx: contentMdx,
-        citations: citations as unknown as Record<string, unknown>,
+        citations: JSON.parse(JSON.stringify(citations)),
         model_info: {
           model: "gpt-4o-mini",
           template: templateKey,
