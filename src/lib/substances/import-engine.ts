@@ -109,6 +109,27 @@ export function computeConfidenceScore(params: {
   return Math.min(100, Math.max(0, score));
 }
 
+/* ============ Per-item timeout ============ */
+
+/** Maximum time allowed for a single item (PubChem + AI + DB). */
+const ITEM_TIMEOUT_MS = 45_000;
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timeout (${ms}ms) for ${label}`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /* ============ Pipeline Steps ============ */
 
 async function processItem(
@@ -136,18 +157,34 @@ async function processItem(
   // ── Step 2: PubChem enrichment (optional, best-effort) ──
   let pubchemData: PubChemHardenedResult | null = null;
   if (!options.skipPubChem && item.pubchem_cid) {
-    pubchemData = await fetchPubChemHardened(item.label, item.pubchem_cid);
-    result.pubchem_status = pubchemData.status;
+    try {
+      pubchemData = await withTimeout(
+        fetchPubChemHardened(item.label, item.pubchem_cid),
+        15_000,
+        `PubChem:${item.qid}`,
+      );
+      result.pubchem_status = pubchemData.status;
+    } catch {
+      result.pubchem_status = "error";
+    }
   }
 
   // ── Step 3: AI enrichment ──
   let aiData: Awaited<ReturnType<typeof runAiEnrichment>> | null = null;
   if (!options.skipAi) {
-    aiData = await runAiEnrichment(item.label, item.description || "", {
-      molecularFormula: pubchemData?.data?.molecularFormula,
-      synonyms: pubchemData?.data?.synonyms,
-    });
-    result.ai_status = aiData.status;
+    try {
+      aiData = await withTimeout(
+        runAiEnrichment(item.label, item.description || "", {
+          molecularFormula: pubchemData?.data?.molecularFormula,
+          synonyms: pubchemData?.data?.synonyms,
+        }),
+        35_000,
+        `AI:${item.qid}`,
+      );
+      result.ai_status = aiData.status;
+    } catch {
+      result.ai_status = "failed";
+    }
   }
 
   // ── Step 4: Confidence score ──
@@ -293,13 +330,26 @@ export async function runImport(
   const limited = items.slice(0, options.limit);
 
   for (const item of limited) {
-    const itemResult = await processItem(
-      item,
-      opts,
-      // Pass a dummy client for dry runs (DB step is skipped)
-      supabase ?? createAdminClient(),
-    );
-    results.push(itemResult);
+    try {
+      const itemResult = await withTimeout(
+        processItem(item, opts, supabase ?? createAdminClient()),
+        ITEM_TIMEOUT_MS,
+        `item:${item.qid}`,
+      );
+      results.push(itemResult);
+    } catch (err) {
+      // Per-item timeout or unexpected error – record failure and continue
+      results.push({
+        label: item.label,
+        qid: item.qid,
+        wikidata_status: "ok",
+        pubchem_status: "error",
+        ai_status: "failed",
+        db_status: "failed",
+        confidence_score: 0,
+        error: err instanceof Error ? err.message : "Item processing timeout",
+      });
+    }
   }
 
   const summary: ImportSummary = {

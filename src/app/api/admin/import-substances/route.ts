@@ -4,10 +4,15 @@ import { runImport, type WikidataItem } from "@/lib/substances/import-engine";
 
 // ---------------------------------------------------------------------------
 // POST /api/admin/import-substances
-// Calls the Resilient Import Engine. Returns { runId, summary, items[] }.
+// Accepts a batch of Wikidata items (kept small by the client, e.g. 5-10).
+// Returns { runId, summary, items[] }.
 // ---------------------------------------------------------------------------
 
+/** Hard cap per request – the client should send small batches. */
+const MAX_ITEMS_PER_REQUEST = 50;
+
 export async function POST(request: NextRequest) {
+  const t0 = Date.now();
   try {
     const isAuth = await isAdminAuthenticated(request);
     if (!isAuth) {
@@ -20,6 +25,7 @@ export async function POST(request: NextRequest) {
       limit?: number;
       skipAi?: boolean;
       skipPubChem?: boolean;
+      runId?: string;
     };
 
     try {
@@ -28,27 +34,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Ungültiger Request-Body." }, { status: 400 });
     }
 
-    const { items, dryRun = false, limit = 500, skipAi = false, skipPubChem = false } = body;
+    const { items, dryRun = false, limit = 500, skipAi = false, skipPubChem = false, runId } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "Keine Items angegeben." }, { status: 400 });
     }
 
-    if (items.length > 500) {
-      return NextResponse.json({ error: "Max 500 Items pro Request." }, { status: 400 });
+    if (items.length > MAX_ITEMS_PER_REQUEST) {
+      return NextResponse.json(
+        { error: `Max ${MAX_ITEMS_PER_REQUEST} Items pro Request. Nutze Client-seitiges Batching.` },
+        { status: 400 },
+      );
     }
+
+    console.log(
+      `[import-substances] Starting batch: ${items.length} items, runId=${runId ?? "none"}, dryRun=${dryRun}, skipAi=${skipAi}, skipPubChem=${skipPubChem}`,
+    );
 
     const result = await runImport(items, {
       limit,
       dryRun,
       skipAi,
       skipPubChem,
+      runId,
     });
+
+    const elapsed = Date.now() - t0;
+    console.log(
+      `[import-substances] Batch done in ${elapsed}ms: ${result.summary.inserted} inserted, ${result.summary.updated} updated, ${result.summary.failed} failed`,
+    );
 
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unbekannter Fehler";
-    console.error("[import-substances] Unhandled error:", message);
+    const elapsed = Date.now() - t0;
+    console.error(`[import-substances] Unhandled error after ${elapsed}ms:`, message);
     return NextResponse.json(
       { error: message, details: "Interner Serverfehler." },
       { status: 500 },
