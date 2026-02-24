@@ -11,11 +11,12 @@
   --background: #ffffff;
   --foreground: #0a0a0a;
 
-  /* Brand animation intensity (tweak in one place) */
-  --brand-glow-opacity: 0.45;
-  --brand-glow-blur: 8px;
-  --brand-shimmer-duration: 8s;
-  --brand-twinkle-duration: 4s;
+  /* Brand tuning knobs (adjust in one place) */
+  --brand_logo_opacity: 1;
+  --brand_emblem_opacity: 0.12;
+  --brand_glow_a: 0.22;
+  --brand_glow_b: 0.10;
+  --brand_glint_interval: 16s;
   --brand-glow-color: rgba(6, 182, 212, 0.35);
   --brand-hero-glow-opacity: 0.07;
 }
@@ -24,58 +25,62 @@
   --background: #0a0a0a;
   --foreground: #fafafa;
 
-  --brand-glow-opacity: 0.55;
-  --brand-glow-blur: 10px;
+  --brand_glow_a: 0.28;
+  --brand_glow_b: 0.14;
   --brand-glow-color: rgba(6, 182, 212, 0.45);
   --brand-hero-glow-opacity: 0.10;
 }
 
 /* ─── Brand animation keyframes ─── */
-@keyframes brand-shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+
+/* Rare top-right glint (replaces continuous shimmer) */
+@keyframes brand-glint {
+  0%, 92% { opacity: 0; }
+  95% { opacity: 0.7; }
+  100% { opacity: 0; }
 }
 
-@keyframes brand-glow-pulse {
-  0%, 100% { filter: drop-shadow(0 0 var(--brand-glow-blur) var(--brand-glow-color)); opacity: var(--brand-glow-opacity); }
-  50% { filter: drop-shadow(0 0 calc(var(--brand-glow-blur) * 1.4) var(--brand-glow-color)); opacity: calc(var(--brand-glow-opacity) * 1.15); }
+/* Snake micro-move: subtle breathing motion on one node group */
+@keyframes brand-snake-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1.5px); }
 }
 
-@keyframes brand-twinkle {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.9; }
-}
-
-/* Wordmark shimmer utility */
-.brand-shimmer {
-  background: linear-gradient(
-    90deg,
-    currentColor 0%,
-    currentColor 40%,
-    rgba(6, 182, 212, 0.7) 50%,
-    currentColor 60%,
-    currentColor 100%
-  );
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  animation: brand-shimmer var(--brand-shimmer-duration) ease-in-out infinite;
-}
-
-/* Logo glow on hover */
+/* Static high-contrast logo glow (no animation) */
 .brand-logo-glow {
-  filter: drop-shadow(0 0 var(--brand-glow-blur) var(--brand-glow-color));
+  opacity: var(--brand_logo_opacity, 1);
+  filter:
+    drop-shadow(0 0 6px rgba(110, 255, 230, var(--brand_glow_a, 0.22)))
+    drop-shadow(0 0 18px rgba(110, 255, 230, var(--brand_glow_b, 0.10)));
   transition: filter 0.3s ease;
 }
 .brand-logo-glow:hover {
-  filter: drop-shadow(0 0 calc(var(--brand-glow-blur) * 1.6) var(--brand-glow-color));
+  filter:
+    drop-shadow(0 0 8px rgba(110, 255, 230, 0.32))
+    drop-shadow(0 0 22px rgba(110, 255, 230, 0.16));
 }
 
-/* Twinkle animation for logo nodes */
-.brand-twinkle {
-  animation: brand-twinkle var(--brand-twinkle-duration) ease-in-out infinite;
+/* Rare glint overlay – applied to a small pseudo-element, not the whole logo */
+.brand-glint {
+  position: relative;
+  overflow: hidden;
+}
+.brand-glint::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30%;
+  height: 30%;
+  background: radial-gradient(circle at 80% 20%, rgba(110, 255, 230, 0.45), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  animation: brand-glint 1.2s ease-in-out var(--brand_glint_interval, 16s) infinite;
+}
+
+/* Snake breathing motion for logo nodes */
+.brand-snake-breathe {
+  animation: brand-snake-breathe 10s ease-in-out infinite;
 }
 
 /* Hero subtle radial glow */
@@ -93,20 +98,15 @@
 
 /* Accessibility: disable animations for reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
-  .brand-shimmer {
+  .brand-glint::after {
     animation: none;
-    background: none;
-    color: unset;
-    -webkit-text-fill-color: unset;
+    display: none;
   }
-  .brand-logo-glow {
-    filter: none;
+  .brand-snake-breathe {
+    animation: none !important;
   }
   .brand-hero-glow::before {
     display: none;
-  }
-  .brand-twinkle {
-    animation: none !important;
   }
 }
 
