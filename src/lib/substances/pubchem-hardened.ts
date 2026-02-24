@@ -10,7 +10,7 @@
  */
 
 const PUBCHEM_BASE = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
-const TIMEOUT_MS = 10_000;
+const TIMEOUT_MS = 7_000;
 
 export type PubChemFetchStatus = "ok" | "not_found" | "error" | "skipped";
 
@@ -32,7 +32,7 @@ export interface PubChemHardenedResult {
 
 async function fetchWithRetry(
   url: string,
-  retries = 1,
+  retries = 2,
 ): Promise<Response | null> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -44,18 +44,18 @@ async function fetchWithRetry(
       // 2xx → success
       if (res.ok) return res;
 
-      // 5xx or other transient → retry
+      // 5xx or other transient → retry with exponential backoff
       if (res.status >= 500 && attempt < retries) {
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
         continue;
       }
 
       // Non-retryable non-2xx
       return res;
     } catch (err) {
-      // Network error or timeout → retry once
+      // Network error or timeout → retry with backoff
       if (attempt < retries) {
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
         continue;
       }
       console.error(`[PubChem] Fetch failed for ${url}:`, err instanceof Error ? err.message : err);

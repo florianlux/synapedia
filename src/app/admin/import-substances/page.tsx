@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Globe, Database, Loader2, CheckCircle, AlertTriangle,
-  Download, Play, Eye, FileText, Filter,
+  Download, Play, Eye, FileText, Filter, RotateCcw,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -29,6 +29,9 @@ type DbStatus = "inserted" | "updated" | "skipped" | "failed";
 interface ImportItemResult {
   label: string;
   qid: string;
+  slug?: string;
+  status?: "inserted" | "updated" | "skipped" | "failed";
+  reason?: string;
   wikidata_status: WikidataStatus;
   pubchem_status: PubChemStatus;
   ai_status: AiStatus;
@@ -37,20 +40,19 @@ interface ImportItemResult {
   error?: string;
 }
 
-interface ImportSummary {
-  total: number;
-  inserted: number;
-  updated: number;
-  skipped: number;
-  failed: number;
-  pubchem_not_found: number;
-  avg_confidence: number;
+interface BatchApiResponse {
+  ok: boolean;
+  results: ImportItemResult[];
+  error?: string;
 }
 
-interface ImportRunResult {
-  runId: string;
-  summary: ImportSummary;
-  items: ImportItemResult[];
+interface BatchProgress {
+  totalItems: number;
+  processedItems: number;
+  successCount: number;
+  failCount: number;
+  currentBatch: number;
+  totalBatches: number;
 }
 
 type PipelineStep = "idle" | "wikidata" | "importing" | "done" | "error";
@@ -146,14 +148,17 @@ function ConfidenceChip({ score }: { score: number }) {
 export default function ImportSubstancesPage() {
   const [step, setStep] = useState<PipelineStep>("idle");
   const [limit, setLimit] = useState(100);
+  const [batchSize, setBatchSize] = useState(5);
   const [dryRun, setDryRun] = useState(true);
   const [skipAi, setSkipAi] = useState(false);
   const [skipPubChem, setSkipPubChem] = useState(false);
   const [showNeedsReview, setShowNeedsReview] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [wikidataItems, setWikidataItems] = useState<WikidataItem[]>([]);
-  const [runResult, setRunResult] = useState<ImportRunResult | null>(null);
+  const [allResults, setAllResults] = useState<ImportItemResult[]>([]);
+  const [progress, setProgress] = useState<BatchProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef(false);
 
   const addLog = useCallback((msg: string) => {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -164,7 +169,8 @@ export default function ImportSubstancesPage() {
     setStep("wikidata");
     setError(null);
     setLogs([]);
-    setRunResult(null);
+    setAllResults([]);
+    setProgress(null);
     addLog(`Starte Wikidata SPARQL-Abfrage (limit=${limit})…`);
 
     try {
@@ -180,71 +186,182 @@ export default function ImportSubstancesPage() {
     }
   }, [limit, addLog]);
 
-  // Step 2: Run import pipeline (PubChem + AI + DB via server)
-  const handleRunImport = useCallback(async () => {
-    if (wikidataItems.length === 0) return;
+  // Step 2: Run import pipeline with client-side batching
+  const runBatchedImport = useCallback(async (itemsToImport: WikidataItem[]) => {
+    if (itemsToImport.length === 0) return;
     setStep("importing");
-    addLog(`Starte Import-Pipeline (dryRun=${dryRun}, skipAi=${skipAi}, skipPubChem=${skipPubChem})…`);
+    setError(null);
+    abortRef.current = false;
 
-    try {
-      const res = await fetch("/api/admin/import-substances", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: wikidataItems,
-          dryRun,
-          limit,
-          skipAi,
-          skipPubChem,
-        }),
-      });
+    const totalItems = itemsToImport.length;
+    const totalBatches = Math.ceil(totalItems / batchSize);
+    const collectedResults: ImportItemResult[] = [];
+    let successCount = 0;
+    let failCount = 0;
 
-      const data = await res.json();
+    addLog(
+      `Starte Import-Pipeline (${totalItems} Items, ${totalBatches} Batches à ${batchSize}, dryRun=${dryRun}, skipAi=${skipAi}, skipPubChem=${skipPubChem})…`,
+    );
 
-      if (!res.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
+    setProgress({ totalItems, processedItems: 0, successCount: 0, failCount: 0, currentBatch: 0, totalBatches });
+
+    for (let i = 0; i < totalBatches; i++) {
+      if (abortRef.current) {
+        addLog("⏹ Import abgebrochen.");
+        break;
       }
 
-      setRunResult(data as ImportRunResult);
-      const s = data.summary as ImportSummary;
-      addLog(
-        `✓ Pipeline abgeschlossen: ${s.inserted} eingefügt, ${s.updated} aktualisiert, ` +
-        `${s.failed} fehlgeschlagen, ${s.pubchem_not_found} PubChem nicht gefunden, ` +
-        `Ø Konfidenz: ${s.avg_confidence}%`
-      );
-      setStep("done");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unbekannter Fehler";
-      addLog(`✗ Import-Fehler: ${msg}`);
-      setError(msg);
-      setStep("error");
+      const batchItems = itemsToImport.slice(i * batchSize, (i + 1) * batchSize);
+      const batchNum = i + 1;
+      addLog(`Batch ${batchNum}/${totalBatches} (${batchItems.length} Items)…`);
+
+      try {
+        const res = await fetch("/api/admin/import-substances", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: batchItems,
+            dryRun,
+            skipAi,
+            skipPubChem,
+          }),
+        });
+
+        const data: BatchApiResponse = await res.json();
+
+        if (!res.ok || !data.ok) {
+          // Whole batch failed — mark all items as failed
+          const failedResults: ImportItemResult[] = batchItems.map((item) => ({
+            label: item.label,
+            qid: item.qid,
+            status: "failed" as const,
+            reason: data.error || `HTTP ${res.status}`,
+            wikidata_status: "ok" as WikidataStatus,
+            pubchem_status: "skipped" as PubChemStatus,
+            ai_status: "skipped" as AiStatus,
+            db_status: "failed" as DbStatus,
+            confidence_score: 0,
+          }));
+          collectedResults.push(...failedResults);
+          failCount += batchItems.length;
+          addLog(`✗ Batch ${batchNum} fehlgeschlagen: ${data.error || `HTTP ${res.status}`}`);
+        } else {
+          // Process individual results
+          for (const r of data.results) {
+            collectedResults.push(r);
+            if (r.db_status === "failed" || r.status === "failed") {
+              failCount++;
+            } else {
+              successCount++;
+            }
+          }
+          addLog(`✓ Batch ${batchNum} abgeschlossen (${data.results.length} Items).`);
+        }
+      } catch (err) {
+        // Network error for this batch
+        const msg = err instanceof Error ? err.message : "Netzwerkfehler";
+        const failedResults: ImportItemResult[] = batchItems.map((item) => ({
+          label: item.label,
+          qid: item.qid,
+          status: "failed" as const,
+          reason: msg,
+          wikidata_status: "ok" as WikidataStatus,
+          pubchem_status: "skipped" as PubChemStatus,
+          ai_status: "skipped" as AiStatus,
+          db_status: "failed" as DbStatus,
+          confidence_score: 0,
+        }));
+        collectedResults.push(...failedResults);
+        failCount += batchItems.length;
+        addLog(`✗ Batch ${batchNum} Netzwerkfehler: ${msg}`);
+      }
+
+      // Update progress & results incrementally
+      setProgress({
+        totalItems,
+        processedItems: Math.min((i + 1) * batchSize, totalItems),
+        successCount,
+        failCount,
+        currentBatch: batchNum,
+        totalBatches,
+      });
+      setAllResults([...collectedResults]);
     }
-  }, [wikidataItems, dryRun, limit, skipAi, skipPubChem, addLog]);
+
+    addLog(
+      `✓ Pipeline abgeschlossen: ${successCount} erfolgreich, ${failCount} fehlgeschlagen.`,
+    );
+    setStep("done");
+  }, [batchSize, dryRun, skipAi, skipPubChem, addLog]);
+
+  const handleRunImport = useCallback(async () => {
+    setAllResults([]);
+    setProgress(null);
+    await runBatchedImport(wikidataItems);
+  }, [wikidataItems, runBatchedImport]);
+
+  const handleRetryFailed = useCallback(async () => {
+    const failedQids = new Set(
+      allResults
+        .filter((r) => r.db_status === "failed" || r.status === "failed")
+        .map((r) => r.qid),
+    );
+    const failedItems = wikidataItems.filter((item) => failedQids.has(item.qid));
+    if (failedItems.length === 0) return;
+
+    addLog(`Wiederhole ${failedItems.length} fehlgeschlagene Items…`);
+
+    // Remove old failed results, keep successes
+    setAllResults((prev) =>
+      prev.filter((r) => r.db_status !== "failed" && r.status !== "failed"),
+    );
+    await runBatchedImport(failedItems);
+  }, [allResults, wikidataItems, runBatchedImport, addLog]);
 
   const handleReset = useCallback(() => {
     setStep("idle");
     setLogs([]);
     setWikidataItems([]);
-    setRunResult(null);
+    setAllResults([]);
+    setProgress(null);
     setError(null);
     setShowNeedsReview(false);
+    abortRef.current = false;
   }, []);
 
   const isRunning = step === "wikidata" || step === "importing";
 
+  // Compute summary from collected results
+  const summary = useMemo(() => {
+    if (allResults.length === 0) return null;
+    return {
+      total: allResults.length,
+      inserted: allResults.filter((r) => r.db_status === "inserted").length,
+      updated: allResults.filter((r) => r.db_status === "updated").length,
+      skipped: allResults.filter((r) => r.db_status === "skipped").length,
+      failed: allResults.filter((r) => r.db_status === "failed").length,
+      pubchem_not_found: allResults.filter((r) => r.pubchem_status === "not_found").length,
+      avg_confidence: allResults.length > 0
+        ? Math.round(allResults.reduce((sum, r) => sum + (r.confidence_score ?? 0), 0) / allResults.length)
+        : 0,
+    };
+  }, [allResults]);
+
   // Filter items that need review
   const displayItems = useMemo(() => {
-    if (!runResult?.items) return [];
-    if (!showNeedsReview) return runResult.items;
-    return runResult.items.filter(
+    if (allResults.length === 0) return [];
+    if (!showNeedsReview) return allResults;
+    return allResults.filter(
       (item) =>
-        item.confidence_score < 70 ||
+        (item.confidence_score ?? 0) < 70 ||
         item.ai_status !== "ok" ||
         item.db_status === "failed",
     );
-  }, [runResult, showNeedsReview]);
+  }, [allResults, showNeedsReview]);
 
-  const summary = runResult?.summary ?? null;
+  const failedCount = allResults.filter(
+    (r) => r.db_status === "failed" || r.status === "failed",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -286,6 +403,20 @@ export default function ImportSubstancesPage() {
                 max={5000}
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value))}
+                className="w-28"
+                disabled={isRunning}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                Batch-Größe
+              </label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={batchSize}
+                onChange={(e) => setBatchSize(Math.max(1, Math.min(20, Number(e.target.value))))}
                 className="w-28"
                 disabled={isRunning}
               />
@@ -344,6 +475,12 @@ export default function ImportSubstancesPage() {
               {step === "importing" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : dryRun ? <Eye className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
               2. {dryRun ? "Dry-Run" : "Importieren"} (PubChem + AI + DB)
             </Button>
+            {failedCount > 0 && step === "done" && (
+              <Button onClick={handleRetryFailed} size="sm" variant="outline">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                {failedCount} Fehlgeschlagene wiederholen
+              </Button>
+            )}
             <Button onClick={handleReset} variant="outline" size="sm" disabled={isRunning}>
               Zurücksetzen
             </Button>
@@ -351,13 +488,39 @@ export default function ImportSubstancesPage() {
         </CardContent>
       </Card>
 
+      {/* Progress bar */}
+      {progress && step === "importing" && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span>
+                  Batch {progress.currentBatch}/{progress.totalBatches} —{" "}
+                  {progress.processedItems}/{progress.totalItems} Items
+                </span>
+                <span>
+                  <span className="text-green-600">{progress.successCount} ✓</span>{" "}
+                  <span className="text-red-600">{progress.failCount} ✗</span>
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
+                <div
+                  className="h-full rounded-full bg-violet-600 transition-all duration-300"
+                  style={{ width: `${Math.round((progress.processedItems / progress.totalItems) * 100)}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary cards */}
       {summary && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              Import-Ergebnis {runResult?.runId && <span className="text-xs font-normal text-neutral-400">Run: {runResult.runId.slice(0, 8)}…</span>}
+              Import-Ergebnis
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -396,13 +559,13 @@ export default function ImportSubstancesPage() {
       )}
 
       {/* Results table */}
-      {(runResult?.items?.length ?? 0) > 0 && (
+      {displayItems.length > 0 && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileText className="h-4 w-4" />
-                Ergebnisse ({displayItems.length}{showNeedsReview ? ` von ${runResult!.items.length}` : ""})
+                Ergebnisse ({displayItems.length}{showNeedsReview ? ` von ${allResults.length}` : ""})
               </CardTitle>
               <Button
                 variant={showNeedsReview ? "default" : "outline"}
@@ -424,6 +587,7 @@ export default function ImportSubstancesPage() {
                     <th className="p-2">QID</th>
                     <th className="p-2">Status</th>
                     <th className="p-2">Konfidenz</th>
+                    <th className="p-2">Fehler</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -450,7 +614,10 @@ export default function ImportSubstancesPage() {
                         </div>
                       </td>
                       <td className="p-2">
-                        <ConfidenceChip score={item.confidence_score} />
+                        <ConfidenceChip score={item.confidence_score ?? 0} />
+                      </td>
+                      <td className="p-2 text-xs text-red-500 max-w-xs truncate">
+                        {item.reason || item.error || "–"}
                       </td>
                     </tr>
                   ))}
@@ -467,7 +634,7 @@ export default function ImportSubstancesPage() {
       )}
 
       {/* Preview table (before import) */}
-      {wikidataItems.length > 0 && !runResult && (
+      {wikidataItems.length > 0 && allResults.length === 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">

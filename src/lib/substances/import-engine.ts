@@ -293,11 +293,16 @@ export async function runImport(
   const limited = items.slice(0, options.limit);
 
   for (const item of limited) {
+    const itemStart = Date.now();
     const itemResult = await processItem(
       item,
       opts,
       // Pass a dummy client for dry runs (DB step is skipped)
       supabase ?? createAdminClient(),
+    );
+    const itemElapsed = Date.now() - itemStart;
+    console.log(
+      `[import-engine] ${item.qid} (${item.label}) done in ${itemElapsed}ms — PC:${itemResult.pubchem_status} AI:${itemResult.ai_status} DB:${itemResult.db_status}`,
     );
     results.push(itemResult);
   }
