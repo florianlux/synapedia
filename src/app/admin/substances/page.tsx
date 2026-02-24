@@ -80,6 +80,10 @@ async function enrichAllWithPubChem(
     const result = await enrichWithPubChem(items[i]);
     enriched.push(result);
     onProgress?.(i + 1, items.length);
+    // Small delay to avoid overwhelming PubChem API
+    if (i < items.length - 1) {
+      await new Promise((r) => setTimeout(r, 200));
+    }
   }
   return enriched;
 }
@@ -301,6 +305,9 @@ export default function AdminSubstances() {
         setPubChemProgress({ done, total });
       });
       setSubstances(enriched);
+    } catch {
+      // Individual errors are already caught per-substance; this handles unexpected failures
+      setPubChemProgress((prev) => ({ ...prev, done: prev.total }));
     } finally {
       setIsPubChemRunning(false);
     }
