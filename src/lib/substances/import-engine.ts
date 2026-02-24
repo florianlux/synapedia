@@ -15,6 +15,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchPubChemHardened, type PubChemHardenedResult } from "./pubchem-hardened";
 import { runAiEnrichment, type AiStatus } from "./ai/enrich";
+import { sanitizeSubstanceValues, toNullableNumber } from "./normalize";
 
 /* ============ Types ============ */
 
@@ -213,6 +214,14 @@ async function processItem(
       },
     };
 
+    // Ensure pubchem_cid at top-level is a valid number (bigint column)
+    if ("pubchem_cid" in row) {
+      row.pubchem_cid = toNullableNumber(row.pubchem_cid);
+    }
+
+    // Normalise value types so {} / [] / "N/A" never hit numeric columns
+    const sanitisedRow = sanitizeSubstanceValues(row);
+
     // Check existing by slug
     const { data: existing } = await supabase
       .from("substances")
@@ -227,7 +236,7 @@ async function processItem(
         .update({
           external_ids: identifiers,
           enrichment,
-          meta: row.meta,
+          meta: sanitisedRow.meta,
         })
         .eq("id", existing.id);
 
@@ -241,7 +250,7 @@ async function processItem(
       // Insert
       const { data: inserted, error: insertError } = await supabase
         .from("substances")
-        .insert(row)
+        .insert(sanitisedRow)
         .select("id")
         .single();
 

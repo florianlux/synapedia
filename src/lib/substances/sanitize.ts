@@ -4,12 +4,17 @@
  * Prevents PostgREST "schema cache" errors caused by sending columns
  * that do not exist in the database table.
  *
+ * Also normalises value types so that numeric columns never receive
+ * objects / arrays / "N/A" strings (→ "invalid input syntax for type numeric").
+ *
  * Unknown keys are not discarded — they are stored in the `meta` jsonb
  * column so no data is lost.
  *
  * The allowlist mirrors the columns from migrations 00004 + 00005 + 00007.
  * If columns are added/removed later, update this set.
  */
+
+import { sanitizeSubstanceValues } from "./normalize";
 
 /** All known columns of public.substances (migrations 00004 + 00005 + 00007). */
 export const STATIC_SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
@@ -76,7 +81,10 @@ export function sanitizeSubstancePayload<T extends Record<string, unknown>>(
     }
   }
 
-  return clean as Partial<T>;
+  // Normalise value types (numeric ↔ jsonb ↔ text[] etc.)
+  const normalised = sanitizeSubstanceValues(clean as Record<string, unknown>);
+
+  return normalised as Partial<T>;
 }
 
 /**
