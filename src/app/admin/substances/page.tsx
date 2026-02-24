@@ -30,15 +30,18 @@ type ImportMode = "seed_pack" | "paste" | "csv" | "fetch";
 interface BulkResult {
   name: string;
   slug: string;
-  status: "created" | "skipped" | "error";
+  status: "created" | "updated" | "skipped" | "failed" | "error";
+  error?: string;
   message?: string;
 }
 
 interface BulkSummary {
   total: number;
   created: number;
+  updated: number;
   skipped: number;
-  errors: number;
+  failed: number;
+  errors?: number;
 }
 
 interface EnrichmentJobSummary {
@@ -586,7 +589,7 @@ export default function AdminSubstances() {
             {bulkSummary && (
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-900">
                 <p className="text-sm font-medium mb-2">Import-Ergebnis</p>
-                <div className="grid grid-cols-4 gap-2 text-center text-sm">
+                <div className="grid grid-cols-5 gap-2 text-center text-sm">
                   <div>
                     <p className="text-lg font-bold text-neutral-900 dark:text-neutral-50">{bulkSummary.total}</p>
                     <p className="text-xs text-neutral-500">Gesamt</p>
@@ -596,11 +599,15 @@ export default function AdminSubstances() {
                     <p className="text-xs text-neutral-500">Erstellt</p>
                   </div>
                   <div>
+                    <p className="text-lg font-bold text-blue-600">{bulkSummary.updated ?? 0}</p>
+                    <p className="text-xs text-neutral-500">Aktualisiert</p>
+                  </div>
+                  <div>
                     <p className="text-lg font-bold text-yellow-600">{bulkSummary.skipped}</p>
                     <p className="text-xs text-neutral-500">Übersprungen</p>
                   </div>
                   <div>
-                    <p className="text-lg font-bold text-red-600">{bulkSummary.errors}</p>
+                    <p className="text-lg font-bold text-red-600">{bulkSummary.failed ?? bulkSummary.errors ?? 0}</p>
                     <p className="text-xs text-neutral-500">Fehler</p>
                   </div>
                 </div>
@@ -620,17 +627,39 @@ export default function AdminSubstances() {
                   </thead>
                   <tbody>
                     {bulkResults.map((r, i) => (
-                      <tr key={i} className={`border-b border-neutral-100 dark:border-neutral-800 ${r.status === "error" ? "bg-red-50 dark:bg-red-950/30" : ""}`}>
+                      <tr key={i} className={`border-b border-neutral-100 dark:border-neutral-800 ${r.status === "failed" || r.status === "error" ? "bg-red-50 dark:bg-red-950/30" : ""}`}>
                         <td className="px-2 py-1">{r.name}</td>
                         <td className="px-2 py-1">
                           <StatusChip status={r.status} />
                         </td>
-                        <td className={`px-2 py-1 ${r.status === "error" ? "text-red-600 dark:text-red-400" : "text-neutral-500"}`}>{r.message ?? ""}</td>
+                        <td className={`px-2 py-1 ${r.status === "failed" || r.status === "error" ? "text-red-600 dark:text-red-400" : "text-neutral-500"}`}>{r.error ?? r.message ?? ""}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            )}
+
+            {/* Retry failed button */}
+            {bulkResults && bulkResults.some((r) => r.status === "failed" || r.status === "error") && !bulkRunning && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const failedNames = bulkResults
+                    .filter((r) => r.status === "failed" || r.status === "error")
+                    .map((r) => r.name);
+                  setBulkNames(failedNames.join("\n"));
+                  setImportMode("paste");
+                  setBulkResults(null);
+                  setBulkSummary(null);
+                  setBulkError(null);
+                }}
+                className="text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
+              >
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                {bulkResults.filter((r) => r.status === "failed" || r.status === "error").length} Fehlgeschlagene erneut versuchen
+              </Button>
             )}
           </div>
 
@@ -796,13 +825,16 @@ export default function AdminSubstances() {
 
 /* ---------- Helper Components ---------- */
 
-function StatusChip({ status }: { status: "created" | "skipped" | "error" }) {
-  const config = {
+function StatusChip({ status }: { status: "created" | "updated" | "skipped" | "failed" | "error" }) {
+  const configs: Record<string, { icon: typeof CheckCircle; color: string; bg: string; label: string }> = {
     created: { icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950", label: "Erstellt" },
+    updated: { icon: CheckCircle, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950", label: "Aktualisiert" },
     skipped: { icon: AlertTriangle, color: "text-yellow-600", bg: "bg-yellow-50 dark:bg-yellow-950", label: "Übersprungen" },
+    failed: { icon: XCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", label: "Fehlgeschlagen" },
     error: { icon: XCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", label: "Fehler" },
-  }[status];
+  };
 
+  const config = configs[status] ?? configs.error;
   const Icon = config.icon;
 
   return (
