@@ -5,13 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/select";
 import { Plus, Trash2, Save, Link2, ShieldAlert, Activity } from "lucide-react";
 import type { SubstanceRaw, InteractionRaw, LinkType } from "./neuro-types";
 import { CLASS_COLORS, DEFAULT_NODE_COLOR, RECEPTOR_COLORS } from "./neuro-types";
@@ -108,46 +102,33 @@ export function NeuroAdmin({ substances, interactions }: NeuroAdminProps) {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-4">
-                <Select value={newLinkSource} onValueChange={setNewLinkSource}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Quelle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {substances.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={newLinkSource} onValueChange={setNewLinkSource}>
+                  <option value="" disabled>Quelle</option>
+                  {substances.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </NativeSelect>
 
-                <Select value={newLinkTarget} onValueChange={setNewLinkTarget}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ziel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {substances.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={newLinkTarget} onValueChange={setNewLinkTarget}>
+                  <option value="" disabled>Ziel</option>
+                  {substances.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </NativeSelect>
 
-                <Select
+                <NativeSelect
                   value={newLinkType}
                   onValueChange={(v) => setNewLinkType(v as LinkType)}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="class">Stoffgruppe</SelectItem>
-                    <SelectItem value="receptor">Rezeptor</SelectItem>
-                    <SelectItem value="interaction">Interaktion</SelectItem>
-                    <SelectItem value="structure">Struktur</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="class">Stoffgruppe</option>
+                  <option value="receptor">Rezeptor</option>
+                  <option value="interaction">Interaktion</option>
+                  <option value="structure">Struktur</option>
+                </NativeSelect>
 
                 <Button onClick={addLink} className="gap-1">
                   <Plus className="h-4 w-4" />
@@ -278,19 +259,15 @@ export function NeuroAdmin({ substances, interactions }: NeuroAdminProps) {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Select
+                      <NativeSelect
                         value={current}
                         onValueChange={(v) => setRisk(s.id, v)}
+                        className="h-8 w-32"
                       >
-                        <SelectTrigger className="h-8 w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">low</SelectItem>
-                          <SelectItem value="moderate">moderate</SelectItem>
-                          <SelectItem value="high">high</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <option value="low">low</option>
+                        <option value="moderate">moderate</option>
+                        <option value="high">high</option>
+                      </NativeSelect>
                       {riskEdits[s.id] && riskEdits[s.id] !== s.risk_level && (
                         <Badge variant="secondary" className="text-[10px]">
                           geändert
