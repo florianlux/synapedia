@@ -319,7 +319,7 @@ export function CompareTool({
       {subA && subB ? (
         <>
           <div className="mb-6 flex justify-end">
-            <Button variant="outline" size="sm" onClick={handleShare}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={handleShare}>
               <Link2 className="mr-1.5 h-4 w-4" />
               {copied ? "Link kopiert!" : "Als Link teilen"}
             </Button>
