@@ -10,7 +10,7 @@ export function BrandWordmark({
   as: Tag = "span",
   className = "",
 }: {
-  as?: "span" | "h1";
+  as?: "span" | "h1" | "h2" | "h3" | "div" | "p";
   className?: string;
 }) {
   return (

@@ -120,7 +120,7 @@
   pointer-events: none;
   color: var(--brand-accent);
   filter: blur(0.5px);
-  mix-blend-mode: multiply;
+  mix-blend-mode: normal;
 }
 
 .dark .brand-emblem {
