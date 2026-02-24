@@ -69,7 +69,7 @@ export function GlossaryList({ entries }: GlossaryListProps) {
       </div>
 
       {/* A-Z Navigation */}
-      <nav className="sticky top-16 z-10 -mx-4 mb-8 flex flex-wrap gap-1 bg-[var(--ds-bg-primary)]/80 px-4 py-3 backdrop-blur-sm dark:bg-[#0a0a0a]/80">
+      <nav className="sticky top-16 z-10 -mx-4 mb-8 flex flex-wrap gap-1 bg-[var(--ds-bg-primary)]/80 px-4 py-3 backdrop-blur-sm">
         {alphabet.map((letter) => {
           const isAvailable = availableLetters.has(letter);
           return isAvailable ? (

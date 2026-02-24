@@ -35,7 +35,7 @@ export function TableOfContents({ headings }: { headings: TocHeading[] }) {
 
   return (
     <nav className="space-y-1 text-sm">
-      <p className="ds-toc-title mb-3 font-semibold font-[family-name:var(--ds-font-heading)] text-neutral-900 dark:text-neutral-100">
+      <p className="ds-toc-title mb-3 font-semibold text-neutral-900 dark:text-neutral-100">
         Inhaltsverzeichnis
       </p>
       {headings.map((heading) => (
