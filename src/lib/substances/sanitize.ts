@@ -4,13 +4,15 @@
  * Prevents PostgREST "schema cache" errors caused by sending columns
  * that do not exist in the database table.
  *
- * At runtime, callers may pass a pre-fetched column set obtained from
- * getAllowedColumns() (see sanitize-server.ts). When no set is provided
- * the static fallback allowlist (mirroring migrations 00004 + 00005) is used.
+ * Unknown keys are not discarded — they are stored in the `meta` jsonb
+ * column so no data is lost.
+ *
+ * The allowlist mirrors the columns from migrations 00004 + 00005 + 00007.
+ * If columns are added/removed later, update this set.
  */
 
-/** Static fallback – mirrors columns from migrations 00004 + 00005. */
-export const STATIC_SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
+/** All known columns of public.substances (migrations 00004 + 00005 + 00007). */
+const SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
   // 00004_substances.sql
   "id",
   "name",
@@ -33,15 +35,15 @@ export const STATIC_SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
   "tags",
   "related_slugs",
   "enrichment",
+  // 00007_bulk_import_meta.sql
+  "meta",
 ]);
 
 /**
  * Remove any keys from `payload` that are not columns in public.substances.
- * In development mode, logs discarded keys to the console.
+ * Unknown keys are merged into the `meta` jsonb field instead of being lost.
  *
- * @param payload         – row object to sanitize
- * @param allowedColumns  – optional pre-fetched column set (avoids extra await)
- * @returns A new object containing only allowed keys.
+ * @returns A new object containing only allowed keys, with extras in `meta`.
  */
 export function sanitizeSubstancePayload<T extends Record<string, unknown>>(
   payload: T,
@@ -49,20 +51,29 @@ export function sanitizeSubstancePayload<T extends Record<string, unknown>>(
 ): Partial<T> {
   const columns = allowedColumns ?? STATIC_SUBSTANCES_COLUMNS;
   const clean: Record<string, unknown> = {};
-  const discarded: string[] = [];
+  const extras: Record<string, unknown> = {};
 
   for (const key of Object.keys(payload)) {
     if (columns.has(key)) {
       clean[key] = payload[key];
     } else {
-      discarded.push(key);
+      extras[key] = payload[key];
     }
   }
 
-  if (discarded.length > 0 && process.env.NODE_ENV !== "production") {
-    console.warn(
-      `[sanitizeSubstancePayload] Discarded unknown columns: ${discarded.join(", ")}`,
-    );
+  // Merge extras into meta (preserving any existing meta from the payload)
+  if (Object.keys(extras).length > 0) {
+    const existingMeta =
+      typeof clean.meta === "object" && clean.meta !== null
+        ? (clean.meta as Record<string, unknown>)
+        : {};
+    clean.meta = { ...existingMeta, ...extras };
+
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[sanitizeSubstancePayload] Moved unknown columns to meta: ${Object.keys(extras).join(", ")}`,
+      );
+    }
   }
 
   return clean as Partial<T>;

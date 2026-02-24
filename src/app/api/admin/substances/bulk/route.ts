@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { BulkImportRequestSchema, SubstanceDraftSchema, type SubstanceDraft } from "@/lib/substances/schema";
 import { buildAllSources } from "@/lib/substances/connectors";
 import { contentSafetyFilter } from "@/lib/substances/content-safety";
@@ -8,96 +8,162 @@ import { canonicalizeName, resolveSynonym, parseCsvTsv, deduplicateNames } from 
 import { sanitizeSubstancePayload, pickOnConflict } from "@/lib/substances/sanitize";
 import { getAllowedColumns } from "@/lib/substances/sanitize-server";
 import type { ImportSourceType } from "@/lib/substances/schema";
+import type { DeduplicatedEntry } from "@/lib/substances/canonicalize";
+
+/** Batch size for processing substances */
+const BATCH_SIZE = 25;
+
+type BulkResultStatus = "created" | "updated" | "skipped" | "failed";
+
+interface BulkResultItem {
+  name: string;
+  slug: string;
+  status: BulkResultStatus;
+  error?: string;
+  id?: string;
+}
 
 /**
  * POST /api/admin/substances/bulk
  * Accepts a list of substance names, creates draft entries with source references.
- * Supports multiple import modes: seed_pack, paste, csv, fetch.
+ * Uses SUPABASE_SERVICE_ROLE_KEY (server only) — browser never writes directly.
+ * Processes in batches; a single failure never aborts the whole import.
  */
 export async function POST(request: NextRequest) {
-  const isAuth = await isAdminAuthenticated(request);
-  if (!isAuth) {
-    return NextResponse.json({ error: "Nicht autorisiert." }, { status: 401 });
-  }
-
-  let body: unknown;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Ungültiger Request-Body." }, { status: 400 });
-  }
+    const isAuth = await isAdminAuthenticated(request);
+    if (!isAuth) {
+      return NextResponse.json({ error: "Nicht autorisiert." }, { status: 401 });
+    }
 
-  const parsed = BulkImportRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validierungsfehler.", details: parsed.error.flatten() },
-      { status: 400 }
-    );
-  }
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Ungültiger Request-Body." }, { status: 400 });
+    }
 
-  const { names, options } = parsed.data;
+    const parsed = BulkImportRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validierungsfehler.", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
 
-  // Extract import metadata from request
-  const importSource: ImportSourceType = (
-    (body as Record<string, unknown>)?.importSource as ImportSourceType
-  ) || "paste";
-  const importDetail = ((body as Record<string, unknown>)?.importDetail as string) || "";
-  const queueEnrichment = ((body as Record<string, unknown>)?.queueEnrichment as boolean) ?? false;
-  const csvContent = ((body as Record<string, unknown>)?.csvContent as string) || "";
+    const { names, options } = parsed.data;
 
-  // Handle CSV mode: parse CSV and extract names + synonyms
-  let processNames = names;
-  let csvSynonyms: Record<string, string[]> = {};
-  if (importSource === "csv" && csvContent) {
-    const entries = parseCsvTsv(csvContent);
-    processNames = entries.map((e) => e.name);
-    csvSynonyms = {};
-    for (const entry of entries) {
-      if (entry.synonyms.length > 0) {
-        csvSynonyms[entry.name] = entry.synonyms;
+    // Extract import metadata from request
+    const importSource: ImportSourceType = (
+      (body as Record<string, unknown>)?.importSource as ImportSourceType
+    ) || "paste";
+    const importDetail = ((body as Record<string, unknown>)?.importDetail as string) || "";
+    const queueEnrichment = ((body as Record<string, unknown>)?.queueEnrichment as boolean) ?? false;
+    const csvContent = ((body as Record<string, unknown>)?.csvContent as string) || "";
+
+    // Handle CSV mode: parse CSV and extract names + synonyms
+    let processNames = names;
+    let csvSynonyms: Record<string, string[]> = {};
+    if (importSource === "csv" && csvContent) {
+      const entries = parseCsvTsv(csvContent);
+      processNames = entries.map((e) => e.name);
+      csvSynonyms = {};
+      for (const entry of entries) {
+        if (entry.synonyms.length > 0) {
+          csvSynonyms[entry.name] = entry.synonyms;
+        }
       }
     }
+
+    // Canonicalize + resolve synonyms + deduplicate
+    const resolvedNames = processNames.map((n) => {
+      const canonical = canonicalizeName(n);
+      return resolveSynonym(canonical);
+    });
+    const deduplicated = deduplicateNames(resolvedNames);
+
+    // Create admin Supabase client (uses SERVICE_ROLE_KEY, bypasses RLS)
+    const supabase = createAdminClient();
+
+    // Process in batches of BATCH_SIZE
+    const results: BulkResultItem[] = [];
+    for (let i = 0; i < deduplicated.length; i += BATCH_SIZE) {
+      const batch = deduplicated.slice(i, i + BATCH_SIZE);
+      const batchResults = await processBatch(
+        supabase, batch, csvSynonyms, options, queueEnrichment,
+      );
+      results.push(...batchResults);
+    }
+
+    const summary = {
+      total: deduplicated.length,
+      created: results.filter((r) => r.status === "created").length,
+      updated: results.filter((r) => r.status === "updated").length,
+      skipped: results.filter((r) => r.status === "skipped").length,
+      failed: results.filter((r) => r.status === "failed").length,
+    };
+
+    // Log the import (best-effort, don't fail the response)
+    try {
+      await supabase
+        .from("import_logs")
+        .insert({
+          admin_user: request.headers.get("x-admin-user") || "admin",
+          source_type: importSource,
+          source_detail: importDetail,
+          total_count: summary.total,
+          created_count: summary.created,
+          skipped_count: summary.skipped,
+          error_count: summary.failed,
+        });
+    } catch (logErr) {
+      console.error("[bulk] Import logging failed:", logErr);
+    }
+
+    return NextResponse.json({ summary, results });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unbekannter Fehler";
+    console.error("[bulk] Unhandled error:", message);
+    return NextResponse.json(
+      { error: message, details: "Interner Serverfehler im Bulk-Import." },
+      { status: 500 },
+    );
   }
+}
 
-  // Canonicalize + resolve synonyms + deduplicate
-  const resolvedNames = processNames.map((n) => {
-    const canonical = canonicalizeName(n);
-    return resolveSynonym(canonical);
-  });
-  const deduplicated = deduplicateNames(resolvedNames);
+/**
+ * Process a batch of deduplicated substance entries.
+ * Each entry is handled independently — one failure does not abort the batch.
+ */
+async function processBatch(
+  supabase: ReturnType<typeof createAdminClient>,
+  batch: DeduplicatedEntry[],
+  csvSynonyms: Record<string, string[]>,
+  options: { fetchSources: boolean; generateDraft: boolean; queueRedditScan: boolean },
+  queueEnrichment: boolean,
+): Promise<BulkResultItem[]> {
+  const results: BulkResultItem[] = [];
 
-  const results: {
-    name: string;
-    slug: string;
-    status: "created" | "skipped" | "error";
-    message?: string;
-    id?: string;
-  }[] = [];
-
-  // Create server-side Supabase client once (not per iteration)
-  const supabase = await createClient();
-
-  // Fetch allowed columns once for the whole batch (cached for 10 min)
-  const allowedColumns = await getAllowedColumns();
-  const onConflictColumn = pickOnConflict(allowedColumns);
-
-  // Process each substance
-  for (const entry of deduplicated) {
+  for (const entry of batch) {
     const { canonicalName: name, slug } = entry;
 
     try {
-
-      // Check if already exists by slug
-      const { data: existing } = await supabase
+      // Check if already exists by slug or canonical_name
+      const { data: existingBySlug } = await supabase
         .from("substances")
         .select("id")
         .eq("slug", slug)
         .maybeSingle();
 
-      if (existing) {
-        results.push({ name, slug, status: "skipped", message: "Existiert bereits." });
-        continue;
-      }
+      const { data: existingByCanonical } = !existingBySlug
+        ? await supabase
+            .from("substances")
+            .select("id")
+            .eq("canonical_name", name)
+            .maybeSingle()
+        : { data: existingBySlug };
+
+      const existing = existingBySlug || existingByCanonical;
 
       // Also check aliases for dedup
       const { data: aliasMatch } = await supabase
@@ -107,7 +173,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       if (aliasMatch) {
-        results.push({ name, slug, status: "skipped", message: "Alias existiert bereits." });
+        results.push({ name, slug, status: "skipped", error: "Alias existiert bereits." });
         continue;
       }
 
@@ -148,7 +214,7 @@ export async function POST(request: NextRequest) {
         validated.mechanism = mechanismSafety.clean;
       }
 
-      // Build row and sanitize to remove any keys not in the DB schema
+      // Build row and sanitize (unknown keys → meta jsonb)
       const rawRow = {
         name: validated.name,
         slug: validated.slug,
@@ -175,19 +241,22 @@ export async function POST(request: NextRequest) {
       const effectiveConflict =
         onConflictColumn in sanitizedRow ? onConflictColumn : "name";
 
-      // Upsert with dynamic onConflict to handle missing columns gracefully
-      const { data: inserted, error: insertError } = await supabase
+      // Determine status: update existing or create new
+      const isUpdate = !!existing;
+
+      // Upsert with onConflict on slug to handle duplicates
+      const { data: upserted, error: upsertError } = await supabase
         .from("substances")
         .upsert(sanitizedRow, { onConflict: effectiveConflict })
         .select("id")
         .single();
 
-      if (insertError) {
-        results.push({ name, slug, status: "error", message: insertError.message });
+      if (upsertError) {
+        results.push({ name, slug, status: "failed", error: upsertError.message });
         continue;
       }
 
-      const substanceId = inserted.id;
+      const substanceId = upserted.id;
 
       // Store synonyms from CSV as aliases
       const synonymsForThis = csvSynonyms[entry.originalName] ?? [];
@@ -226,36 +295,17 @@ export async function POST(request: NextRequest) {
           });
       }
 
-      results.push({ name, slug, status: "created", id: substanceId });
+      results.push({
+        name,
+        slug,
+        status: isUpdate ? "updated" : "created",
+        id: substanceId,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unbekannter Fehler";
-      results.push({ name, slug, status: "error", message });
+      results.push({ name, slug, status: "failed", error: message });
     }
   }
 
-  const summary = {
-    total: deduplicated.length,
-    created: results.filter((r) => r.status === "created").length,
-    skipped: results.filter((r) => r.status === "skipped").length,
-    errors: results.filter((r) => r.status === "error").length,
-  };
-
-  // Log the import
-  try {
-    await supabase
-      .from("import_logs")
-      .insert({
-        admin_user: request.headers.get("x-admin-user") || "admin",
-        source_type: importSource,
-        source_detail: importDetail,
-        total_count: summary.total,
-        created_count: summary.created,
-        skipped_count: summary.skipped,
-        error_count: summary.errors,
-      });
-  } catch (logErr) {
-    console.error("[bulk] Import logging failed:", logErr);
-  }
-
-  return NextResponse.json({ summary, results });
+  return results;
 }
