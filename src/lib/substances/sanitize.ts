@@ -33,6 +33,8 @@ export const STATIC_SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
   "tags",
   "related_slugs",
   "enrichment",
+  // 00008_substances_jsonb_columns.sql
+  "meta",
 ]);
 
 /**

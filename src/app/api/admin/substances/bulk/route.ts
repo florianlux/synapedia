@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import { BulkImportRequestSchema, SubstanceDraftSchema, type SubstanceDraft } from "@/lib/substances/schema";
 import { buildAllSources } from "@/lib/substances/connectors";
 import { contentSafetyFilter } from "@/lib/substances/content-safety";
@@ -74,8 +74,11 @@ export async function POST(request: NextRequest) {
     id?: string;
   }[] = [];
 
-  // Create server-side Supabase client once (not per iteration)
-  const supabase = await createClient();
+  // Create Supabase client with service-role key to bypass RLS
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   // Fetch allowed columns once for the whole batch (cached for 10 min)
   const allowedColumns = await getAllowedColumns();

@@ -5,6 +5,11 @@ const ADMIN_COOKIE = "synapedia_admin_token";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // 0. Never intercept API routes — let them pass through unchanged
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
   // 1. Trailing-slash normalization → canonical /admin and /admin/login
   if (pathname !== "/" && pathname.endsWith("/")) {
     const url = request.nextUrl.clone();
@@ -44,5 +49,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/:path*"],
+  matcher: ["/admin", "/admin/:path*", "/api/:path*"],
 };
