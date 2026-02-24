@@ -306,6 +306,114 @@ function transformSubstance(raw: RawSubstance, importedAt: string): Substance {
 }
 
 // ---------------------------------------------------------------------------
+// Validation: Ensure generated substances follow the expected schema
+// ---------------------------------------------------------------------------
+
+interface ValidationError {
+  substance: string;
+  field: string;
+  message: string;
+}
+
+export function validateSubstance(sub: Substance): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (!sub.name || typeof sub.name !== "string") {
+    errors.push({ substance: sub.name ?? "(unknown)", field: "name", message: "name is required" });
+  }
+  if (!sub.slug || typeof sub.slug !== "string") {
+    errors.push({ substance: sub.name, field: "slug", message: "slug is required" });
+  }
+  if (!sub.source_url || typeof sub.source_url !== "string") {
+    errors.push({ substance: sub.name, field: "source_url", message: "source_url is required" });
+  }
+  if (!sub.license || typeof sub.license !== "string") {
+    errors.push({ substance: sub.name, field: "license", message: "license is required" });
+  }
+  if (!sub.imported_at || typeof sub.imported_at !== "string") {
+    errors.push({ substance: sub.name, field: "imported_at", message: "imported_at is required" });
+  }
+  if (!Array.isArray(sub.chemical_class)) {
+    errors.push({ substance: sub.name, field: "chemical_class", message: "chemical_class must be an array" });
+  }
+  if (!Array.isArray(sub.psychoactive_class)) {
+    errors.push({ substance: sub.name, field: "psychoactive_class", message: "psychoactive_class must be an array" });
+  }
+  if (!Array.isArray(sub.effects)) {
+    errors.push({ substance: sub.name, field: "effects", message: "effects must be an array" });
+  }
+  if (!sub.interactions || typeof sub.interactions !== "object") {
+    errors.push({ substance: sub.name, field: "interactions", message: "interactions object is required" });
+  }
+
+  return errors;
+}
+
+export function validateAll(substances: Substance[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  for (const sub of substances) {
+    errors.push(...validateSubstance(sub));
+  }
+  return errors;
+}
+
+// ---------------------------------------------------------------------------
+// Report substances with missing citations
+// ---------------------------------------------------------------------------
+
+export function reportMissingCitations(substances: Substance[]): string[] {
+  const missing: string[] = [];
+  for (const sub of substances) {
+    if (!sub.source_url && !sub.source_api) {
+      missing.push(sub.name);
+    }
+  }
+  return missing;
+}
+
+// ---------------------------------------------------------------------------
+// Flag prohibited content
+// ---------------------------------------------------------------------------
+
+const PROHIBITED_PATTERNS: { pattern: RegExp; label: string }[] = [
+  { pattern: /\b\d+\s*(mg|µg|ug|ml|g)\b/i, label: "specific dosage amount" },
+  { pattern: /\b(buy|purchase|order|shop|vendor|darknet|dnm)\b/i, label: "procurement language" },
+  { pattern: /\b(dose|dosierung|einnehmen|einnahme|konsumieren)\b/i, label: "consumption instruction" },
+  { pattern: /\b(how to (take|use|consume|inject|smoke|snort))\b/i, label: "usage instruction" },
+];
+
+interface ProhibitedFlag {
+  substance: string;
+  field: string;
+  label: string;
+  match: string;
+}
+
+export function flagProhibitedContent(substances: Substance[]): ProhibitedFlag[] {
+  const flags: ProhibitedFlag[] = [];
+
+  for (const sub of substances) {
+    const textFields: { key: string; value: string | null }[] = [
+      { key: "name", value: sub.name },
+      { key: "summary", value: sub.summary },
+      { key: "addiction_potential", value: sub.addiction_potential },
+    ];
+
+    for (const { key, value } of textFields) {
+      if (!value) continue;
+      for (const { pattern, label } of PROHIBITED_PATTERNS) {
+        const m = value.match(pattern);
+        if (m) {
+          flags.push({ substance: sub.name, field: key, label, match: m[0] });
+        }
+      }
+    }
+  }
+
+  return flags;
+}
+
+// ---------------------------------------------------------------------------
 // Build categories taxonomy from substance data
 // ---------------------------------------------------------------------------
 
@@ -315,22 +423,27 @@ function buildCategories(substances: Substance[], importedAt: string): Categorie
 
   for (const sub of substances) {
     for (const cls of sub.chemical_class) {
-      if (!chemMap.has(cls)) chemMap.set(cls, new Set());
-      chemMap.get(cls)!.add(sub.name);
+      let set = chemMap.get(cls);
+      if (!set) { set = new Set(); chemMap.set(cls, set); }
+      set.add(sub.name);
     }
     for (const cls of sub.psychoactive_class) {
-      if (!psychMap.has(cls)) psychMap.set(cls, new Set());
-      psychMap.get(cls)!.add(sub.name);
+      let set = psychMap.get(cls);
+      if (!set) { set = new Set(); psychMap.set(cls, set); }
+      set.add(sub.name);
     }
   }
 
-  const categories: Category[] = [];
+  const chemKeys = Array.from(chemMap.keys()).sort();
+  const psychKeys = Array.from(psychMap.keys()).sort();
 
-  for (const [name, subs] of [...chemMap.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-    categories.push({ name, type: "chemical", substances: [...subs].sort() });
+  const categories: Category[] = new Array(chemKeys.length + psychKeys.length);
+  let i = 0;
+  for (const name of chemKeys) {
+    categories[i++] = { name, type: "chemical", substances: Array.from(chemMap.get(name)!).sort() };
   }
-  for (const [name, subs] of [...psychMap.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-    categories.push({ name, type: "psychoactive", substances: [...subs].sort() });
+  for (const name of psychKeys) {
+    categories[i++] = { name, type: "psychoactive", substances: Array.from(psychMap.get(name)!).sort() };
   }
 
   return {
@@ -365,7 +478,42 @@ export async function importSubstances(force = false): Promise<{
     .filter((s) => s.name)
     .map((s) => transformSubstance(s, importedAt));
 
-  console.log(`Received ${substances.length} substances. Building categories…`);
+  console.log(`Received ${substances.length} substances. Validating…`);
+
+  // Task 1: Validate schema compliance
+  const validationErrors = validateAll(substances);
+  if (validationErrors.length > 0) {
+    console.warn(`⚠ ${validationErrors.length} validation error(s):`);
+    for (const err of validationErrors) {
+      console.warn(`  - [${err.substance}] ${err.field}: ${err.message}`);
+    }
+  } else {
+    console.log("✓ All substances pass schema validation.");
+  }
+
+  // Task 2: Report missing citations
+  const missingCitations = reportMissingCitations(substances);
+  if (missingCitations.length > 0) {
+    console.warn(`⚠ ${missingCitations.length} substance(s) with missing citations:`);
+    for (const name of missingCitations) {
+      console.warn(`  - ${name}`);
+    }
+  } else {
+    console.log("✓ All substances have citations.");
+  }
+
+  // Task 3: Flag prohibited content
+  const prohibited = flagProhibitedContent(substances);
+  if (prohibited.length > 0) {
+    console.warn(`⚠ ${prohibited.length} prohibited content flag(s):`);
+    for (const flag of prohibited) {
+      console.warn(`  - [${flag.substance}] ${flag.field}: ${flag.label} ("${flag.match}")`);
+    }
+  } else {
+    console.log("✓ No prohibited content detected.");
+  }
+
+  console.log("Building categories…");
   const categories = buildCategories(substances, importedAt);
 
   // Ensure data directory exists
