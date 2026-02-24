@@ -11,6 +11,7 @@ const navLinks = [
   { href: "/articles", label: "Artikel" },
   { href: "/interactions", label: "Interaktionen" },
   { href: "/brain", label: "Gehirn" },
+  { href: "/neuro", label: "NeuroMap" },
   { href: "/glossary", label: "Glossar" },
   { href: "/compare", label: "Vergleich" },
 ];
