@@ -10,11 +10,97 @@
 :root {
   --background: #ffffff;
   --foreground: #0a0a0a;
+
+  /* Brand animation intensity (tweak in one place) */
+  --brand-glow-opacity: 0.45;
+  --brand-glow-blur: 8px;
+  --brand-shimmer-duration: 8s;
+  --brand-twinkle-duration: 4s;
+  --brand-glow-color: rgba(6, 182, 212, 0.35);
+  --brand-hero-glow-opacity: 0.07;
 }
 
 .dark {
   --background: #0a0a0a;
   --foreground: #fafafa;
+
+  --brand-glow-opacity: 0.55;
+  --brand-glow-blur: 10px;
+  --brand-glow-color: rgba(6, 182, 212, 0.45);
+  --brand-hero-glow-opacity: 0.10;
+}
+
+/* ─── Brand animation keyframes ─── */
+@keyframes brand-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes brand-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 var(--brand-glow-blur) var(--brand-glow-color)); opacity: var(--brand-glow-opacity); }
+  50% { filter: drop-shadow(0 0 calc(var(--brand-glow-blur) * 1.4) var(--brand-glow-color)); opacity: calc(var(--brand-glow-opacity) * 1.15); }
+}
+
+@keyframes brand-twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.9; }
+}
+
+/* Wordmark shimmer utility */
+.brand-shimmer {
+  background: linear-gradient(
+    90deg,
+    currentColor 0%,
+    currentColor 40%,
+    rgba(6, 182, 212, 0.7) 50%,
+    currentColor 60%,
+    currentColor 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: brand-shimmer var(--brand-shimmer-duration) ease-in-out infinite;
+}
+
+/* Logo glow on hover */
+.brand-logo-glow {
+  filter: drop-shadow(0 0 var(--brand-glow-blur) var(--brand-glow-color));
+  transition: filter 0.3s ease;
+}
+.brand-logo-glow:hover {
+  filter: drop-shadow(0 0 calc(var(--brand-glow-blur) * 1.6) var(--brand-glow-color));
+}
+
+/* Hero subtle radial glow */
+.brand-hero-glow {
+  position: relative;
+}
+.brand-hero-glow::before {
+  content: "";
+  position: absolute;
+  inset: -20% -10% 40% -10%;
+  background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(6, 182, 212, var(--brand-hero-glow-opacity)), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Accessibility: disable animations for reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .brand-shimmer {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: unset;
+  }
+  .brand-logo-glow {
+    filter: none;
+  }
+  .brand-hero-glow::before {
+    display: none;
+  }
+  .brand-twinkle {
+    animation: none !important;
+  }
 }
 
 body {
