@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical } from "lucide-react";
-import { isAdminAuthenticated } from "@/lib/auth";
-import { redirect } from "next/navigation";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -14,12 +12,7 @@ const navItems = [
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const isAuth = await isAdminAuthenticated();
   const hasAdminToken = !!process.env.ADMIN_TOKEN;
-
-  if (!isAuth) {
-    redirect("/admin/login");
-  }
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)]">
