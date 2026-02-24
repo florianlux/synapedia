@@ -171,10 +171,14 @@ export async function POST(request: NextRequest) {
       };
       const sanitizedRow = sanitizeSubstancePayload(rawRow, allowedColumns);
 
+      // Ensure the onConflict column is present in the sanitized row
+      const effectiveConflict =
+        onConflictColumn in sanitizedRow ? onConflictColumn : "name";
+
       // Upsert with dynamic onConflict to handle missing columns gracefully
       const { data: inserted, error: insertError } = await supabase
         .from("substances")
-        .upsert(sanitizedRow, { onConflict: onConflictColumn })
+        .upsert(sanitizedRow, { onConflict: effectiveConflict })
         .select("id")
         .single();
 

@@ -175,9 +175,9 @@ export default function AdminSubstances() {
       } else {
         if (overrideNames && bulkResults) {
           // Merge retry results into existing results
-          const retried = new Set(overrideNames.map((n) => n.toLowerCase()));
+          const retried = new Set(overrideNames);
           const kept = bulkResults.filter(
-            (r) => !retried.has(r.name.toLowerCase()),
+            (r) => !retried.has(r.name),
           );
           const merged = [...kept, ...data.results];
           setBulkResults(merged);
