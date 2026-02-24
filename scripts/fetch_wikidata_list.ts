@@ -29,6 +29,9 @@ const USER_AGENT = "SynapediaBot/1.0 (https://github.com/florianlux/synapedia)";
 /** Maximum items per SPARQL request (Wikidata has a soft limit around 10 000) */
 const DEFAULT_LIMIT = 1000;
 
+/** Delay between SPARQL batches in ms (be polite to Wikidata) */
+const BATCH_DELAY_MS = 1000;
+
 /** Cache validity — 7 days */
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -217,7 +220,7 @@ export async function fetchWikidataList(opts: {
 
     // Be polite: small delay between batches
     if (offset < limit) {
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
     }
   }
 

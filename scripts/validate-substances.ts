@@ -25,7 +25,7 @@ function validate(entries: SubstanceEntry[]): ValidationError[] {
 
     // Required string fields
     for (const field of ["id", "slug", "title", "class_primary", "risk_level", "summary"] as const) {
-      if (typeof entry[field] !== "string" || (entry[field] as string).length === 0) {
+      if (typeof entry[field] !== "string" || (entry[field] as string).trim().length === 0) {
         errors.push({ index: i, field, message: `"${field}" must be a non-empty string` });
       }
     }
