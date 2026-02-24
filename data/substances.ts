@@ -1,0 +1,495 @@
+export interface SubstanceEntry {
+  id: string;
+  slug: string;
+  title: string;
+  class_primary: string;
+  class_secondary: string[];
+  mechanisms: string[];
+  receptors: string[];
+  tags: string[];
+  risk_level: string;
+  summary: string;
+  sources: { label: string; url: string }[];
+  [key: string]: unknown;
+}
+
+export const substances: SubstanceEntry[] = [
+  {
+    id: "sub:ketamine",
+    slug: "ketamin",
+    title: "Ketamin",
+    class_primary: "Dissoziativa",
+    class_secondary: ["Arylcyclohexylamine"],
+    mechanisms: ["NMDA-Antagonist"],
+    receptors: ["NMDA"],
+    tags: ["dissociative"],
+    risk_level: "moderate",
+    summary:
+      "Ketamin ist ein dissoziatives Anästhetikum, das primär als NMDA-Rezeptor-Antagonist wirkt. Es wird medizinisch zur Narkose und experimentell bei therapieresistenten Depressionen eingesetzt.",
+    sources: [
+      {
+        label: "PsychonautWiki – Ketamine",
+        url: "https://psychonautwiki.org/wiki/Ketamine",
+      },
+      {
+        label: "Wikipedia – Ketamin",
+        url: "https://de.wikipedia.org/wiki/Ketamin",
+      },
+    ],
+  },
+  {
+    id: "sub:psilocybin",
+    slug: "psilocybin",
+    title: "Psilocybin",
+    class_primary: "Psychedelika",
+    class_secondary: ["Tryptamine"],
+    mechanisms: ["5-HT2A-Agonist"],
+    receptors: ["5-HT2A", "5-HT1A"],
+    tags: ["psychedelic", "tryptamine"],
+    risk_level: "moderate",
+    summary:
+      "Psilocybin ist ein natürlich vorkommendes Tryptamin-Psychedelikum, das in verschiedenen Pilzarten enthalten ist. Es wird im Körper zu Psilocin umgewandelt und wirkt hauptsächlich über serotonerge Rezeptoren.",
+    sources: [
+      {
+        label: "PsychonautWiki – Psilocybin",
+        url: "https://psychonautwiki.org/wiki/Psilocybin",
+      },
+      {
+        label: "Wikipedia – Psilocybin",
+        url: "https://de.wikipedia.org/wiki/Psilocybin",
+      },
+    ],
+  },
+  {
+    id: "sub:lsd",
+    slug: "lsd",
+    title: "LSD",
+    class_primary: "Psychedelika",
+    class_secondary: ["Lysergamide"],
+    mechanisms: ["5-HT2A-Agonist", "Partieller D2-Agonist"],
+    receptors: ["5-HT2A", "5-HT1A", "D2"],
+    tags: ["psychedelic", "lysergamide"],
+    risk_level: "moderate",
+    summary:
+      "Lysergsäurediethylamid (LSD) ist ein halbsynthetisches Psychedelikum aus der Gruppe der Lysergamide. Es zeigt eine hohe Affinität zu serotonergen und dopaminergen Rezeptoren.",
+    sources: [
+      {
+        label: "PsychonautWiki – LSD",
+        url: "https://psychonautwiki.org/wiki/LSD",
+      },
+      {
+        label: "Wikipedia – LSD",
+        url: "https://de.wikipedia.org/wiki/Lysergs%C3%A4urediethylamid",
+      },
+    ],
+  },
+  {
+    id: "sub:mdma",
+    slug: "mdma",
+    title: "MDMA",
+    class_primary: "Empathogene",
+    class_secondary: ["Phenethylamine", "Amphetamine"],
+    mechanisms: [
+      "SERT-Umkehrtransport",
+      "Serotoninfreisetzung",
+      "Noradrenalinfreisetzung",
+      "Dopaminfreisetzung",
+    ],
+    receptors: ["SERT", "NET", "DAT"],
+    tags: ["empathogen", "entactogen", "stimulant"],
+    risk_level: "high",
+    summary:
+      "MDMA (3,4-Methylendioxymethamphetamin) ist ein Empathogen, das die Freisetzung von Serotonin, Noradrenalin und Dopamin bewirkt. Es wird klinisch in der PTBS-Forschung untersucht.",
+    sources: [
+      {
+        label: "PsychonautWiki – MDMA",
+        url: "https://psychonautwiki.org/wiki/MDMA",
+      },
+      {
+        label: "Wikipedia – MDMA",
+        url: "https://de.wikipedia.org/wiki/MDMA",
+      },
+    ],
+  },
+  {
+    id: "sub:thc",
+    slug: "cannabis-thc",
+    title: "Cannabis / THC",
+    class_primary: "Cannabinoide",
+    class_secondary: [],
+    mechanisms: ["CB1-Agonist", "CB2-Agonist"],
+    receptors: ["CB1", "CB2"],
+    tags: ["cannabinoid"],
+    risk_level: "moderate",
+    summary:
+      "Δ9-Tetrahydrocannabinol (THC) ist der hauptsächliche psychoaktive Wirkstoff der Cannabispflanze. Es wirkt über das Endocannabinoidsystem als Agonist an CB1- und CB2-Rezeptoren.",
+    sources: [
+      {
+        label: "PsychonautWiki – Cannabis",
+        url: "https://psychonautwiki.org/wiki/Cannabis",
+      },
+      {
+        label: "Wikipedia – Tetrahydrocannabinol",
+        url: "https://de.wikipedia.org/wiki/Tetrahydrocannabinol",
+      },
+    ],
+  },
+  {
+    id: "sub:cocaine",
+    slug: "kokain",
+    title: "Kokain",
+    class_primary: "Stimulanzien",
+    class_secondary: ["Tropan-Alkaloide"],
+    mechanisms: ["DAT-Inhibitor", "SERT-Inhibitor", "NET-Inhibitor"],
+    receptors: ["DAT", "SERT", "NET"],
+    tags: ["stimulant"],
+    risk_level: "high",
+    summary:
+      "Kokain ist ein Tropan-Alkaloid mit stark stimulierenden Eigenschaften. Es blockiert die Wiederaufnahme von Dopamin, Serotonin und Noradrenalin an den jeweiligen Transportern.",
+    sources: [
+      {
+        label: "PsychonautWiki – Cocaine",
+        url: "https://psychonautwiki.org/wiki/Cocaine",
+      },
+      {
+        label: "Wikipedia – Kokain",
+        url: "https://de.wikipedia.org/wiki/Kokain",
+      },
+    ],
+  },
+  {
+    id: "sub:amphetamine",
+    slug: "amphetamin",
+    title: "Amphetamin",
+    class_primary: "Stimulanzien",
+    class_secondary: ["Phenethylamine"],
+    mechanisms: [
+      "DAT-Umkehrtransport",
+      "NET-Umkehrtransport",
+      "TAAR1-Agonist",
+    ],
+    receptors: ["DAT", "NET", "TAAR1"],
+    tags: ["stimulant"],
+    risk_level: "high",
+    summary:
+      "Amphetamin ist ein synthetisches Stimulans aus der Gruppe der Phenethylamine. Es erhöht die Freisetzung von Dopamin und Noradrenalin durch Umkehr der Transporterrichtung.",
+    sources: [
+      {
+        label: "PsychonautWiki – Amphetamine",
+        url: "https://psychonautwiki.org/wiki/Amphetamine",
+      },
+      {
+        label: "Wikipedia – Amphetamin",
+        url: "https://de.wikipedia.org/wiki/Amphetamin",
+      },
+    ],
+  },
+  {
+    id: "sub:methamphetamine",
+    slug: "methamphetamin",
+    title: "Methamphetamin",
+    class_primary: "Stimulanzien",
+    class_secondary: ["Phenethylamine", "Amphetamine"],
+    mechanisms: [
+      "DAT-Umkehrtransport",
+      "NET-Umkehrtransport",
+      "SERT-Umkehrtransport",
+      "TAAR1-Agonist",
+    ],
+    receptors: ["DAT", "NET", "SERT", "TAAR1"],
+    tags: ["stimulant"],
+    risk_level: "high",
+    summary:
+      "Methamphetamin ist ein potentes Stimulans mit hoher Lipophilie, das die Blut-Hirn-Schranke schnell überwindet. Es bewirkt eine massive Freisetzung von Monoaminen, insbesondere Dopamin.",
+    sources: [
+      {
+        label: "PsychonautWiki – Methamphetamine",
+        url: "https://psychonautwiki.org/wiki/Methamphetamine",
+      },
+      {
+        label: "Wikipedia – Methamphetamin",
+        url: "https://de.wikipedia.org/wiki/Methamphetamin",
+      },
+    ],
+  },
+  {
+    id: "sub:ghb",
+    slug: "ghb",
+    title: "GHB",
+    class_primary: "Depressiva",
+    class_secondary: [],
+    mechanisms: ["GABA-B-Agonist", "GHB-Rezeptor-Agonist"],
+    receptors: ["GABA-A", "GABA-B"],
+    tags: ["depressant"],
+    risk_level: "high",
+    summary:
+      "Gamma-Hydroxybuttersäure (GHB) ist ein körpereigener Neurotransmitter und ZNS-Depressivum. Es wirkt primär über GABA-B-Rezeptoren und besitzt eine enge therapeutische Breite.",
+    sources: [
+      {
+        label: "PsychonautWiki – GHB",
+        url: "https://psychonautwiki.org/wiki/GHB",
+      },
+      {
+        label: "Wikipedia – Gamma-Hydroxybuttersäure",
+        url: "https://de.wikipedia.org/wiki/Gamma-Hydroxybutters%C3%A4ure",
+      },
+    ],
+  },
+  {
+    id: "sub:benzodiazepine",
+    slug: "benzodiazepine",
+    title: "Benzodiazepine",
+    class_primary: "Depressiva",
+    class_secondary: ["Sedativa"],
+    mechanisms: ["Positive allosterische Modulation am GABA-A-Rezeptor"],
+    receptors: ["GABA-A"],
+    tags: ["depressant", "sedative", "anxiolytic"],
+    risk_level: "moderate",
+    summary:
+      "Benzodiazepine sind eine Medikamentenklasse, die als positive allosterische Modulatoren am GABA-A-Rezeptor wirken. Sie werden therapeutisch als Anxiolytika, Sedativa und Antikonvulsiva eingesetzt.",
+    sources: [
+      {
+        label: "PsychonautWiki – Benzodiazepines",
+        url: "https://psychonautwiki.org/wiki/Benzodiazepines",
+      },
+      {
+        label: "Wikipedia – Benzodiazepine",
+        url: "https://de.wikipedia.org/wiki/Benzodiazepine",
+      },
+    ],
+  },
+  {
+    id: "sub:ethanol",
+    slug: "alkohol-ethanol",
+    title: "Alkohol / Ethanol",
+    class_primary: "Depressiva",
+    class_secondary: [],
+    mechanisms: [
+      "GABA-A-Potenzierung",
+      "NMDA-Antagonismus",
+      "Endorphinfreisetzung",
+    ],
+    receptors: ["GABA-A", "NMDA"],
+    tags: ["depressant"],
+    risk_level: "high",
+    summary:
+      "Ethanol ist ein weit verbreitetes Depressivum, das die GABAerge Neurotransmission verstärkt und die glutamaterge Übertragung hemmt. Chronischer Konsum kann zu Abhängigkeit und schweren Organschäden führen.",
+    sources: [
+      {
+        label: "Wikipedia – Ethanol",
+        url: "https://de.wikipedia.org/wiki/Ethanol",
+      },
+      {
+        label: "PsychonautWiki – Alcohol",
+        url: "https://psychonautwiki.org/wiki/Alcohol",
+      },
+    ],
+  },
+  {
+    id: "sub:nicotine",
+    slug: "nikotin",
+    title: "Nikotin",
+    class_primary: "Stimulanzien",
+    class_secondary: [],
+    mechanisms: ["nACh-Rezeptor-Agonist"],
+    receptors: ["nACh"],
+    tags: ["stimulant"],
+    risk_level: "moderate",
+    summary:
+      "Nikotin ist ein Alkaloid der Tabakpflanze, das als Agonist an nikotinischen Acetylcholinrezeptoren wirkt. Es besitzt ein hohes Abhängigkeitspotenzial und beeinflusst die dopaminerge Neurotransmission.",
+    sources: [
+      {
+        label: "Wikipedia – Nikotin",
+        url: "https://de.wikipedia.org/wiki/Nikotin",
+      },
+      {
+        label: "PsychonautWiki – Nicotine",
+        url: "https://psychonautwiki.org/wiki/Nicotine",
+      },
+    ],
+  },
+  {
+    id: "sub:caffeine",
+    slug: "koffein",
+    title: "Koffein",
+    class_primary: "Stimulanzien",
+    class_secondary: ["Xanthine"],
+    mechanisms: ["Adenosinrezeptor-Antagonist"],
+    receptors: ["A1", "A2A"],
+    tags: ["stimulant"],
+    risk_level: "low",
+    summary:
+      "Koffein ist ein Xanthin-Alkaloid, das als Antagonist an Adenosinrezeptoren wirkt und dadurch wachheitsfördernd ist. Es ist die weltweit am häufigsten konsumierte psychoaktive Substanz.",
+    sources: [
+      {
+        label: "Wikipedia – Koffein",
+        url: "https://de.wikipedia.org/wiki/Koffein",
+      },
+      {
+        label: "PsychonautWiki – Caffeine",
+        url: "https://psychonautwiki.org/wiki/Caffeine",
+      },
+    ],
+  },
+  {
+    id: "sub:dmt",
+    slug: "dmt",
+    title: "DMT",
+    class_primary: "Psychedelika",
+    class_secondary: ["Tryptamine"],
+    mechanisms: ["5-HT2A-Agonist", "Sigma-1-Agonist"],
+    receptors: ["5-HT2A", "5-HT1A", "Sigma-1"],
+    tags: ["psychedelic", "tryptamine"],
+    risk_level: "moderate",
+    summary:
+      "N,N-Dimethyltryptamin (DMT) ist ein natürlich vorkommendes Tryptamin-Psychedelikum mit kurzer Wirkdauer bei isolierter Anwendung. Es wirkt hauptsächlich über den 5-HT2A-Rezeptor.",
+    sources: [
+      {
+        label: "PsychonautWiki – DMT",
+        url: "https://psychonautwiki.org/wiki/DMT",
+      },
+      {
+        label: "Wikipedia – Dimethyltryptamin",
+        url: "https://de.wikipedia.org/wiki/Dimethyltryptamin",
+      },
+    ],
+  },
+  {
+    id: "sub:mescaline",
+    slug: "meskalin",
+    title: "Meskalin",
+    class_primary: "Psychedelika",
+    class_secondary: ["Phenethylamine"],
+    mechanisms: ["5-HT2A-Agonist"],
+    receptors: ["5-HT2A", "5-HT2C"],
+    tags: ["psychedelic", "phenethylamine"],
+    risk_level: "moderate",
+    summary:
+      "Meskalin ist ein natürlich vorkommendes Phenethylamin-Psychedelikum, das in verschiedenen Kakteenarten enthalten ist. Es bindet primär an serotonerge 5-HT2A-Rezeptoren.",
+    sources: [
+      {
+        label: "PsychonautWiki – Mescaline",
+        url: "https://psychonautwiki.org/wiki/Mescaline",
+      },
+      {
+        label: "Wikipedia – Mescalin",
+        url: "https://de.wikipedia.org/wiki/Mescalin",
+      },
+    ],
+  },
+  {
+    id: "sub:2cb",
+    slug: "2c-b",
+    title: "2C-B",
+    class_primary: "Psychedelika",
+    class_secondary: ["Phenethylamine"],
+    mechanisms: ["5-HT2A-Agonist", "Partieller 5-HT2C-Agonist"],
+    receptors: ["5-HT2A", "5-HT2C"],
+    tags: ["psychedelic", "phenethylamine"],
+    risk_level: "moderate",
+    summary:
+      "2,5-Dimethoxy-4-bromphenethylamin (2C-B) ist ein synthetisches Phenethylamin-Psychedelikum. Es besitzt sowohl psychedelische als auch leicht empathogene Eigenschaften.",
+    sources: [
+      {
+        label: "PsychonautWiki – 2C-B",
+        url: "https://psychonautwiki.org/wiki/2C-B",
+      },
+      {
+        label: "Wikipedia – 2C-B",
+        url: "https://de.wikipedia.org/wiki/2C-B",
+      },
+    ],
+  },
+  {
+    id: "sub:pcp",
+    slug: "pcp",
+    title: "PCP",
+    class_primary: "Dissoziativa",
+    class_secondary: ["Arylcyclohexylamine"],
+    mechanisms: ["NMDA-Antagonist", "DAT-Inhibitor", "Sigma-Agonist"],
+    receptors: ["NMDA", "DAT", "Sigma-1"],
+    tags: ["dissociative"],
+    risk_level: "high",
+    summary:
+      "Phencyclidin (PCP) ist ein potentes Dissoziativum aus der Klasse der Arylcyclohexylamine. Es wirkt als NMDA-Antagonist und beeinflusst zusätzlich dopaminerge und sigma-Rezeptorsysteme.",
+    sources: [
+      {
+        label: "PsychonautWiki – PCP",
+        url: "https://psychonautwiki.org/wiki/PCP",
+      },
+      {
+        label: "Wikipedia – Phencyclidin",
+        url: "https://de.wikipedia.org/wiki/Phencyclidin",
+      },
+    ],
+  },
+  {
+    id: "sub:dxm",
+    slug: "dxm",
+    title: "DXM",
+    class_primary: "Dissoziativa",
+    class_secondary: ["Morphinan"],
+    mechanisms: ["NMDA-Antagonist", "SERT-Inhibitor", "Sigma-1-Agonist"],
+    receptors: ["NMDA", "SERT", "Sigma-1"],
+    tags: ["dissociative"],
+    risk_level: "moderate",
+    summary:
+      "Dextromethorphan (DXM) ist ein Morphinan-Derivat mit dissoziativen Eigenschaften. Es ist als Antitussivum zugelassen und wirkt über NMDA-Rezeptoren sowie den Serotonintransporter.",
+    sources: [
+      {
+        label: "PsychonautWiki – DXM",
+        url: "https://psychonautwiki.org/wiki/DXM",
+      },
+      {
+        label: "Wikipedia – Dextromethorphan",
+        url: "https://de.wikipedia.org/wiki/Dextromethorphan",
+      },
+    ],
+  },
+  {
+    id: "sub:ssri",
+    slug: "ssri",
+    title: "SSRI",
+    class_primary: "Antidepressiva",
+    class_secondary: [],
+    mechanisms: ["Selektive Serotonin-Wiederaufnahmehemmung"],
+    receptors: ["SERT"],
+    tags: ["antidepressant", "medication"],
+    risk_level: "low",
+    summary:
+      "Selektive Serotonin-Wiederaufnahmehemmer (SSRI) sind eine Klasse von Antidepressiva, die den Serotonintransporter (SERT) blockieren. Sie werden primär bei Depressionen und Angststörungen verschrieben.",
+    sources: [
+      {
+        label: "Wikipedia – Selektiver Serotonin-Wiederaufnahmehemmer",
+        url: "https://de.wikipedia.org/wiki/Selektiver_Serotonin-Wiederaufnahmehemmer",
+      },
+      {
+        label: "PubMed – SSRI Pharmacology",
+        url: "https://pubmed.ncbi.nlm.nih.gov/",
+      },
+    ],
+  },
+  {
+    id: "sub:kratom",
+    slug: "kratom",
+    title: "Kratom",
+    class_primary: "Opioide",
+    class_secondary: ["Indolalkaloide"],
+    mechanisms: ["Partieller μ-Opioid-Agonist", "Adrenozeptor-Agonist"],
+    receptors: ["μ-Opioid", "κ-Opioid"],
+    tags: ["opioid", "stimulant"],
+    risk_level: "moderate",
+    summary:
+      "Kratom (Mitragyna speciosa) ist eine südostasiatische Pflanze, deren Alkaloide Mitragynin und 7-Hydroxymitragynin an Opioidrezeptoren binden. In niedrigen Mengen zeigt es stimulierende, in höheren sedierende Effekte.",
+    sources: [
+      {
+        label: "PsychonautWiki – Kratom",
+        url: "https://psychonautwiki.org/wiki/Kratom",
+      },
+      {
+        label: "Wikipedia – Kratom",
+        url: "https://de.wikipedia.org/wiki/Kratom",
+      },
+    ],
+  },
+];

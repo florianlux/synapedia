@@ -43,7 +43,8 @@ const SCRIPT_DIR =
     ? __dirname
     : path.dirname(url.fileURLToPath(import.meta.url));
 const DATA_DIR = path.resolve(SCRIPT_DIR, "..", "data");
-const SUBSTANCES_FILE = path.join(DATA_DIR, "substances.json");
+const CACHE_DIR = path.resolve(SCRIPT_DIR, "..", ".cache");
+const SUBSTANCES_FILE = path.join(CACHE_DIR, "psychonautwiki_substances.json");
 const CATEGORIES_FILE = path.join(DATA_DIR, "categories.json");
 
 // ---------------------------------------------------------------------------
@@ -516,8 +517,9 @@ export async function importSubstances(force = false): Promise<{
   console.log("Building categories…");
   const categories = buildCategories(substances, importedAt);
 
-  // Ensure data directory exists
+  // Ensure directories exist
   fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
 
   // Write files
   fs.writeFileSync(SUBSTANCES_FILE, JSON.stringify(substances, null, 2) + "\n");

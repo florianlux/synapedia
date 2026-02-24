@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { demoArticles } from "@/lib/demo-data";
 import glossaryData from "@/../data/glossary.json";
-import substancesData from "@/../data/substances.json";
+import { substances as substancesData } from "@/../data/substances";
 
 const BASE_URL = "https://synapedia.com";
 
