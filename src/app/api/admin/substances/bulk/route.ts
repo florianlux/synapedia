@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
       // Upsert with onConflict on slug (unique) to avoid duplicates
       const { data: inserted, error: insertError } = await supabase
         .from("substances")
-        .upsert(sanitizedRow, { onConflict: "slug", ignoreDuplicates: true })
+        .upsert(sanitizedRow, { onConflict: "slug" })
         .select("id")
         .single();
 
