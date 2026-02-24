@@ -81,7 +81,7 @@ export default function EditTemplatePage() {
   }
 
   async function handleSave() {
-    if (!name || !slug) {
+    if (!template || !name || !slug) {
       setToast({ message: "Name und Slug sind erforderlich.", type: "error" });
       return;
     }
@@ -89,7 +89,7 @@ export default function EditTemplatePage() {
     setSaving(true);
     try {
       const { updateTemplate } = await import("@/lib/db/templates");
-      await updateTemplate(template!.id, {
+      await updateTemplate(template.id, {
         name,
         slug,
         schema_json: { sections, links },
