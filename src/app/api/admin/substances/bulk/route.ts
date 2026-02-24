@@ -5,7 +5,8 @@ import { BulkImportRequestSchema, SubstanceDraftSchema, type SubstanceDraft } fr
 import { buildAllSources } from "@/lib/substances/connectors";
 import { contentSafetyFilter } from "@/lib/substances/content-safety";
 import { canonicalizeName, resolveSynonym, parseCsvTsv, deduplicateNames } from "@/lib/substances/canonicalize";
-import { sanitizeSubstancePayload } from "@/lib/substances/sanitize";
+import { sanitizeSubstancePayload, pickOnConflict } from "@/lib/substances/sanitize";
+import { getAllowedColumns } from "@/lib/substances/sanitize-server";
 import type { ImportSourceType } from "@/lib/substances/schema";
 
 /**
@@ -75,6 +76,10 @@ export async function POST(request: NextRequest) {
 
   // Create server-side Supabase client once (not per iteration)
   const supabase = await createClient();
+
+  // Fetch allowed columns once for the whole batch (cached for 10 min)
+  const allowedColumns = await getAllowedColumns();
+  const onConflictColumn = pickOnConflict(allowedColumns);
 
   // Process each substance
   for (const entry of deduplicated) {
@@ -164,12 +169,12 @@ export async function POST(request: NextRequest) {
         external_ids: {},
         enrichment: {},
       };
-      const sanitizedRow = sanitizeSubstancePayload(rawRow);
+      const sanitizedRow = sanitizeSubstancePayload(rawRow, allowedColumns);
 
-      // Upsert with onConflict on slug (unique) to avoid duplicates
+      // Upsert with dynamic onConflict to handle missing columns gracefully
       const { data: inserted, error: insertError } = await supabase
         .from("substances")
-        .upsert(sanitizedRow, { onConflict: "slug" })
+        .upsert(sanitizedRow, { onConflict: onConflictColumn })
         .select("id")
         .single();
 

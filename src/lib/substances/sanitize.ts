@@ -4,12 +4,13 @@
  * Prevents PostgREST "schema cache" errors caused by sending columns
  * that do not exist in the database table.
  *
- * The allowlist mirrors the columns from migrations 00004 + 00005.
- * If columns are added/removed later, update this set.
+ * At runtime, callers may pass a pre-fetched column set obtained from
+ * getAllowedColumns() (see sanitize-server.ts). When no set is provided
+ * the static fallback allowlist (mirroring migrations 00004 + 00005) is used.
  */
 
-/** All known columns of public.substances (migrations 00004 + 00005). */
-const SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
+/** Static fallback – mirrors columns from migrations 00004 + 00005. */
+export const STATIC_SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
   // 00004_substances.sql
   "id",
   "name",
@@ -38,16 +39,20 @@ const SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
  * Remove any keys from `payload` that are not columns in public.substances.
  * In development mode, logs discarded keys to the console.
  *
+ * @param payload         – row object to sanitize
+ * @param allowedColumns  – optional pre-fetched column set (avoids extra await)
  * @returns A new object containing only allowed keys.
  */
 export function sanitizeSubstancePayload<T extends Record<string, unknown>>(
   payload: T,
+  allowedColumns?: ReadonlySet<string>,
 ): Partial<T> {
+  const columns = allowedColumns ?? STATIC_SUBSTANCES_COLUMNS;
   const clean: Record<string, unknown> = {};
   const discarded: string[] = [];
 
   for (const key of Object.keys(payload)) {
-    if (SUBSTANCES_COLUMNS.has(key)) {
+    if (columns.has(key)) {
       clean[key] = payload[key];
     } else {
       discarded.push(key);
@@ -61,4 +66,17 @@ export function sanitizeSubstancePayload<T extends Record<string, unknown>>(
   }
 
   return clean as Partial<T>;
+}
+
+/**
+ * Pick the best onConflict column for upsert based on available columns.
+ *
+ * Preference order: canonical_name → slug → name.
+ */
+export function pickOnConflict(
+  allowedColumns: ReadonlySet<string>,
+): string {
+  if (allowedColumns.has("canonical_name")) return "canonical_name";
+  if (allowedColumns.has("slug")) return "slug";
+  return "name";
 }
