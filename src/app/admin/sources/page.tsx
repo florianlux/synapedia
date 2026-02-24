@@ -1,9 +1,15 @@
+"use client";
+
+import { useState } from "react";
 import { demoSources } from "@/lib/demo-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Source } from "@/lib/types";
 
-const allSources = Object.values(demoSources).flat();
+const demoSourcesList = Object.values(demoSources).flat();
 
 export default function AdminSources() {
+  const [sources] = useState<Source[]>(demoSourcesList);
+
   return (
     <div className="space-y-8">
       <div>
@@ -15,7 +21,7 @@ export default function AdminSources() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Alle Quellen ({allSources.length})</CardTitle>
+          <CardTitle>{`Alle Quellen (${sources.length})`}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -30,7 +36,7 @@ export default function AdminSources() {
                 </tr>
               </thead>
               <tbody>
-                {allSources.map((source) => (
+                {sources.map((source) => (
                   <tr
                     key={source.id}
                     className="border-b border-neutral-100 dark:border-neutral-800/50"

@@ -1,14 +1,45 @@
 import { demoArticles } from "@/lib/demo-data";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isAiEnabled } from "@/lib/ai/provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Eye, PenLine, Clock } from "lucide-react";
+import { FileText, Eye, PenLine, Clock, Brain, Sparkles, GitBranch, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import type { Article } from "@/lib/types";
 
-export default function AdminDashboard() {
-  const total = demoArticles.length;
-  const published = demoArticles.filter((a) => a.status === "published").length;
-  const drafts = demoArticles.filter((a) => a.status === "draft").length;
-  const review = demoArticles.filter((a) => a.status === "review").length;
+async function getArticlesData(): Promise<Article[]> {
+  if (isSupabaseConfigured()) {
+    try {
+      const { getArticles } = await import("@/lib/db/articles");
+      return await getArticles();
+    } catch {
+      // Fallback to demo
+    }
+  }
+  return demoArticles;
+}
+
+export default async function AdminDashboard() {
+  const articles = await getArticlesData();
+  const aiEnabled = isAiEnabled();
+  const supabaseConfigured = isSupabaseConfigured();
+
+  const total = articles.length;
+  const published = articles.filter((a) => a.status === "published").length;
+  const drafts = articles.filter((a) => a.status === "draft").length;
+  const review = articles.filter((a) => a.status === "review").length;
+
+  // Compute completeness: articles with content_mdx > 200 chars considered "complete"
+  const complete = articles.filter((a) => a.content_mdx && a.content_mdx.length > 200).length;
+  const incomplete = total - complete;
+
+  // Group by category for brain map
+  const categoryMap = new Map<string, Article[]>();
+  for (const a of articles) {
+    const cat = a.category ?? "Unkategorisiert";
+    if (!categoryMap.has(cat)) categoryMap.set(cat, []);
+    categoryMap.get(cat)!.push(a);
+  }
 
   const stats = [
     { label: "Artikel gesamt", value: total, icon: FileText, color: "text-cyan-500" },
@@ -20,10 +51,26 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">Dashboard</h1>
-        <p className="mt-1 text-neutral-500 dark:text-neutral-400">Übersicht aller Inhalte und Aktivitäten.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+          Content Studio
+        </h1>
+        <p className="mt-1 text-neutral-500 dark:text-neutral-400">
+          Produktions-Cockpit – Übersicht aller Inhalte und Aktivitäten.
+        </p>
       </div>
 
+      {/* Status badges */}
+      <div className="flex flex-wrap gap-2">
+        <Badge variant={supabaseConfigured ? "default" : "secondary"}>
+          {supabaseConfigured ? "Supabase verbunden" : "Demo-Modus"}
+        </Badge>
+        <Badge variant={aiEnabled ? "default" : "secondary"}>
+          <Sparkles className="mr-1 h-3 w-3" />
+          {aiEnabled ? "AI aktiv" : "AI deaktiviert"}
+        </Badge>
+      </div>
+
+      {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card key={stat.label}>
@@ -40,13 +87,111 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* Content Coverage Brain Map */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-violet-500" />
+            Content Coverage Map
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from(categoryMap.entries()).map(([cat, catArticles]) => (
+              <div
+                key={cat}
+                className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"
+              >
+                <h3 className="mb-2 font-medium text-neutral-900 dark:text-neutral-50">{cat}</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {catArticles.map((a) => {
+                    const color =
+                      a.status === "published"
+                        ? "bg-green-500"
+                        : a.status === "review"
+                        ? "bg-violet-500"
+                        : "bg-yellow-500";
+                    return (
+                      <Link
+                        key={a.id}
+                        href={`/articles/${a.slug}`}
+                        title={`${a.title} (${a.status})`}
+                        className={`flex h-8 w-8 items-center justify-center rounded-full ${color} text-[10px] font-bold text-white transition-opacity hover:opacity-100`}
+                      >
+                        {a.title.substring(0, 2)}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Widgets row */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              Nächste Aufgaben
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {incomplete > 0 ? (
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                <span className="font-bold text-yellow-500">{incomplete}</span> Artikel brauchen mehr Inhalt
+              </p>
+            ) : (
+              <p className="text-sm text-green-500">Alle Artikel vollständig!</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Sparkles className="h-4 w-4 text-cyan-500" />
+              AI Jobs
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {aiEnabled ? (
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                AI bereit für Autofill-Aufträge
+              </p>
+            ) : (
+              <p className="text-sm text-neutral-500">
+                Setze OPENAI_API_KEY oder ANTHROPIC_API_KEY
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <GitBranch className="h-4 w-4 text-violet-500" />
+              Knowledge Graph
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              {total} Substanzen indexiert
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent articles */}
       <Card>
         <CardHeader>
           <CardTitle>Letzte Artikel</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {demoArticles.map((article) => (
+            {articles.slice(0, 10).map((article) => (
               <div
                 key={article.id}
                 className="flex items-center justify-between rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"

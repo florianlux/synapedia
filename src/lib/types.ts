@@ -89,3 +89,88 @@ export interface ArticleVersion {
   change_summary: string | null;
   created_at: string;
 }
+
+// Content Studio types
+
+export interface Template {
+  id: string;
+  name: string;
+  slug: string;
+  schema_json: TemplateSchema;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TemplateSchema {
+  sections: TemplateSection[];
+  links?: TemplateLink[];
+  rules?: TemplateRule[];
+}
+
+export interface TemplateSection {
+  key: string;
+  title: string;
+  required: boolean;
+  blockDefaults?: string;
+  aiHints?: string;
+  mediaSlots?: string[];
+}
+
+export interface TemplateLink {
+  from: string;
+  to: string;
+  relation: string;
+  rule?: string;
+}
+
+export interface TemplateRule {
+  condition: string;
+  action: string;
+}
+
+export interface Media {
+  id: string;
+  bucket: string;
+  path: string;
+  url: string | null;
+  width: number | null;
+  height: number | null;
+  alt: string | null;
+  tags: string[];
+  created_at: string;
+}
+
+export interface ArticleMedia {
+  article_id: string;
+  media_id: string;
+  role: string;
+  section_key: string | null;
+  sort: number;
+  created_at: string;
+}
+
+export type AiJobStatus = "queued" | "running" | "done" | "failed";
+
+export interface AiJob {
+  id: string;
+  type: string;
+  status: AiJobStatus;
+  input_json: Record<string, unknown>;
+  output_json: Record<string, unknown> | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GraphEdge {
+  id: string;
+  article_id: string;
+  from_type: string;
+  from_key: string;
+  to_type: string;
+  to_key: string;
+  relation: string;
+  confidence: number;
+  origin: string;
+  created_at: string;
+}
