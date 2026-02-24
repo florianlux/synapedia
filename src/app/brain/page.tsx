@@ -1,6 +1,6 @@
 import { BrainExplorer } from "@/components/brain-explorer";
 import receptorsData from "@/../data/receptors.json";
-import substancesData from "@/../data/substances.json";
+import { substances as substancesData } from "@/../data/substances";
 
 export const metadata = {
   title: "Brain Explorer – Synapedia",

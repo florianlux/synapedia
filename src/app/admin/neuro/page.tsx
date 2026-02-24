@@ -1,5 +1,5 @@
 import { NeuroAdmin } from "@/components/neuro-map/neuro-admin";
-import substancesData from "@/../data/substances.json";
+import { substances as substancesData } from "@/../data/substances";
 import interactionsData from "@/../data/interactions.json";
 
 export const metadata = {

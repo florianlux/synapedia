@@ -10,6 +10,7 @@ export interface SubstanceEntry {
   risk_level: string;
   summary: string;
   sources: { label: string; url: string }[];
+  [key: string]: unknown;
 }
 
 export const substances: SubstanceEntry[] = [
