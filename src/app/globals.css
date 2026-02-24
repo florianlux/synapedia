@@ -12,11 +12,11 @@
   --foreground: #0a0a0a;
 
   /* Brand tuning knobs (adjust in one place) */
-  --brand_logo_opacity: 1;
-  --brand_emblem_opacity: 0.12;
-  --brand_glow_a: 0.22;
-  --brand_glow_b: 0.10;
-  --brand_glint_interval: 16s;
+  --brand-logo-opacity: 1;
+  --brand-emblem-opacity: 0.12; /* watermark intensity if used elsewhere */
+  --brand-glow-a: 0.22;
+  --brand-glow-b: 0.10;
+  --brand-glint-interval: 16s;
   --brand-glow-color: rgba(6, 182, 212, 0.35);
   --brand-hero-glow-opacity: 0.07;
 }
@@ -25,8 +25,8 @@
   --background: #0a0a0a;
   --foreground: #fafafa;
 
-  --brand_glow_a: 0.28;
-  --brand_glow_b: 0.14;
+  --brand-glow-a: 0.28;
+  --brand-glow-b: 0.14;
   --brand-glow-color: rgba(6, 182, 212, 0.45);
   --brand-hero-glow-opacity: 0.10;
 }
@@ -48,10 +48,10 @@
 
 /* Static high-contrast logo glow (no animation) */
 .brand-logo-glow {
-  opacity: var(--brand_logo_opacity, 1);
+  opacity: var(--brand-logo-opacity, 1);
   filter:
-    drop-shadow(0 0 6px rgba(110, 255, 230, var(--brand_glow_a, 0.22)))
-    drop-shadow(0 0 18px rgba(110, 255, 230, var(--brand_glow_b, 0.10)));
+    drop-shadow(0 0 6px rgba(110, 255, 230, var(--brand-glow-a, 0.22)))
+    drop-shadow(0 0 18px rgba(110, 255, 230, var(--brand-glow-b, 0.10)));
   transition: filter 0.3s ease;
 }
 .brand-logo-glow:hover {
@@ -75,7 +75,7 @@
   background: radial-gradient(circle at 80% 20%, rgba(110, 255, 230, 0.45), transparent 70%);
   opacity: 0;
   pointer-events: none;
-  animation: brand-glint 1.2s ease-in-out var(--brand_glint_interval, 16s) infinite;
+  animation: brand-glint 1.2s ease-in-out var(--brand-glint-interval, 16s) infinite;
 }
 
 /* Snake breathing motion for logo nodes */
