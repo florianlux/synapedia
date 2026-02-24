@@ -5,6 +5,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import type { SubstanceRow } from "./schema";
+import { sanitizeSubstancePayload } from "./sanitize";
 
 /* ---------- Substances ---------- */
 
@@ -70,7 +71,7 @@ export async function createSubstance(substance: Omit<SubstanceRow, "id" | "crea
 
   const { data, error } = await supabase
     .from("substances")
-    .insert(substance)
+    .insert(sanitizeSubstancePayload(substance as unknown as Record<string, unknown>))
     .select()
     .single();
 
