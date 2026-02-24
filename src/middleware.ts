@@ -17,7 +17,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  // 2. Admin-enabled gate
+  // 2. API routes must never be redirected — always let them through.
+  //    Auth is handled inside each route handler via isAdminAuthenticated().
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
+  // 3. Admin-enabled gate
   const adminEnabled =
     process.env.ADMIN_ENABLED ??
     process.env.NEXT_PUBLIC_ADMIN_ENABLED ??
@@ -26,12 +32,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // 3. /admin/login is always reachable (no auth redirect)
+  // 4. /admin/login is always reachable (no auth redirect)
   if (pathname === "/admin/login") {
     return NextResponse.next();
   }
 
-  // 4. Auth check for all other /admin routes
+  // 5. Auth check for all other /admin routes
   const adminToken = process.env.ADMIN_TOKEN;
 
   // No ADMIN_TOKEN configured → demo mode, allow access
