@@ -27,6 +27,67 @@ import { SEED_PACKS, getAllSeedNames, getSeedPackNames } from "@/lib/substances/
 type StatusFilter = "draft" | "review" | "published" | "";
 type ImportMode = "seed_pack" | "paste" | "csv" | "fetch";
 
+/* ---------- PubChem enrichment helpers ---------- */
+
+async function fetchPubChemSynonyms(
+  cid: string,
+): Promise<{ synonyms: string[]; status: "ok" | "not_found" | "error"; error?: string }> {
+  try {
+    const res = await fetch(
+      `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/synonyms/JSON`,
+    );
+    if (res.status === 404) {
+      return { synonyms: [], status: "not_found" };
+    }
+    if (!res.ok) {
+      return { synonyms: [], status: "error", error: `HTTP ${res.status}` };
+    }
+    const data = await res.json();
+    const synonyms: string[] =
+      data?.InformationList?.Information?.[0]?.Synonym ?? [];
+    return { synonyms, status: "ok" };
+  } catch (err) {
+    return {
+      synonyms: [],
+      status: "error",
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
+
+async function enrichWithPubChem(
+  s: SubstanceRow,
+): Promise<SubstanceRow> {
+  const cid = s.external_ids?.pubchem_cid;
+  if (!cid) {
+    return { ...s, pubchem_status: "skipped" };
+  }
+  const result = await fetchPubChemSynonyms(String(cid));
+  return {
+    ...s,
+    pubchem_synonyms: result.synonyms,
+    pubchem_status: result.status,
+    ...(result.error ? { pubchem_error: result.error } : {}),
+  };
+}
+
+async function enrichAllWithPubChem(
+  items: SubstanceRow[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<SubstanceRow[]> {
+  const enriched: SubstanceRow[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const result = await enrichWithPubChem(items[i]);
+    enriched.push(result);
+    onProgress?.(i + 1, items.length);
+    // Small delay to avoid overwhelming PubChem API
+    if (i < items.length - 1) {
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }
+  return enriched;
+}
+
 interface BulkResult {
   name: string;
   slug: string;
@@ -83,6 +144,10 @@ export default function AdminSubstances() {
   // Review detail state
   const [reviewSubstance, setReviewSubstance] = useState<SubstanceRow | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+
+  // PubChem enrichment state
+  const [isPubChemRunning, setIsPubChemRunning] = useState(false);
+  const [pubChemProgress, setPubChemProgress] = useState({ done: 0, total: 0 });
 
   const loadSubstances = useCallback(async () => {
     try {
@@ -232,6 +297,22 @@ export default function AdminSubstances() {
     }
   };
 
+  const handlePubChemEnrich = async () => {
+    setIsPubChemRunning(true);
+    setPubChemProgress({ done: 0, total: substances.length });
+    try {
+      const enriched = await enrichAllWithPubChem(substances, (done, total) => {
+        setPubChemProgress({ done, total });
+      });
+      setSubstances(enriched);
+    } catch {
+      // Individual errors are already caught per-substance; this handles unexpected failures
+      setPubChemProgress((prev) => ({ ...prev, done: prev.total }));
+    } finally {
+      setIsPubChemRunning(false);
+    }
+  };
+
   const handleStatusChange = async (id: string, newStatus: "draft" | "review" | "published") => {
     try {
       const { updateSubstanceStatus } = await import("@/lib/substances/db");
@@ -290,6 +371,23 @@ export default function AdminSubstances() {
           <Button variant="ghost" onClick={handleRunEnrichment}>
             <Database className="mr-2 h-4 w-4" />
             Queue Status
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handlePubChemEnrich}
+            disabled={isPubChemRunning || substances.length === 0}
+          >
+            {isPubChemRunning ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" />
+                PubChem ({pubChemProgress.done}/{pubChemProgress.total})
+              </>
+            ) : (
+              <>
+                <FlaskConical className="mr-2 h-4 w-4" />
+                PubChem Enrich
+              </>
+            )}
           </Button>
           <Button onClick={() => setShowBulkModal(true)}>
             <Upload className="mr-2 h-4 w-4" />

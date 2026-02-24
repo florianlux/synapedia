@@ -113,6 +113,10 @@ export interface SubstanceRow {
   tags?: string[];
   related_slugs?: string[];
   enrichment?: Record<string, unknown>;
+  // PubChem enrichment fields
+  pubchem_synonyms?: string[];
+  pubchem_status?: "ok" | "not_found" | "error" | "skipped";
+  pubchem_error?: string;
   // Meta catch-all (added by migration 00007)
   meta?: Record<string, unknown>;
 }
