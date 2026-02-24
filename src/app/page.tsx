@@ -458,7 +458,7 @@ export default function Home() {
                 {/* Social links */}
                 <div className="mb-6 flex items-center justify-center gap-4 md:justify-start">
                   <a
-                    href="https://linkedin.com"
+                    href="https://www.linkedin.com/in/florianlux"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#A5F3FC]/40 transition-colors hover:text-[#00D4FF]"
@@ -579,13 +579,13 @@ export default function Home() {
             </Link>
           </div>
           <div className="mt-6">
-            <a
-              href="#"
-              className="inline-flex items-center gap-2 text-sm text-[#A5F3FC]/40 transition-colors hover:text-[#00D4FF]"
+          <span
+              className="inline-flex items-center gap-2 text-sm text-[#A5F3FC]/30 cursor-default"
+              title="PDF coming soon"
             >
               <Download className="h-4 w-4" />
               Download One-Pager (PDF)
-            </a>
+            </span>
           </div>
         </FadeIn>
       </section>
