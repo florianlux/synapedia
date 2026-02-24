@@ -88,6 +88,35 @@ export async function fetchPubChemByName(name: string): Promise<PubChemCompoundD
   }
 }
 
+/**
+ * Fetch synonyms from PubChem by CID (string).
+ * Returns the synonym list, or null if not found / on error.
+ */
+export async function fetchPubChemSynonyms(cid: string): Promise<string[] | null> {
+  const url = `${PUBCHEM_BASE}/compound/cid/${cid}/synonyms/JSON`;
+
+  try {
+    const res = await rateLimitedFetch(url);
+
+    if (res.status === 404) {
+      console.log(`No PubChem synonyms for CID ${cid}`);
+      return null;
+    }
+
+    if (!res.ok) {
+      throw new Error(`PubChem error: ${res.status}`);
+    }
+
+    const data = await res.json() as {
+      InformationList?: { Information?: Array<{ Synonym?: string[] }> };
+    };
+    return data?.InformationList?.Information?.[0]?.Synonym ?? [];
+  } catch (err) {
+    console.warn(`PubChem fetch failed for CID ${cid}`, err);
+    return null;
+  }
+}
+
 /* ---- internal fetchers ---- */
 
 interface PubChemProps {
