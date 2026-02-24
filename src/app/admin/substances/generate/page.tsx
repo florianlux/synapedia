@@ -264,7 +264,7 @@ export default function GenerateSubstancePage() {
           <CardContent>
             {!result && !loading && !previewLoading && (
               <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                Gib einen Substanznamen ein und klicke auf &quot;Generate &amp; Save&quot; oder &quot;Vorschau&quot;.
+                {`Gib einen Substanznamen ein und klicke auf "Generate & Save" oder "Vorschau".`}
               </p>
             )}
 
