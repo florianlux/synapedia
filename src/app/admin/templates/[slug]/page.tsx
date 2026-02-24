@@ -12,7 +12,7 @@ import type { Template, TemplateSection, TemplateLink } from "@/lib/types";
 
 export default function EditTemplatePage() {
   const params = useParams();
-  const templateId = params.id as string;
+  const templateSlug = params.slug as string;
 
   const [template, setTemplate] = useState<Template | null>(null);
   const [name, setName] = useState("");
@@ -20,11 +20,12 @@ export default function EditTemplatePage() {
   const [sections, setSections] = useState<TemplateSection[]>([]);
   const [links, setLinks] = useState<TemplateLink[]>([]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
     import("@/lib/db/templates")
-      .then(({ getTemplateById }) => getTemplateById(templateId))
+      .then(({ getTemplateBySlug }) => getTemplateBySlug(templateSlug))
       .then((tpl) => {
         setTemplate(tpl);
         setName(tpl.name);
@@ -33,9 +34,9 @@ export default function EditTemplatePage() {
         setLinks(tpl.schema_json.links ?? []);
       })
       .catch(() => {
-        setToast({ message: "Template konnte nicht geladen werden.", type: "error" });
+        setError("Template konnte nicht geladen werden.");
       });
-  }, [templateId]);
+  }, [templateSlug]);
 
   useEffect(() => {
     if (!toast) return;
@@ -80,7 +81,7 @@ export default function EditTemplatePage() {
   }
 
   async function handleSave() {
-    if (!name || !slug) {
+    if (!template || !name || !slug) {
       setToast({ message: "Name und Slug sind erforderlich.", type: "error" });
       return;
     }
@@ -88,7 +89,7 @@ export default function EditTemplatePage() {
     setSaving(true);
     try {
       const { updateTemplate } = await import("@/lib/db/templates");
-      await updateTemplate(templateId, {
+      await updateTemplate(template.id, {
         name,
         slug,
         schema_json: { sections, links },
@@ -100,6 +101,20 @@ export default function EditTemplatePage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (error) {
+    return (
+      <div className="py-12 text-center">
+        <p className="text-red-600 dark:text-red-400">{error}</p>
+        <Link href="/admin/templates">
+          <Button variant="outline" className="mt-4">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Zurück zur Übersicht
+          </Button>
+        </Link>
+      </div>
+    );
   }
 
   if (!template) {

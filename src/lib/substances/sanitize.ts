@@ -36,6 +36,8 @@ const SUBSTANCES_COLUMNS: ReadonlySet<string> = new Set([
   "tags",
   "related_slugs",
   "enrichment",
+  // 00008_substances_jsonb_columns.sql
+  "meta",
 ]);
 
 /** public.substance_sources (migration 00004). */
@@ -95,15 +97,17 @@ function sanitizePayload<T extends Record<string, unknown>>(
   tableName: string,
   allowedColumns: ReadonlySet<string>,
   payload: T,
+  allowedColumns?: ReadonlySet<string>,
 ): Partial<T> {
+  const columns = allowedColumns ?? STATIC_SUBSTANCES_COLUMNS;
   const clean: Record<string, unknown> = {};
-  const discarded: string[] = [];
+  const extras: Record<string, unknown> = {};
 
   for (const key of Object.keys(payload)) {
     if (allowedColumns.has(key)) {
       clean[key] = payload[key];
     } else {
-      discarded.push(key);
+      extras[key] = payload[key];
     }
   }
 

@@ -12,6 +12,7 @@ type TemplateUpdate = Partial<TemplateInsert>;
 export async function getTemplates() {
   const supabase = createClient();
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("templates")
     .select("*")
     .order("name", { ascending: true });
@@ -27,6 +28,7 @@ export async function getTemplates() {
 export async function getTemplateBySlug(slug: string) {
   const supabase = createClient();
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("templates")
     .select("*")
     .eq("slug", slug)
@@ -43,6 +45,7 @@ export async function getTemplateBySlug(slug: string) {
 export async function getTemplateById(id: string) {
   const supabase = createClient();
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("templates")
     .select("*")
     .eq("id", id)
@@ -59,6 +62,7 @@ export async function getTemplateById(id: string) {
 export async function createTemplate(template: TemplateInsert) {
   const supabase = createClient();
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("templates")
     .insert(template)
     .select()
@@ -75,6 +79,7 @@ export async function createTemplate(template: TemplateInsert) {
 export async function updateTemplate(id: string, updates: TemplateUpdate) {
   const supabase = createClient();
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("templates")
     .update(updates)
     .eq("id", id)
@@ -92,6 +97,7 @@ export async function updateTemplate(id: string, updates: TemplateUpdate) {
 export async function deleteTemplate(id: string) {
   const supabase = createClient();
   const { error } = await supabase
+    .schema("synapedia")
     .from("templates")
     .delete()
     .eq("id", id);

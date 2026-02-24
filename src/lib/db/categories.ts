@@ -6,6 +6,7 @@ type CategoryInsert = Omit<Category, "id" | "created_at">;
 export async function getCategories() {
   const supabase = createClient();
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("categories")
     .select("*")
     .order("name", { ascending: true });
@@ -21,6 +22,7 @@ export async function getCategories() {
 export async function createCategory(category: CategoryInsert) {
   const supabase = createClient();
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("categories")
     .insert(category)
     .select()

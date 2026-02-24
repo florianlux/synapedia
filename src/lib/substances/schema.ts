@@ -113,6 +113,8 @@ export interface SubstanceRow {
   tags?: string[];
   related_slugs?: string[];
   enrichment?: Record<string, unknown>;
+  // Meta catch-all (added by migration 00007)
+  meta?: Record<string, unknown>;
 }
 
 /* ---------- Enrichment Job ---------- */
