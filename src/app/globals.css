@@ -96,6 +96,52 @@
   z-index: 0;
 }
 
+/* ─── Landing page animations ─── */
+
+/* Neural background dots */
+@keyframes landing-neural-drift {
+  0% { background-position: 0 0, 30px 30px; }
+  100% { background-position: 60px 60px, 90px 90px; }
+}
+
+.landing-neural-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(0, 212, 255, 0.12) 1px, transparent 1px),
+    radial-gradient(circle, rgba(30, 230, 193, 0.06) 1px, transparent 1px);
+  background-size: 60px 60px, 90px 90px;
+  animation: landing-neural-drift 30s linear infinite;
+  pointer-events: none;
+}
+
+/* Logo floating */
+@keyframes landing-logo-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.landing-logo-float {
+  animation: landing-logo-float 7s ease-in-out infinite;
+}
+
+/* Logo glow halo */
+.landing-logo-halo {
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.08) 0%, transparent 70%);
+}
+
+/* Founder glow ring */
+@keyframes landing-founder-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.15), inset 0 0 20px rgba(0, 212, 255, 0.05); }
+  50% { box-shadow: 0 0 30px rgba(0, 212, 255, 0.25), inset 0 0 30px rgba(0, 212, 255, 0.08); }
+}
+
+.landing-founder-glow {
+  animation: landing-founder-glow 4s ease-in-out infinite;
+  border: 1px solid rgba(0, 212, 255, 0.15);
+}
+
 /* Accessibility: disable animations for reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
   .brand-glint::after {
@@ -107,6 +153,20 @@
   }
   .brand-hero-glow::before {
     display: none;
+  }
+  .landing-neural-bg::before {
+    animation: none !important;
+  }
+  .landing-logo-float {
+    animation: none !important;
+  }
+  .landing-founder-glow {
+    animation: none !important;
+  }
+  .landing-fade-section {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
