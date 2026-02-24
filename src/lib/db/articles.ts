@@ -7,6 +7,7 @@ type ArticleUpdate = Partial<ArticleInsert>;
 export async function getArticles() {
   const supabase = createClient();
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("articles")
     .select("*")
     .order("created_at", { ascending: false });
@@ -22,6 +23,7 @@ export async function getArticles() {
 export async function getArticleBySlug(slug: string) {
   const supabase = createClient();
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("articles")
     .select("*")
     .eq("slug", slug)
@@ -40,6 +42,7 @@ export async function createArticle(article: ArticleInsert) {
 
   // Check slug uniqueness
   const { data: existing } = await supabase
+    .schema("synapedia")
     .from("articles")
     .select("id")
     .eq("slug", article.slug)
@@ -50,6 +53,7 @@ export async function createArticle(article: ArticleInsert) {
   }
 
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("articles")
     .insert(article)
     .select()
@@ -69,6 +73,7 @@ export async function updateArticle(id: string, updates: ArticleUpdate) {
   // If slug is being changed, check uniqueness
   if (updates.slug) {
     const { data: existing } = await supabase
+      .schema("synapedia")
       .from("articles")
       .select("id")
       .eq("slug", updates.slug)
@@ -81,6 +86,7 @@ export async function updateArticle(id: string, updates: ArticleUpdate) {
   }
 
   const { data, error } = await supabase
+    .schema("synapedia")
     .from("articles")
     .update(updates)
     .eq("id", id)
@@ -98,6 +104,7 @@ export async function updateArticle(id: string, updates: ArticleUpdate) {
 export async function deleteArticle(id: string) {
   const supabase = createClient();
   const { error } = await supabase
+    .schema("synapedia")
     .from("articles")
     .delete()
     .eq("id", id);

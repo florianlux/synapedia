@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
 
     // Merge output into article content_json
     const { error: updateError } = await supabase
+      .schema("synapedia")
       .from("articles")
       .update({ content_json: outputJson })
       .eq("id", articleId);
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
       }));
 
       const { error: edgeError } = await supabase
+        .schema("synapedia")
         .from("graph_edges")
         .insert(edges);
 
