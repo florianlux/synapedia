@@ -620,12 +620,12 @@ export default function AdminSubstances() {
                   </thead>
                   <tbody>
                     {bulkResults.map((r, i) => (
-                      <tr key={i} className="border-b border-neutral-100 dark:border-neutral-800">
+                      <tr key={i} className={`border-b border-neutral-100 dark:border-neutral-800 ${r.status === "error" ? "bg-red-50 dark:bg-red-950/30" : ""}`}>
                         <td className="px-2 py-1">{r.name}</td>
                         <td className="px-2 py-1">
                           <StatusChip status={r.status} />
                         </td>
-                        <td className="px-2 py-1 text-neutral-500">{r.message ?? ""}</td>
+                        <td className={`px-2 py-1 ${r.status === "error" ? "text-red-600 dark:text-red-400" : "text-neutral-500"}`}>{r.message ?? ""}</td>
                       </tr>
                     ))}
                   </tbody>

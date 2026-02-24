@@ -4,6 +4,7 @@ import { BulkImportRequestSchema, SubstanceDraftSchema, type SubstanceDraft } fr
 import { buildAllSources } from "@/lib/substances/connectors";
 import { contentSafetyFilter } from "@/lib/substances/content-safety";
 import { canonicalizeName, resolveSynonym, parseCsvTsv, deduplicateNames } from "@/lib/substances/canonicalize";
+import { sanitizeSubstancePayload } from "@/lib/substances/sanitize";
 import type { ImportSourceType } from "@/lib/substances/schema";
 
 /**
@@ -141,29 +142,33 @@ export async function POST(request: NextRequest) {
         validated.mechanism = mechanismSafety.clean;
       }
 
-      // Insert substance
+      // Build row and sanitize to remove any keys not in the DB schema
+      const rawRow = {
+        name: validated.name,
+        slug: validated.slug,
+        categories: validated.categories,
+        summary: validated.summary,
+        mechanism: validated.mechanism,
+        effects: validated.effects,
+        risks: validated.risks,
+        interactions: validated.interactions,
+        dependence: validated.dependence,
+        legality: validated.legality,
+        citations: validated.citations,
+        confidence: validated.confidence,
+        status: "draft" as const,
+        canonical_name: name,
+        tags: [],
+        related_slugs: [],
+        external_ids: {},
+        enrichment: {},
+      };
+      const sanitizedRow = sanitizeSubstancePayload(rawRow);
+
+      // Upsert with onConflict on slug (unique) to avoid duplicates
       const { data: inserted, error: insertError } = await supabase
         .from("substances")
-        .insert({
-          name: validated.name,
-          slug: validated.slug,
-          categories: validated.categories,
-          summary: validated.summary,
-          mechanism: validated.mechanism,
-          effects: validated.effects,
-          risks: validated.risks,
-          interactions: validated.interactions,
-          dependence: validated.dependence,
-          legality: validated.legality,
-          citations: validated.citations,
-          confidence: validated.confidence,
-          status: "draft",
-          canonical_name: name,
-          tags: [],
-          related_slugs: [],
-          external_ids: {},
-          enrichment: {},
-        })
+        .upsert(sanitizedRow, { onConflict: "slug", ignoreDuplicates: true })
         .select("id")
         .single();
 
