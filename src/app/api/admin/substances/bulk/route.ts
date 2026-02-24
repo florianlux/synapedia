@@ -47,10 +47,11 @@ export async function POST(request: NextRequest) {
   const { names, options } = parsed.data;
 
   // Extract import metadata from request
-  const rawImportSource = ((body as Record<string, unknown>)?.importSource as string) || "paste";
-  const importSource: ImportSourceType = VALID_IMPORT_SOURCE_TYPES.has(rawImportSource)
-    ? (rawImportSource as ImportSourceType)
-    : "paste";
+  const rawImportSource = (body as Record<string, unknown>)?.importSource as string | undefined;
+  const importSource: ImportSourceType =
+    rawImportSource && VALID_IMPORT_SOURCE_TYPES.has(rawImportSource)
+      ? (rawImportSource as ImportSourceType)
+      : "paste";
   const importDetail = ((body as Record<string, unknown>)?.importDetail as string) || "";
   const queueEnrichment = ((body as Record<string, unknown>)?.queueEnrichment as boolean) ?? false;
   const csvContent = ((body as Record<string, unknown>)?.csvContent as string) || "";
@@ -230,7 +231,7 @@ export async function POST(request: NextRequest) {
             console.error(`[bulk] Aliases for ${name}:`, aliasError.message);
           }
         } catch (aliasErr) {
-          console.error(`[bulk] Aliases for ${name}:`, aliasErr);
+          console.error(`[bulk] Aliases for ${name}:`, aliasErr instanceof Error ? aliasErr.message : String(aliasErr));
         }
       }
 
@@ -239,7 +240,7 @@ export async function POST(request: NextRequest) {
         try {
           const rawSources = buildAllSources(name, substanceId);
           const sources = rawSources.map((s) =>
-            sanitizeSourcePayload(s as unknown as Record<string, unknown>),
+            sanitizeSourcePayload(s as Record<string, unknown>),
           );
           const { error: sourceError } = await supabase
             .from("substance_sources")
@@ -249,7 +250,7 @@ export async function POST(request: NextRequest) {
             console.error(`[bulk] Sources for ${name}:`, sourceError.message);
           }
         } catch (srcErr) {
-          console.error(`[bulk] Sources for ${name}:`, srcErr);
+          console.error(`[bulk] Sources for ${name}:`, srcErr instanceof Error ? srcErr.message : String(srcErr));
         }
       }
 
@@ -269,7 +270,7 @@ export async function POST(request: NextRequest) {
             console.error(`[bulk] Enrichment job for ${name}:`, jobError.message);
           }
         } catch (jobErr) {
-          console.error(`[bulk] Enrichment job for ${name}:`, jobErr);
+          console.error(`[bulk] Enrichment job for ${name}:`, jobErr instanceof Error ? jobErr.message : String(jobErr));
         }
       }
 

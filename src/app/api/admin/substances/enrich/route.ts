@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (aliasErr) {
-        console.error(`[enrich] Alias batch error:`, aliasErr);
+        console.error(`[enrich] Alias batch error:`, aliasErr instanceof Error ? aliasErr.message : String(aliasErr));
       }
     }
 
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
           console.error(`[enrich] IUPAC alias error:`, iupacErr.message);
         }
       } catch (iupacErr) {
-        console.error(`[enrich] IUPAC alias error:`, iupacErr);
+        console.error(`[enrich] IUPAC alias error:`, iupacErr instanceof Error ? iupacErr.message : String(iupacErr));
       }
     }
 
