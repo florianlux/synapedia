@@ -170,11 +170,17 @@ export default function AdminSubstances() {
         }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        setBulkError(data.error || "Import fehlgeschlagen.");
+        let errorMessage = "Import fehlgeschlagen.";
+        try {
+          const errData = await res.json();
+          errorMessage = errData.error || errorMessage;
+        } catch {
+          // Response was not JSON (e.g. HTML redirect)
+        }
+        setBulkError(errorMessage);
       } else {
+        const data = await res.json();
         if (overrideNames && bulkResults) {
           // Merge retry results into existing results
           const retried = new Set(overrideNames);

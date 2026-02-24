@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@supabase/supabase-js";
 import { BulkImportRequestSchema, SubstanceDraftSchema, type SubstanceDraft } from "@/lib/substances/schema";
 import { buildAllSources } from "@/lib/substances/connectors";
 import { contentSafetyFilter } from "@/lib/substances/content-safety";
@@ -131,20 +131,39 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * Process a batch of deduplicated substance entries.
- * Each entry is handled independently — one failure does not abort the batch.
- */
-async function processBatch(
-  supabase: ReturnType<typeof createAdminClient>,
-  batch: DeduplicatedEntry[],
-  csvSynonyms: Record<string, string[]>,
-  options: { fetchSources: boolean; generateDraft: boolean; queueRedditScan: boolean },
-  queueEnrichment: boolean,
-): Promise<BulkResultItem[]> {
-  const results: BulkResultItem[] = [];
+  // Canonicalize + resolve synonyms + deduplicate
+  const resolvedNames = processNames.map((n) => {
+    const canonical = canonicalizeName(n);
+    return resolveSynonym(canonical);
+  });
+  const deduplicated = deduplicateNames(resolvedNames);
 
-  for (const entry of batch) {
+  const results: {
+    name: string;
+    slug: string;
+    status: "created" | "skipped" | "error";
+    message?: string;
+    id?: string;
+  }[] = [];
+
+  // Create Supabase client with service-role key to bypass RLS
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    return NextResponse.json(
+      { error: "Server-Konfiguration unvollständig (Supabase)." },
+      { status: 500 }
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  // Fetch allowed columns once for the whole batch (cached for 10 min)
+  const allowedColumns = await getAllowedColumns();
+  const onConflictColumn = pickOnConflict(allowedColumns);
+
+  // Process each substance
+  for (const entry of deduplicated) {
     const { canonicalName: name, slug } = entry;
 
     try {
