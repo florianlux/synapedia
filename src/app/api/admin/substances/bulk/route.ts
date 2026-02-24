@@ -82,7 +82,6 @@ export async function POST(request: NextRequest) {
 
       // Check if already exists by slug
       const { data: existing } = await supabase
-        .schema("synapedia")
         .from("substances")
         .select("id")
         .eq("slug", slug)
@@ -95,7 +94,6 @@ export async function POST(request: NextRequest) {
 
       // Also check aliases for dedup
       const { data: aliasMatch } = await supabase
-        .schema("synapedia")
         .from("substance_aliases")
         .select("substance_id")
         .eq("alias", name.toLowerCase())
@@ -145,7 +143,6 @@ export async function POST(request: NextRequest) {
 
       // Insert substance
       const { data: inserted, error: insertError } = await supabase
-        .schema("synapedia")
         .from("substances")
         .insert({
           name: validated.name,
@@ -187,7 +184,6 @@ export async function POST(request: NextRequest) {
           source: "csv_import",
         }));
         await supabase
-          .schema("synapedia")
           .from("substance_aliases")
           .insert(aliases);
       }
@@ -196,7 +192,6 @@ export async function POST(request: NextRequest) {
       if (options.fetchSources) {
         const sources = buildAllSources(name, substanceId);
         const { error: sourceError } = await supabase
-          .schema("synapedia")
           .from("substance_sources")
           .insert(sources);
 
@@ -208,7 +203,6 @@ export async function POST(request: NextRequest) {
       // Queue enrichment job if requested
       if (queueEnrichment) {
         await supabase
-          .schema("synapedia")
           .from("enrichment_jobs")
           .insert({
             substance_id: substanceId,
@@ -236,7 +230,6 @@ export async function POST(request: NextRequest) {
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     await supabase
-      .schema("synapedia")
       .from("import_logs")
       .insert({
         admin_user: request.headers.get("x-admin-user") || "admin",

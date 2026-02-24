@@ -4,8 +4,8 @@
 -- keine Konsumanleitungen, keine Beschaffungshinweise.
 -- =============================================================================
 
--- Ensure seed data targets the synapedia schema
-SET search_path TO synapedia, public;
+-- Ensure seed data targets the public schema
+SET search_path TO public;
 
 BEGIN;
 

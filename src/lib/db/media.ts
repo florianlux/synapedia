@@ -16,7 +16,6 @@ type MediaUpdate = Partial<MediaInsert>;
 export async function getMediaList() {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("media")
     .select("*")
     .order("created_at", { ascending: false });
@@ -32,7 +31,6 @@ export async function getMediaList() {
 export async function getMediaById(id: string) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("media")
     .select("*")
     .eq("id", id)
@@ -49,7 +47,6 @@ export async function getMediaById(id: string) {
 export async function createMedia(media: MediaInsert) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("media")
     .insert(media)
     .select()
@@ -66,7 +63,6 @@ export async function createMedia(media: MediaInsert) {
 export async function updateMedia(id: string, updates: MediaUpdate) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("media")
     .update(updates)
     .eq("id", id)
@@ -84,7 +80,6 @@ export async function updateMedia(id: string, updates: MediaUpdate) {
 export async function deleteMedia(id: string) {
   const supabase = createClient();
   const { error } = await supabase
-    .schema("synapedia")
     .from("media")
     .delete()
     .eq("id", id);
@@ -98,7 +93,6 @@ export async function deleteMedia(id: string) {
 export async function getArticleMedia(articleId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("article_media")
     .select("*, media(*)")
     .eq("article_id", articleId)
@@ -121,7 +115,6 @@ export async function assignMedia(
 ) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("article_media")
     .upsert(
       { article_id: articleId, media_id: mediaId, role, section_key: sectionKey, sort },
@@ -141,7 +134,6 @@ export async function assignMedia(
 export async function unassignMedia(articleId: string, mediaId: string) {
   const supabase = createClient();
   const { error } = await supabase
-    .schema("synapedia")
     .from("article_media")
     .delete()
     .eq("article_id", articleId)

@@ -39,9 +39,7 @@ export default async function handler(req: Request) {
     );
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    db: { schema: "synapedia" },
-  });
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
     const body = (await req.json()) as ImportArticleBody;
@@ -55,7 +53,6 @@ export default async function handler(req: Request) {
 
     // Insert article
     const { data: article, error: articleError } = await supabase
-      .schema("synapedia")
       .from("articles")
       .insert({
         title: body.title,
@@ -83,7 +80,6 @@ export default async function handler(req: Request) {
       for (let i = 0; i < body.sources.length; i++) {
         const src = body.sources[i];
         const { data: source, error: sourceError } = await supabase
-          .schema("synapedia")
           .from("sources")
           .insert({
             title: src.title,
@@ -103,7 +99,6 @@ export default async function handler(req: Request) {
         }
 
         await supabase
-          .schema("synapedia")
           .from("article_sources")
           .insert({
             article_id: article.id,
@@ -115,7 +110,6 @@ export default async function handler(req: Request) {
 
     // Audit log entry
     await supabase
-      .schema("synapedia")
       .from("audit_log")
       .insert({
         action: "import",

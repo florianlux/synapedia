@@ -11,7 +11,6 @@ import type { SubstanceRow } from "./schema";
 export async function getSubstances(): Promise<SubstanceRow[]> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("substances")
     .select("*")
     .order("created_at", { ascending: false });
@@ -27,7 +26,6 @@ export async function getSubstances(): Promise<SubstanceRow[]> {
 export async function getSubstanceBySlug(slug: string): Promise<SubstanceRow | null> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("substances")
     .select("*")
     .eq("slug", slug)
@@ -44,7 +42,6 @@ export async function getSubstanceBySlug(slug: string): Promise<SubstanceRow | n
 export async function getSubstanceById(id: string): Promise<SubstanceRow | null> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("substances")
     .select("*")
     .eq("id", id)
@@ -62,7 +59,6 @@ export async function createSubstance(substance: Omit<SubstanceRow, "id" | "crea
   const supabase = createClient();
 
   const { data: existing } = await supabase
-    .schema("synapedia")
     .from("substances")
     .select("id")
     .eq("slug", substance.slug)
@@ -73,7 +69,6 @@ export async function createSubstance(substance: Omit<SubstanceRow, "id" | "crea
   }
 
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("substances")
     .insert(substance)
     .select()
@@ -91,7 +86,6 @@ export async function updateSubstanceStatus(id: string, status: "draft" | "revie
   const supabase = createClient();
 
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("substances")
     .update({ status })
     .eq("id", id)
@@ -109,7 +103,6 @@ export async function updateSubstanceStatus(id: string, status: "draft" | "revie
 export async function deleteSubstance(id: string): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase
-    .schema("synapedia")
     .from("substances")
     .delete()
     .eq("id", id);
@@ -134,7 +127,6 @@ export async function createSubstanceSources(sources: Array<{
 }>): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase
-    .schema("synapedia")
     .from("substance_sources")
     .insert(sources);
 
@@ -147,7 +139,6 @@ export async function createSubstanceSources(sources: Array<{
 export async function getSubstanceSources(substanceId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("substance_sources")
     .select("*")
     .eq("substance_id", substanceId)
@@ -166,7 +157,6 @@ export async function getSubstanceSources(substanceId: string) {
 export async function getRedditReports(substanceId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("reddit_reports")
     .select("*")
     .eq("substance_id", substanceId)

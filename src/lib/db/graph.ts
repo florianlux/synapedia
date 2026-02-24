@@ -17,7 +17,6 @@ type GraphEdgeUpdate = Partial<Omit<GraphEdgeInsert, "article_id">>;
 export async function getEdgesByArticle(articleId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("graph_edges")
     .select("*")
     .eq("article_id", articleId)
@@ -34,7 +33,6 @@ export async function getEdgesByArticle(articleId: string) {
 export async function getAllEdges() {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("graph_edges")
     .select("*")
     .order("created_at", { ascending: false });
@@ -50,7 +48,6 @@ export async function getAllEdges() {
 export async function createEdge(edge: GraphEdgeInsert) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("graph_edges")
     .insert(edge)
     .select()
@@ -67,7 +64,6 @@ export async function createEdge(edge: GraphEdgeInsert) {
 export async function updateEdge(id: string, updates: GraphEdgeUpdate) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("graph_edges")
     .update(updates)
     .eq("id", id)
@@ -85,7 +81,6 @@ export async function updateEdge(id: string, updates: GraphEdgeUpdate) {
 export async function deleteEdge(id: string) {
   const supabase = createClient();
   const { error } = await supabase
-    .schema("synapedia")
     .from("graph_edges")
     .delete()
     .eq("id", id);
@@ -99,7 +94,6 @@ export async function deleteEdge(id: string) {
 export async function createEdgesBatch(edges: GraphEdgeInsert[]) {
   const supabase = createClient();
   const { data, error } = await supabase
-    .schema("synapedia")
     .from("graph_edges")
     .insert(edges)
     .select();

@@ -4,8 +4,8 @@
 -- AI jobs, and knowledge-graph edges
 -- ============================================================
 
--- Ensure all objects are created in the synapedia schema
-SET search_path TO synapedia, public;
+-- Ensure all objects are created in the public schema
+SET search_path TO public;
 
 -- ============================================================
 -- 1. Tables
