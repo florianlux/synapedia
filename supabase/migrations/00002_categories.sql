@@ -3,6 +3,9 @@
 -- Add categories table for Synapedia
 -- ============================================================
 
+-- Ensure all objects are created in the synapedia schema
+SET search_path TO synapedia, public;
+
 CREATE TABLE categories (
     id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
     name        text        UNIQUE NOT NULL,
