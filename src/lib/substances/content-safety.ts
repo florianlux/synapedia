@@ -22,6 +22,13 @@ const PROHIBITED_PATTERNS: { pattern: RegExp; category: string }[] = [
   // Preparation / synthesis
   { pattern: /\b(synthes[ie]|herstell|kochen|cook|extract|extrahier|herstellung|zubereitung)\b/i, category: "synthesis" },
   { pattern: /\b(recipe|rezept|anleitung\s+zur\s+herstellung)\b/i, category: "synthesis" },
+  // Mixing / combination instructions
+  { pattern: /\b(mix(ing|en)?|misch(en|ung)?|combin(e|ing|ation)\s+(with|mit))\b/i, category: "mixing" },
+  { pattern: /\b(stack(ing)?|zusammen\s+(nehmen|einnehmen|konsumieren))\b/i, category: "mixing" },
+  // Routes of administration (standalone mentions as instructions)
+  { pattern: /\b(inject(ing|ion)?|injizier(en|ung)?|intravenous\s+use)\b/i, category: "routes" },
+  { pattern: /\b(snort(ing)?|schnupf(en|t)|insufflat(ion|e|ing))\b/i, category: "routes" },
+  { pattern: /\b(smok(e|ing)|rauch(en|t)|vap(e|ing|oris))\b/i, category: "routes" },
 ];
 
 export interface SafetyCheckResult {

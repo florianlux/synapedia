@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { BulkImportRequestSchema, SubstanceDraftSchema, type SubstanceDraft } from "@/lib/substances/schema";
-import { nameToSlug, buildAllSources } from "@/lib/substances/connectors";
+import { buildAllSources } from "@/lib/substances/connectors";
 import { contentSafetyFilter } from "@/lib/substances/content-safety";
+import { canonicalizeName, resolveSynonym, parseCsvTsv, deduplicateNames } from "@/lib/substances/canonicalize";
+import type { ImportSourceType } from "@/lib/substances/schema";
 
 /**
  * POST /api/admin/substances/bulk
  * Accepts a list of substance names, creates draft entries with source references.
+ * Supports multiple import modes: seed_pack, paste, csv, fetch.
  */
 export async function POST(request: NextRequest) {
   const isAuth = await isAdminAuthenticated(request);
@@ -31,16 +34,34 @@ export async function POST(request: NextRequest) {
 
   const { names, options } = parsed.data;
 
-  // Deduplicate and normalize
-  const seen = new Set<string>();
-  const uniqueNames: string[] = [];
-  for (const name of names) {
-    const slug = nameToSlug(name.trim());
-    if (!seen.has(slug) && name.trim().length > 0) {
-      seen.add(slug);
-      uniqueNames.push(name.trim());
+  // Extract import metadata from request
+  const importSource: ImportSourceType = (
+    (body as Record<string, unknown>)?.importSource as ImportSourceType
+  ) || "paste";
+  const importDetail = ((body as Record<string, unknown>)?.importDetail as string) || "";
+  const queueEnrichment = ((body as Record<string, unknown>)?.queueEnrichment as boolean) ?? false;
+  const csvContent = ((body as Record<string, unknown>)?.csvContent as string) || "";
+
+  // Handle CSV mode: parse CSV and extract names + synonyms
+  let processNames = names;
+  let csvSynonyms: Record<string, string[]> = {};
+  if (importSource === "csv" && csvContent) {
+    const entries = parseCsvTsv(csvContent);
+    processNames = entries.map((e) => e.name);
+    csvSynonyms = {};
+    for (const entry of entries) {
+      if (entry.synonyms.length > 0) {
+        csvSynonyms[entry.name] = entry.synonyms;
+      }
     }
   }
+
+  // Canonicalize + resolve synonyms + deduplicate
+  const resolvedNames = processNames.map((n) => {
+    const canonical = canonicalizeName(n);
+    return resolveSynonym(canonical);
+  });
+  const deduplicated = deduplicateNames(resolvedNames);
 
   const results: {
     name: string;
@@ -51,15 +72,15 @@ export async function POST(request: NextRequest) {
   }[] = [];
 
   // Process each substance
-  for (const name of uniqueNames) {
-    const slug = nameToSlug(name);
+  for (const entry of deduplicated) {
+    const { canonicalName: name, slug } = entry;
 
     try {
       // Dynamic import to avoid issues when Supabase is not configured
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
 
-      // Check if already exists
+      // Check if already exists by slug
       const { data: existing } = await supabase
         .schema("synapedia")
         .from("substances")
@@ -69,6 +90,19 @@ export async function POST(request: NextRequest) {
 
       if (existing) {
         results.push({ name, slug, status: "skipped", message: "Existiert bereits." });
+        continue;
+      }
+
+      // Also check aliases for dedup
+      const { data: aliasMatch } = await supabase
+        .schema("synapedia")
+        .from("substance_aliases")
+        .select("substance_id")
+        .eq("alias", name.toLowerCase())
+        .maybeSingle();
+
+      if (aliasMatch) {
+        results.push({ name, slug, status: "skipped", message: "Alias existiert bereits." });
         continue;
       }
 
@@ -127,6 +161,11 @@ export async function POST(request: NextRequest) {
           citations: validated.citations,
           confidence: validated.confidence,
           status: "draft",
+          canonical_name: name,
+          tags: [],
+          related_slugs: [],
+          external_ids: {},
+          enrichment: {},
         })
         .select("id")
         .single();
@@ -137,6 +176,21 @@ export async function POST(request: NextRequest) {
       }
 
       const substanceId = inserted.id;
+
+      // Store synonyms from CSV as aliases
+      const synonymsForThis = csvSynonyms[entry.originalName] ?? [];
+      if (synonymsForThis.length > 0) {
+        const aliases = synonymsForThis.map((syn) => ({
+          substance_id: substanceId,
+          alias: syn,
+          alias_type: "synonym" as const,
+          source: "csv_import",
+        }));
+        await supabase
+          .schema("synapedia")
+          .from("substance_aliases")
+          .insert(aliases);
+      }
 
       // Create source references
       if (options.fetchSources) {
@@ -151,6 +205,18 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Queue enrichment job if requested
+      if (queueEnrichment) {
+        await supabase
+          .schema("synapedia")
+          .from("enrichment_jobs")
+          .insert({
+            substance_id: substanceId,
+            phase: "pending",
+            status: "queued",
+          });
+      }
+
       results.push({ name, slug, status: "created", id: substanceId });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unbekannter Fehler";
@@ -159,11 +225,31 @@ export async function POST(request: NextRequest) {
   }
 
   const summary = {
-    total: uniqueNames.length,
+    total: deduplicated.length,
     created: results.filter((r) => r.status === "created").length,
     skipped: results.filter((r) => r.status === "skipped").length,
     errors: results.filter((r) => r.status === "error").length,
   };
+
+  // Log the import
+  try {
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    await supabase
+      .schema("synapedia")
+      .from("import_logs")
+      .insert({
+        admin_user: request.headers.get("x-admin-user") || "admin",
+        source_type: importSource,
+        source_detail: importDetail,
+        total_count: summary.total,
+        created_count: summary.created,
+        skipped_count: summary.skipped,
+        error_count: summary.errors,
+      });
+  } catch (logErr) {
+    console.error("[bulk] Import logging failed:", logErr);
+  }
 
   return NextResponse.json({ summary, results });
 }

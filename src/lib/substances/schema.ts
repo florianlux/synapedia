@@ -107,6 +107,55 @@ export interface SubstanceRow {
   confidence: Record<string, number>;
   status: "draft" | "review" | "published";
   created_at: string;
+  // Enrichment fields (added by migration 00005)
+  external_ids?: Record<string, string | number>;
+  canonical_name?: string;
+  tags?: string[];
+  related_slugs?: string[];
+  enrichment?: Record<string, unknown>;
+}
+
+/* ---------- Enrichment Job ---------- */
+
+export type EnrichmentPhase = "pending" | "facts" | "targets" | "summary" | "crosslink" | "done" | "error";
+export type EnrichmentStatus = "queued" | "running" | "done" | "error";
+
+export interface EnrichmentJobRow {
+  id: string;
+  substance_id: string;
+  phase: EnrichmentPhase;
+  status: EnrichmentStatus;
+  error_message: string;
+  attempts: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/* ---------- Import Log ---------- */
+
+export type ImportSourceType = "seed_pack" | "paste" | "csv" | "fetch";
+
+export interface ImportLogRow {
+  id: string;
+  admin_user: string;
+  source_type: ImportSourceType;
+  source_detail: string;
+  total_count: number;
+  created_count: number;
+  skipped_count: number;
+  error_count: number;
+  created_at: string;
+}
+
+/* ---------- Substance Alias ---------- */
+
+export interface SubstanceAliasRow {
+  id: string;
+  substance_id: string;
+  alias: string;
+  alias_type: "synonym" | "iupac" | "trade_name" | "abbreviation" | "other";
+  source: string;
+  created_at: string;
 }
 
 /* ---------- Bulk import request schema ---------- */
