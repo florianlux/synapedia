@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Brain, Lock, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SynapediaLogo } from "@/components/synapedia-logo";
 
 const navLinks = [
   { href: "/", label: "Startseite" },
@@ -22,9 +23,9 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/80 backdrop-blur-lg dark:border-neutral-800 dark:bg-neutral-950/80">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <Brain className="h-7 w-7 text-cyan-500" />
-          <span className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+        <Link href="/" className="flex items-center gap-2 group">
+          <SynapediaLogo className="h-7 w-7 text-cyan-500 transition-transform duration-300 group-hover:scale-105" />
+          <span className="brand-shimmer text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
             Synapedia
           </span>
         </Link>

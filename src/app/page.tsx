@@ -19,15 +19,15 @@ export default function Home() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
       {/* Hero */}
-      <section className="mb-12 text-center">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+      <section className="brand-hero-glow mb-12 text-center">
+        <h1 className="relative z-10 brand-shimmer text-4xl font-bold tracking-tight sm:text-5xl text-neutral-900 dark:text-neutral-50">
           Synapedia
         </h1>
-        <p className="mt-4 text-lg text-neutral-600 dark:text-neutral-400">
+        <p className="relative z-10 mt-4 text-lg text-neutral-600 dark:text-neutral-400">
           Wissenschaftliche Aufklärungsplattform für psychoaktive Substanzen
         </p>
 
-        <div className="mt-8 flex justify-center">
+        <div className="relative z-10 mt-8 flex justify-center">
           <SearchBar articles={articles} />
         </div>
       </section>
