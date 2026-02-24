@@ -99,11 +99,14 @@ export async function POST(request: NextRequest) {
       // Validate draft
       const validated = SubstanceDraftSchema.parse(draft);
 
-      // Safety check
-      const safetyResult = contentSafetyFilter(validated.summary + " " + validated.mechanism);
-      if (safetyResult.hasFlaggedContent) {
-        validated.summary = contentSafetyFilter(validated.summary).clean;
-        validated.mechanism = contentSafetyFilter(validated.mechanism).clean;
+      // Safety check — filter each field independently
+      const summarySafety = contentSafetyFilter(validated.summary);
+      const mechanismSafety = contentSafetyFilter(validated.mechanism);
+      if (summarySafety.hasFlaggedContent) {
+        validated.summary = summarySafety.clean;
+      }
+      if (mechanismSafety.hasFlaggedContent) {
+        validated.mechanism = mechanismSafety.clean;
       }
 
       // Insert substance

@@ -50,7 +50,7 @@ Admin UI (/admin/substances)
 | source_url | text | Reference URL |
 | source_type | text | psychonautwiki \| drugcom \| pubmed \| reddit \| other |
 | retrieved_at | timestamptz | When reference was created |
-| snippet | text | Short excerpt ≤20 words (if permitted) |
+| snippet | text | Short excerpt ≤200 characters (if permitted) |
 | snippet_hash | text | Hash of snippet for verification |
 | license_note | text | ToS/robots compliance note |
 | confidence | float | 0..1 source reliability proxy |
