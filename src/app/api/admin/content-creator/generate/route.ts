@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     const { substanceName, slug, wikidata, pubchem, riskLevel, substanceId, templateKey } = body;
 
-    if (!substanceName || !slug) {
+    if (!substanceName?.trim() || !slug?.trim()) {
       return Response.json({ ok: false, error: "substanceName und slug sind erforderlich." }, { status: 400 });
     }
 

@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       substanceId,
     } = body;
 
-    if (!substanceName || !contentMdx) {
+    if (!substanceName?.trim() || !contentMdx?.trim()) {
       return Response.json({ ok: false, error: "substanceName und contentMdx sind erforderlich." }, { status: 400 });
     }
 
