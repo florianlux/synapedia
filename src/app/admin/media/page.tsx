@@ -84,7 +84,7 @@ export default function AdminMedia() {
                   className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
                 >
                   {m.url ? (
-                    <Image src={m.url} alt={m.alt ?? ""} width={m.width ?? 300} height={m.height ?? 200} className="mb-2 h-32 w-full rounded object-cover" />
+                    <Image src={m.url} alt={m.alt ?? "Media"} width={m.width ?? 300} height={m.height ?? 200} className="mb-2 h-32 w-full rounded object-cover" />
                   ) : (
                     <div className="mb-2 flex h-32 items-center justify-center rounded bg-neutral-100 dark:bg-neutral-800">
                       <ImageIcon className="h-8 w-8 text-neutral-400" />

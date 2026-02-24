@@ -1,15 +1,9 @@
-"use client";
-
-import { useState } from "react";
 import { demoSources } from "@/lib/demo-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Source } from "@/lib/types";
 
-const demoSourcesList = Object.values(demoSources).flat();
+const sources = Object.values(demoSources).flat();
 
 export default function AdminSources() {
-  const [sources] = useState<Source[]>(demoSourcesList);
-
   return (
     <div className="space-y-8">
       <div>
