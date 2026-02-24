@@ -91,7 +91,7 @@ async function callOpenAI(userPrompt: string): Promise<AiEnrichmentResult> {
       temperature: 0.3,
       response_format: { type: "json_object" },
     }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(12_000),
   });
 
   if (!response.ok) {
@@ -122,7 +122,7 @@ async function callAnthropic(userPrompt: string): Promise<AiEnrichmentResult> {
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
     }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(12_000),
   });
 
   if (!response.ok) {
