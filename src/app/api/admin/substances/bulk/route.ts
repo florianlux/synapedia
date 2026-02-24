@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
       .schema("synapedia")
       .from("import_logs")
       .insert({
-        admin_user: "admin",
+        admin_user: request.headers.get("x-admin-user") || "admin",
         source_type: importSource,
         source_detail: importDetail,
         total_count: summary.total,
