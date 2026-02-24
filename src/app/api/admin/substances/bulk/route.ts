@@ -7,20 +7,26 @@ import { contentSafetyFilter } from "@/lib/substances/content-safety";
 import { canonicalizeName, resolveSynonym, parseCsvTsv, deduplicateNames } from "@/lib/substances/canonicalize";
 import { sanitizeSubstancePayload, pickOnConflict } from "@/lib/substances/sanitize";
 import { getAllowedColumns } from "@/lib/substances/sanitize-server";
+import { fetchPubChemByName } from "@/lib/connectors/pubchem";
 import type { ImportSourceType } from "@/lib/substances/schema";
 import type { DeduplicatedEntry } from "@/lib/substances/canonicalize";
 
 /** Batch size for processing substances */
 const BATCH_SIZE = 25;
 
+/** Schema name used for all DB operations */
+const DB_SCHEMA = "synapedia";
+
 type BulkResultStatus = "created" | "updated" | "skipped" | "failed";
+type PubChemStatus = "found" | "not_found" | "error";
 
 interface BulkResultItem {
   name: string;
   slug: string;
   status: BulkResultStatus;
-  error?: string;
+  message: string;
   id?: string;
+  pubchem_status?: PubChemStatus;
 }
 
 /**
@@ -111,6 +117,7 @@ export async function POST(request: NextRequest) {
     // Log the import (best-effort, don't fail the response)
     try {
       await supabase
+        .schema(DB_SCHEMA)
         .from("import_logs")
         .insert({
           admin_user: request.headers.get("x-admin-user") || "admin",
@@ -157,6 +164,7 @@ async function processBatch(
     try {
       // Check if already exists by slug or canonical_name
       const { data: existingBySlug } = await supabase
+        .schema(DB_SCHEMA)
         .from("substances")
         .select("id")
         .eq("slug", slug)
@@ -164,6 +172,7 @@ async function processBatch(
 
       const { data: existingByCanonical } = !existingBySlug
         ? await supabase
+            .schema(DB_SCHEMA)
             .from("substances")
             .select("id")
             .eq("canonical_name", name)
@@ -174,14 +183,46 @@ async function processBatch(
 
       // Also check aliases for dedup
       const { data: aliasMatch } = await supabase
+        .schema(DB_SCHEMA)
         .from("substance_aliases")
         .select("substance_id")
         .eq("alias", name.toLowerCase())
         .maybeSingle();
 
       if (aliasMatch) {
-        results.push({ name, slug, status: "skipped", error: "Alias existiert bereits." });
+        results.push({ name, slug, status: "skipped", message: "Alias existiert bereits." });
         continue;
+      }
+
+      // PubChem lookup (non-fatal)
+      let pubchemStatus: PubChemStatus = "not_found";
+      let externalIds: Record<string, string | number> = {};
+      let enrichmentMeta: Record<string, unknown> = {};
+
+      try {
+        const pubchem = await fetchPubChemByName(name);
+        if (pubchem) {
+          pubchemStatus = "found";
+          externalIds = { pubchem_cid: pubchem.cid };
+          enrichmentMeta = {
+            pubchem_status: "found",
+            pubchem_cid: pubchem.cid,
+            iupac_name: pubchem.iupacName,
+            molecular_formula: pubchem.molecularFormula,
+            molecular_weight: pubchem.molecularWeight,
+            retrieved_at: pubchem.retrievedAt,
+          };
+        } else {
+          pubchemStatus = "not_found";
+          enrichmentMeta = { pubchem_status: "not_found" };
+        }
+      } catch (pubchemErr) {
+        pubchemStatus = "error";
+        enrichmentMeta = {
+          pubchem_status: "error",
+          pubchem_error: pubchemErr instanceof Error ? pubchemErr.message : "Unknown error",
+        };
+        console.error(`[bulk] PubChem lookup for ${name}:`, pubchemErr instanceof Error ? pubchemErr.message : pubchemErr);
       }
 
       // Build draft
@@ -239,8 +280,8 @@ async function processBatch(
         canonical_name: name,
         tags: [],
         related_slugs: [],
-        external_ids: {},
-        enrichment: {},
+        external_ids: externalIds,
+        enrichment: enrichmentMeta,
       };
       const sanitizedRow = sanitizeSubstancePayload(rawRow, allowedColumns);
 
@@ -253,13 +294,14 @@ async function processBatch(
 
       // Upsert with onConflict on slug to handle duplicates
       const { data: upserted, error: upsertError } = await supabase
+        .schema(DB_SCHEMA)
         .from("substances")
         .upsert(sanitizedRow, { onConflict: effectiveConflict })
         .select("id")
         .single();
 
       if (upsertError) {
-        results.push({ name, slug, status: "failed", error: upsertError.message });
+        results.push({ name, slug, status: "failed", message: upsertError.message });
         continue;
       }
 
@@ -275,6 +317,7 @@ async function processBatch(
           source: "csv_import",
         }));
         await supabase
+          .schema(DB_SCHEMA)
           .from("substance_aliases")
           .insert(aliases);
       }
@@ -283,6 +326,7 @@ async function processBatch(
       if (options.fetchSources) {
         const sources = buildAllSources(name, substanceId);
         const { error: sourceError } = await supabase
+          .schema(DB_SCHEMA)
           .from("substance_sources")
           .insert(sources);
 
@@ -294,6 +338,7 @@ async function processBatch(
       // Queue enrichment job if requested
       if (queueEnrichment) {
         await supabase
+          .schema(DB_SCHEMA)
           .from("enrichment_jobs")
           .insert({
             substance_id: substanceId,
@@ -302,15 +347,22 @@ async function processBatch(
           });
       }
 
+      const statusLabel = isUpdate ? "updated" : "created";
+      const pubchemNote = pubchemStatus === "found"
+        ? ""
+        : ` (PubChem: ${pubchemStatus})`;
+
       results.push({
         name,
         slug,
-        status: isUpdate ? "updated" : "created",
+        status: statusLabel,
+        message: `${statusLabel === "created" ? "Erstellt" : "Aktualisiert"}${pubchemNote}`,
         id: substanceId,
+        pubchem_status: pubchemStatus,
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unbekannter Fehler";
-      results.push({ name, slug, status: "failed", error: message });
+      const errMessage = err instanceof Error ? err.message : "Unbekannter Fehler";
+      results.push({ name, slug, status: "failed", message: errMessage });
     }
   }
 
