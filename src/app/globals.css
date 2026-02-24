@@ -59,6 +59,7 @@
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
+  color: transparent;
   -webkit-text-fill-color: transparent;
   animation: brand-shimmer var(--brand-shimmer-duration) ease-in-out infinite;
 }
@@ -70,6 +71,11 @@
 }
 .brand-logo-glow:hover {
   filter: drop-shadow(0 0 calc(var(--brand-glow-blur) * 1.6) var(--brand-glow-color));
+}
+
+/* Twinkle animation for logo nodes */
+.brand-twinkle {
+  animation: brand-twinkle var(--brand-twinkle-duration) ease-in-out infinite;
 }
 
 /* Hero subtle radial glow */
@@ -90,6 +96,7 @@
   .brand-shimmer {
     animation: none;
     background: none;
+    color: unset;
     -webkit-text-fill-color: unset;
   }
   .brand-logo-glow {
