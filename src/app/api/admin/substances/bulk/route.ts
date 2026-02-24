@@ -10,14 +10,6 @@ import { getAllowedColumns } from "@/lib/substances/sanitize-server";
 import type { ImportSourceType } from "@/lib/substances/schema";
 import type { DeduplicatedEntry } from "@/lib/substances/canonicalize";
 
-/** Create admin Supabase client (uses SERVICE_ROLE_KEY, bypasses RLS) */
-function createAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
-}
-
 /** Batch size for processing substances */
 const BATCH_SIZE = 25;
 
@@ -92,6 +84,7 @@ export async function POST(request: NextRequest) {
 
     // Create admin Supabase client (uses SERVICE_ROLE_KEY, bypasses RLS)
     const supabase = createAdminClient();
+    const db = supabase.schema("synapedia");
 
     // Resolve allowed DB columns and conflict target once for all batches
     const allowedColumns = await getAllowedColumns();
@@ -102,7 +95,7 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < deduplicated.length; i += BATCH_SIZE) {
       const batch = deduplicated.slice(i, i + BATCH_SIZE);
       const batchResults = await processBatch(
-        supabase, batch, csvSynonyms, options, queueEnrichment,
+        db, batch, csvSynonyms, options, queueEnrichment,
         allowedColumns, onConflictColumn,
       );
       results.push(...batchResults);
@@ -118,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     // Log the import (best-effort, don't fail the response)
     try {
-      await supabase
+      await db
         .from("import_logs")
         .insert({
           admin_user: request.headers.get("x-admin-user") || "admin",
@@ -149,7 +142,7 @@ export async function POST(request: NextRequest) {
  * Each entry is handled independently — one failure does not abort the batch.
  */
 async function processBatch(
-  supabase: ReturnType<typeof createAdminClient>,
+  db: ReturnType<ReturnType<typeof createAdminClient>["schema"]>,
   batch: DeduplicatedEntry[],
   csvSynonyms: Record<string, string[]>,
   options: { fetchSources: boolean; generateDraft: boolean; queueRedditScan: boolean },
@@ -164,14 +157,14 @@ async function processBatch(
 
     try {
       // Check if already exists by slug or canonical_name
-      const { data: existingBySlug } = await supabase
+      const { data: existingBySlug } = await db
         .from("substances")
         .select("id")
         .eq("slug", slug)
         .maybeSingle();
 
       const { data: existingByCanonical } = !existingBySlug
-        ? await supabase
+        ? await db
             .from("substances")
             .select("id")
             .eq("canonical_name", name)
@@ -181,7 +174,7 @@ async function processBatch(
       const existing = existingBySlug || existingByCanonical;
 
       // Also check aliases for dedup
-      const { data: aliasMatch } = await supabase
+      const { data: aliasMatch } = await db
         .from("substance_aliases")
         .select("substance_id")
         .eq("alias", name.toLowerCase())
@@ -260,7 +253,7 @@ async function processBatch(
       const isUpdate = !!existing;
 
       // Upsert with onConflict on slug to handle duplicates
-      const { data: upserted, error: upsertError } = await supabase
+      const { data: upserted, error: upsertError } = await db
         .from("substances")
         .upsert(sanitizedRow, { onConflict: effectiveConflict })
         .select("id")
@@ -282,7 +275,7 @@ async function processBatch(
           alias_type: "synonym" as const,
           source: "csv_import",
         }));
-        await supabase
+        await db
           .from("substance_aliases")
           .insert(aliases);
       }
@@ -290,7 +283,7 @@ async function processBatch(
       // Create source references
       if (options.fetchSources) {
         const sources = buildAllSources(name, substanceId);
-        const { error: sourceError } = await supabase
+        const { error: sourceError } = await db
           .from("substance_sources")
           .insert(sources);
 
@@ -301,7 +294,7 @@ async function processBatch(
 
       // Queue enrichment job if requested
       if (queueEnrichment) {
-        await supabase
+        await db
           .from("enrichment_jobs")
           .insert({
             substance_id: substanceId,
