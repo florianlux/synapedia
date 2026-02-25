@@ -22,6 +22,7 @@ export interface Article {
   subtitle: string | null;
   summary: string;
   content_mdx: string;
+  content_html?: string | null;
   status: ArticleStatus;
   risk_level: RiskLevel;
   evidence_strength: EvidenceStrength;
