@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 const ADMIN_COOKIE = "synapedia_admin_token";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 0. Never intercept API routes — let them pass through unchanged
@@ -10,50 +11,80 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 1. Trailing-slash normalization → canonical /admin and /admin/login
+  // 1. Trailing-slash normalization
   if (pathname !== "/" && pathname.endsWith("/")) {
     const url = request.nextUrl.clone();
     url.pathname = pathname.replace(/\/+$/, "");
     return NextResponse.redirect(url, 308);
   }
 
-  // 2. API routes must never be redirected — always let them through.
-  //    Auth is handled inside each route handler via isAdminAuthenticated().
-  if (pathname.startsWith("/api/")) {
-    return NextResponse.next();
+  // 2. Supabase session refresh for all routes
+  const response = NextResponse.next({ request });
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (
+    supabaseUrl &&
+    supabaseAnonKey &&
+    !supabaseUrl.includes("your-project") &&
+    supabaseAnonKey !== "your-anon-key"
+  ) {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    });
+
+    // Refresh the session
+    await supabase.auth.getUser();
   }
 
-  // 3. Admin-enabled gate
-  const adminEnabled =
-    process.env.ADMIN_ENABLED ??
-    process.env.NEXT_PUBLIC_ADMIN_ENABLED ??
-    "true"; // default to enabled for backward compatibility
-  if (adminEnabled !== "true") {
-    return NextResponse.redirect(new URL("/", request.url));
+  // 3. Admin route handling
+  if (pathname.startsWith("/admin")) {
+    // Admin-enabled gate
+    const adminEnabled =
+      process.env.ADMIN_ENABLED ??
+      process.env.NEXT_PUBLIC_ADMIN_ENABLED ??
+      "true";
+    if (adminEnabled !== "true") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    // /admin/login is always reachable
+    if (pathname === "/admin/login") {
+      return response;
+    }
+
+    // Auth check for all other /admin routes
+    const adminToken = process.env.ADMIN_TOKEN;
+
+    // No ADMIN_TOKEN configured → demo mode, allow access
+    if (!adminToken) {
+      return response;
+    }
+
+    const cookieToken = request.cookies.get(ADMIN_COOKIE)?.value;
+    if (cookieToken === adminToken) {
+      return response;
+    }
+
+    return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 
-  // 4. /admin/login is always reachable (no auth redirect)
-  if (pathname === "/admin/login") {
-    return NextResponse.next();
-  }
-
-  // 5. Auth check for all other /admin routes
-  const adminToken = process.env.ADMIN_TOKEN;
-
-  // No ADMIN_TOKEN configured → demo mode, allow access
-  if (!adminToken) {
-    return NextResponse.next();
-  }
-
-  const cookieToken = request.cookies.get(ADMIN_COOKIE)?.value;
-  if (cookieToken === adminToken) {
-    return NextResponse.next();
-  }
-
-  // Not authenticated → redirect to login (no loop: /admin/login is excluded above)
-  return NextResponse.redirect(new URL("/admin/login", request.url));
+  return response;
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
