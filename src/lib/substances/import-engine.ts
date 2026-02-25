@@ -127,28 +127,57 @@ async function processItem(
     confidence_score: 0,
   };
 
+  // ── Input validation ──
+  if (!item.qid || !/^Q\d+$/.test(item.qid)) {
+    result.wikidata_status = "failed";
+    result.error = `wikidata: Ungültiges QID-Format: "${item.qid ?? ""}"`;
+    return result;
+  }
+
+  if (!item.label || !slugify(item.label)) {
+    result.wikidata_status = "failed";
+    result.error = "wikidata: Label fehlt oder ergibt leeren Slug";
+    return result;
+  }
+
+  if (item.pubchem_cid != null && (typeof item.pubchem_cid !== "number" || item.pubchem_cid <= 0)) {
+    result.pubchem_status = "error";
+    result.error = `pubchem: Ungültige pubchem_cid: ${item.pubchem_cid}`;
+    return result;
+  }
+
   // ── Step 1: Wikidata is already fetched (passed in) ──
   if (!item.qid || !item.label) {
     result.wikidata_status = "failed";
-    result.error = "Missing QID or label";
+    result.error = "wikidata: Missing QID or label";
     return result;
   }
 
   // ── Step 2: PubChem enrichment (optional, best-effort) ──
   let pubchemData: PubChemHardenedResult | null = null;
   if (!options.skipPubChem && item.pubchem_cid) {
-    pubchemData = await fetchPubChemHardened(item.label, item.pubchem_cid);
-    result.pubchem_status = pubchemData.status;
+    try {
+      pubchemData = await fetchPubChemHardened(item.label, item.pubchem_cid);
+      result.pubchem_status = pubchemData.status;
+    } catch (err) {
+      result.pubchem_status = "error";
+      result.error = `pubchem: ${err instanceof Error ? err.message : "Unbekannter Fehler"}`;
+    }
   }
 
   // ── Step 3: AI enrichment ──
   let aiData: Awaited<ReturnType<typeof runAiEnrichment>> | null = null;
   if (!options.skipAi) {
-    aiData = await runAiEnrichment(item.label, item.description || "", {
-      molecularFormula: pubchemData?.data?.molecularFormula,
-      synonyms: pubchemData?.data?.synonyms,
-    });
-    result.ai_status = aiData.status;
+    try {
+      aiData = await runAiEnrichment(item.label, item.description || "", {
+        molecularFormula: pubchemData?.data?.molecularFormula,
+        synonyms: pubchemData?.data?.synonyms,
+      });
+      result.ai_status = aiData.status;
+    } catch (err) {
+      result.ai_status = "failed";
+      result.error = `ai: ${err instanceof Error ? err.message : "Unbekannter Fehler"}`;
+    }
   }
 
   // ── Step 4: Confidence score ──
@@ -277,7 +306,7 @@ async function processItem(
     }
   } catch (err) {
     result.db_status = "failed";
-    result.error = err instanceof Error ? err.message : "Unknown DB error";
+    result.error = `db: ${err instanceof Error ? err.message : "Unknown DB error"}`;
   }
 
   return result;
@@ -296,7 +325,28 @@ export async function runImport(
   const runId = options.runId ?? crypto.randomUUID();
   const opts = { ...options, runId };
 
-  const supabase = options.dryRun ? null : createAdminClient();
+  let supabase: ReturnType<typeof createAdminClient> | null = null;
+  if (!options.dryRun) {
+    try {
+      supabase = createAdminClient();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unbekannter Fehler";
+      return {
+        runId,
+        summary: { total: 0, inserted: 0, updated: 0, skipped: 0, failed: items.length, pubchem_not_found: 0, avg_confidence: 0 },
+        items: items.slice(0, options.limit).map((i) => ({
+          label: i.label,
+          qid: i.qid,
+          wikidata_status: "ok" as const,
+          pubchem_status: "skipped" as const,
+          ai_status: "skipped" as const,
+          db_status: "failed" as const,
+          confidence_score: 0,
+          error: `db: Supabase-Client konnte nicht erstellt werden: ${message}`,
+        })),
+      };
+    }
+  }
   const results: ImportItemResult[] = [];
 
   const limited = items.slice(0, options.limit);
