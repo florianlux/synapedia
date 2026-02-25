@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { RiskBanner } from "@/components/risk-banner";
 import { SourceBox } from "@/components/source-box";
 import { TableOfContents, type TocHeading } from "@/components/table-of-contents";
+import { SubstancePharmacologySection } from "@/components/substance-pharmacology";
 import {
   demoArticles,
   demoTags,
@@ -142,6 +143,14 @@ export default async function ArticlePage({
           <SourceBox sources={sources} />
         </article>
       </div>
+
+      {/* Pharmacology modules (only rendered when substance_id is set and Supabase is available) */}
+      {article.substance_id && (
+        <SubstancePharmacologySection
+          substanceId={article.substance_id}
+          substanceName={article.title}
+        />
+      )}
     </div>
   );
 }
