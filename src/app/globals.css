@@ -200,3 +200,35 @@ h1, h2, h3, h4, h5, h6, p, li, td, th, dd, dt, span, a {
   font-style: italic;
   color: #a3a3a3;
 }
+
+/* ─── Portfolio page styles ─── */
+
+:root {
+  --portfolio-glow-alpha: 0.15;
+  --portfolio-reduce-motion: 0;
+}
+
+/* Scope portfolio visuals so they don't leak into the main Synapedia site */
+.portfolio-page {
+  scroll-behavior: smooth;
+}
+
+/* Dark science-lab background: subtle grid + gradient vignette */
+.portfolio-bg {
+  background-color: #0a0a0a;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px),
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(6,182,212,0.06), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(139,92,246,0.04), transparent 60%);
+  background-size: 60px 60px, 60px 60px, 100% 100%, 100% 100%;
+}
+
+/* Reduce motion override for portfolio animations */
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-page * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
