@@ -21,6 +21,7 @@ const navLinks = [
   { href: "/neuro", label: "NeuroMap" },
   { href: "/glossary", label: "Glossar" },
   { href: "/compare", label: "Vergleich" },
+  { href: "/hilfe", label: "🆘 Hilfe", highlight: true },
 ];
 
 const adminEnabled = process.env.NEXT_PUBLIC_ADMIN_ENABLED === "true";
@@ -69,7 +70,11 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
+              className={
+                link.highlight
+                  ? "text-sm font-medium text-red-500 transition-colors hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                  : "text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
+              }
             >
               {link.label}
             </Link>
@@ -126,7 +131,11 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="block rounded-md px-3 py-2 text-base font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-50"
+                className={
+                  link.highlight
+                    ? "block rounded-md px-3 py-2 text-base font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-950/30 dark:hover:text-red-300"
+                    : "block rounded-md px-3 py-2 text-base font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-50"
+                }
               >
                 {link.label}
               </Link>

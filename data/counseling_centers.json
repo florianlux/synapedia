@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Caritas Suchtberatung München",
+    "city": "München",
+    "type": "ambulant",
+    "website": "https://www.caritas-muc.de",
+    "phone": "089 55169-0"
+  },
+  {
+    "name": "Drogenberatung e.V. Dortmund",
+    "city": "Dortmund",
+    "type": "ambulant",
+    "website": "https://www.drogenberatung-dortmund.de",
+    "phone": "0231 52290-0"
+  },
+  {
+    "name": "Fachambulanz Sucht Hamburg",
+    "city": "Hamburg",
+    "type": "ambulant",
+    "website": "https://www.sucht-hamburg.de",
+    "phone": "040 284950-0"
+  },
+  {
+    "name": "Blaues Kreuz Berlin",
+    "city": "Berlin",
+    "type": "ambulant",
+    "website": "https://www.blaues-kreuz-berlin.de",
+    "phone": "030 8314-0"
+  },
+  {
+    "name": "Therapiezentrum Sucht Frankfurt",
+    "city": "Frankfurt",
+    "type": "stationär",
+    "website": "https://www.therapiezentrum-sucht.de",
+    "phone": "069 2562-0"
+  },
+  {
+    "name": "Suchtberatung Köln AWO",
+    "city": "Köln",
+    "type": "ambulant",
+    "website": "https://www.awo-koeln.de",
+    "phone": "0221 8607-0"
+  },
+  {
+    "name": "Fachklinik Sucht Stuttgart",
+    "city": "Stuttgart",
+    "type": "stationär",
+    "website": "https://www.fachklinik-sucht-stuttgart.de",
+    "phone": "0711 22784-0"
+  },
+  {
+    "name": "Diakonie Suchtberatung Düsseldorf",
+    "city": "Düsseldorf",
+    "type": "ambulant",
+    "website": "https://www.diakonie-duesseldorf.de",
+    "phone": "0211 7708-0"
+  },
+  {
+    "name": "Suchtberatung Leipzig",
+    "city": "Leipzig",
+    "type": "ambulant",
+    "website": "https://www.suchtberatung-leipzig.de",
+    "phone": "0341 2225-0"
+  },
+  {
+    "name": "Rehabilitationszentrum Bremen",
+    "city": "Bremen",
+    "type": "stationär",
+    "website": "https://www.reha-bremen.de",
+    "phone": "0421 5904-0"
+  }
+]
