@@ -9,6 +9,7 @@ import { isAdminAuthenticated } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { filterContent } from "@/lib/generator/content-filter";
 import { logAudit } from "@/lib/generator/audit";
+import { mdxToHtml } from "@/lib/mdx-to-html";
 
 function slugify(name: string): string {
   return name
@@ -110,6 +111,9 @@ export async function POST(request: NextRequest) {
     const status = publish ? "published" : "draft";
     const now = new Date().toISOString();
 
+    // Pre-render MDX to HTML (fallback to null on failure)
+    const contentHtml = await mdxToHtml(contentMdx);
+
     const sourcesJsonb = (citations ?? []).map((c) => ({
       source: c.source,
       url: c.url,
@@ -126,6 +130,7 @@ export async function POST(request: NextRequest) {
         .update({
           title: substanceName,
           content_mdx: contentMdx,
+          content_html: contentHtml ?? "",
           status,
           risk_level: riskLevel,
           category,
@@ -153,6 +158,7 @@ export async function POST(request: NextRequest) {
           substance_slug: slug,
           summary: `Wissenschaftlicher Artikel über ${substanceName}`,
           content_mdx: contentMdx,
+          content_html: contentHtml ?? "",
           status,
           risk_level: riskLevel,
           category,
