@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical, Network, Upload, Wand2, Sparkles } from "lucide-react";
+import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical, Network, Upload, Wand2, Sparkles, KeyRound, Activity } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -13,6 +13,8 @@ const navItems = [
   { href: "/admin/sources", label: "Quellen", icon: BookOpen },
   { href: "/admin/media", label: "Medien", icon: Image },
   { href: "/admin/audit", label: "Audit-Log", icon: ScrollText },
+  { href: "/admin/secrets", label: "Secrets Register", icon: KeyRound },
+  { href: "/admin/dev-activity", label: "Dev Activity", icon: Activity },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
