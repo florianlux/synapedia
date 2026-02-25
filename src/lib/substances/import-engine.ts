@@ -356,8 +356,10 @@ export async function runImport(
     const itemResult = await processItem(
       item,
       opts,
-      // Pass a dummy client for dry runs (DB step is skipped)
-      supabase ?? createAdminClient(),
+      // For dry runs the DB step is skipped so the client is unused;
+      // pass supabase as-is (null for dryRun) to avoid creating a client
+      // that may fail when Supabase is not configured.
+      supabase as ReturnType<typeof createAdminClient>,
     );
     const itemElapsed = Date.now() - itemStart;
     console.log(
