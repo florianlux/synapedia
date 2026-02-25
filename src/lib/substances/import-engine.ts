@@ -251,18 +251,46 @@ async function processItem(
     // Normalise value types so {} / [] / "N/A" never hit numeric columns
     const sanitisedRow = sanitizeSubstanceValues(row);
 
-    // Check existing by slug
-    const { data: existing } = await supabase
-      .from("substances")
-      .select("id")
-      .eq("slug", slug)
-      .maybeSingle();
+    // Dedupe: check existing by wikidata_qid > pubchem_cid > slug
+    let existing: { id: string } | null = null;
+
+    // 1. Check by wikidata_qid (strongest dedupe key)
+    if (item.qid) {
+      const { data } = await supabase
+        .from("substances")
+        .select("id")
+        .eq("wikidata_qid", item.qid)
+        .maybeSingle();
+      if (data) existing = data;
+    }
+
+    // 2. Check by pubchem_cid
+    if (!existing && item.pubchem_cid) {
+      const { data } = await supabase
+        .from("substances")
+        .select("id")
+        .eq("pubchem_cid", item.pubchem_cid)
+        .maybeSingle();
+      if (data) existing = data;
+    }
+
+    // 3. Check by slug (weakest)
+    if (!existing) {
+      const { data } = await supabase
+        .from("substances")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (data) existing = data;
+    }
 
     if (existing) {
-      // Update
+      // Update: merge enrichment and identifiers, keep existing data
       const { error: updateError } = await supabase
         .from("substances")
         .update({
+          wikidata_qid: item.qid || undefined,
+          pubchem_cid: item.pubchem_cid || undefined,
           external_ids: identifiers,
           enrichment,
           meta: sanitisedRow.meta,
@@ -271,12 +299,15 @@ async function processItem(
 
       if (updateError) {
         result.db_status = "failed";
-        result.error = updateError.message;
+        result.error = `db: ${updateError.message}`;
       } else {
         result.db_status = "updated";
       }
     } else {
-      // Insert
+      // Insert new substance with top-level dedupe columns
+      sanitisedRow.wikidata_qid = item.qid || null;
+      sanitisedRow.pubchem_cid = toNullableNumber(item.pubchem_cid);
+
       const { data: inserted, error: insertError } = await supabase
         .from("substances")
         .insert(sanitisedRow)
@@ -285,7 +316,7 @@ async function processItem(
 
       if (insertError) {
         result.db_status = "failed";
-        result.error = insertError.message;
+        result.error = `db: ${insertError.message}`;
       } else {
         result.db_status = "inserted";
 
