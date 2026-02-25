@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import type { ArticleTemplate, GeneratedCitation } from "@/lib/types";
 import type { SubstanceRow } from "@/lib/substances/schema";
+import { AdminPharmacologyTabs } from "@/components/admin-pharmacology-tabs";
 
 interface GenerateResult {
   id?: string;
@@ -489,6 +490,11 @@ export default function SubstanceDetailPage() {
             </Card>
           )}
         </div>
+      </div>
+
+      {/* Pharmacology Section */}
+      <div className="mt-8">
+        <AdminPharmacologyTabs substanceId={substanceId} />
       </div>
     </div>
   );

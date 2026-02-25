@@ -29,6 +29,7 @@ export interface Article {
   category: string | null;
   receptor: string | null;
   legal_status: string | null;
+  substance_id?: string | null;
   created_at: string;
   updated_at: string;
   published_at: string | null;

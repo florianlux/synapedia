@@ -8,21 +8,7 @@ import type {
   Pharmacodynamics,
   SubstancePharmacology,
 } from "@/lib/types";
-
-// Normalize affinity_nm to 0..1 strength using log scale
-// Smaller Ki/IC50 = stronger binding = higher strength
-export function normalizeAffinity(
-  affinityNm: number | null,
-  minNm = 0.01,
-  maxNm = 100000
-): number {
-  if (affinityNm === null || affinityNm <= 0) return 0.3; // conservative for qualitative
-  const logMin = Math.log10(minNm);
-  const logMax = Math.log10(maxNm);
-  const logVal = Math.log10(affinityNm);
-  const strength = (logMax - logVal) / (logMax - logMin);
-  return Math.max(0, Math.min(1, strength));
-}
+import { normalizeAffinity } from "@/lib/pkpd-math";
 
 export async function getSubstancePharmacology(
   substanceId: string
