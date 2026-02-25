@@ -281,3 +281,125 @@ export interface UserLog {
   safer_use_notes: string | null;
   created_at: string;
 }
+
+// ============================================================
+// Pharmacology Modules: Receptor Heatmap + PK/PD + Dose-Response
+// ============================================================
+
+export type MeasureType = "Ki" | "IC50" | "EC50" | "qualitative";
+export type EffectType =
+  | "agonist"
+  | "antagonist"
+  | "partial_agonist"
+  | "inhibitor"
+  | "releaser"
+  | "modulator"
+  | "unknown";
+export type ConfidenceLevel = "literature" | "clinical" | "estimate" | "low";
+export type PKRoute = "oral" | "nasal" | "iv" | "smoked" | "sublingual";
+export type TargetFamily =
+  | "opioid"
+  | "serotonin"
+  | "dopamine"
+  | "glutamate"
+  | "gaba"
+  | "transporter"
+  | "cannabinoid"
+  | "adrenergic"
+  | "sigma"
+  | "other";
+
+export interface PharmacologySource {
+  title: string;
+  url?: string;
+  doi?: string;
+  year?: number;
+  authors?: string;
+}
+
+export interface Target {
+  id: string;
+  slug: string;
+  name: string;
+  family: TargetFamily | string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubstanceTargetAffinity {
+  id: string;
+  substance_id: string;
+  target_id: string;
+  measure_type: MeasureType;
+  affinity_nm: number | null;
+  effect_type: EffectType | null;
+  efficacy: number | null;
+  confidence_level: ConfidenceLevel;
+  sources: PharmacologySource[];
+  notes: string;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  target?: Target;
+}
+
+export interface AffinityWithTarget extends SubstanceTargetAffinity {
+  target: Target;
+  strength: number; // 0..1 normalized
+}
+
+export interface PharmacokineticRoute {
+  id: string;
+  substance_id: string;
+  route: PKRoute;
+  onset_min: number | null;
+  onset_max: number | null;
+  tmax_min: number | null;
+  tmax_max: number | null;
+  duration_min: number | null;
+  duration_max: number | null;
+  half_life_h: number | null;
+  bioavailability_f: number | null;
+  ka_h: number | null;
+  ke_h: number | null;
+  cmax_rel: number | null;
+  after_effects_min: number | null;
+  after_effects_max: number | null;
+  confidence_level: ConfidenceLevel;
+  sources: PharmacologySource[];
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Pharmacodynamics {
+  id: string;
+  substance_id: string;
+  route: string | null;
+  emax: number;
+  ec50_mg: number | null;
+  ec50_rel_concentration: number | null;
+  hill_h: number;
+  baseline_e0: number;
+  therapeutic_index: number | null;
+  tolerance_shift_per_day: number | null;
+  confidence_level: ConfidenceLevel;
+  sources: PharmacologySource[];
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PKCurvePoint {
+  t: number;       // minutes
+  mean: number;    // 0..100
+  low: number;     // lower bound
+  high: number;    // upper bound
+}
+
+export interface SubstancePharmacology {
+  targets: AffinityWithTarget[];
+  pkRoutes: PharmacokineticRoute[];
+  pdParams: Pharmacodynamics[];
+}
