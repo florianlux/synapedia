@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { ThumbsUp, Send, MessageSquare } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClientSafe } from "@/lib/supabase/client";
 import type { FeedPost } from "@/lib/types";
 
 type FeedMode = "new" | "for_you";
 
 export default function FeedPage() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClientSafe(), []);
   const [posts, setPosts] = useState<FeedPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!supabase);
   const [mode, setMode] = useState<FeedMode>("new");
   const [userId, setUserId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Composer state
   const [showComposer, setShowComposer] = useState(false);
@@ -22,103 +23,110 @@ export default function FeedPage() {
   const [tags, setTags] = useState("");
   const [posting, setPosting] = useState(false);
 
-  const loadPosts = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => {
+    if (!supabase) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    setUserId(user?.id ?? null);
+    const sb = supabase;
+    let cancelled = false;
 
-    // Fetch posts with author info and vote counts
-    let query = supabase
-      .from("feed_posts")
-      .select("*, user_profiles!feed_posts_author_id_fkey(username, avatar_url), feed_post_votes(value)")
-      .eq("status", "published")
-      .eq("visibility", "public")
-      .order("created_at", { ascending: false })
-      .limit(50);
+    async function fetchPosts() {
+      setLoading(true);
 
-    if (mode === "for_you" && user) {
-      // For personalized feed, we still fetch all but will sort client-side
-      // based on user's favorite tags
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("favorite_tags")
-        .eq("user_id", user.id)
-        .single();
+      const { data: { user } } = await sb.auth.getUser();
+      if (cancelled) return;
+      setUserId(user?.id ?? null);
 
-      const { data: favorites } = await supabase
-        .from("substance_favorites")
-        .select("substance_id")
-        .eq("user_id", user.id);
+      const query = sb
+        .from("feed_posts")
+        .select("*, user_profiles!feed_posts_author_id_fkey(username, avatar_url), feed_post_votes(value)")
+        .eq("status", "published")
+        .eq("visibility", "public")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-      const { data: rawPosts } = await query;
+      if (mode === "for_you" && user) {
+        const { data: profile } = await sb
+          .from("user_profiles")
+          .select("favorite_tags")
+          .eq("user_id", user.id)
+          .single();
 
-      if (rawPosts) {
-        const favTags = profile?.favorite_tags || [];
-        const favSubstances = (favorites || []).map((f: { substance_id: string }) => f.substance_id);
+        const { data: favorites } = await sb
+          .from("substance_favorites")
+          .select("substance_id")
+          .eq("user_id", user.id);
 
-        const scored = rawPosts.map((post: Record<string, unknown>) => {
-          const profile = post.user_profiles as Record<string, string> | null;
-          const votes = post.feed_post_votes as Array<{ value: number }> | null;
-          const postTags = (post.tags as string[]) || [];
-          const voteCount = votes?.reduce((sum: number, v: { value: number }) => sum + v.value, 0) ?? 0;
-          const userVoted = user ? votes?.some((v: Record<string, unknown>) => v.user_id === user.id) ?? false : false;
+        const { data: rawPosts } = await query;
 
-          // Score: +2 for each matching tag, +3 for matching substance
-          let score = 0;
-          for (const tag of postTags) {
-            if (favTags.includes(tag)) score += 2;
-          }
-          if (post.substance_id && favSubstances.includes(post.substance_id as string)) {
-            score += 3;
-          }
+        if (cancelled) return;
 
-          return {
-            ...(post as object),
-            author_username: profile?.username,
-            author_avatar_url: profile?.avatar_url,
-            vote_count: voteCount,
-            user_voted: userVoted,
-            _score: score,
-          } as FeedPost & { _score: number };
-        });
+        if (rawPosts) {
+          const favTags = profile?.favorite_tags || [];
+          const favSubstances = (favorites || []).map((f: { substance_id: string }) => f.substance_id);
 
-        scored.sort((a, b) => b._score - a._score || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        setPosts(scored);
-      }
-    } else {
-      const { data: rawPosts } = await query;
-
-      if (rawPosts) {
-        setPosts(
-          rawPosts.map((post: Record<string, unknown>) => {
-            const profile = post.user_profiles as Record<string, string> | null;
+          const scored = rawPosts.map((post: Record<string, unknown>) => {
+            const authorProfile = post.user_profiles as Record<string, string> | null;
             const votes = post.feed_post_votes as Array<{ value: number }> | null;
+            const postTags = (post.tags as string[]) || [];
             const voteCount = votes?.reduce((sum: number, v: { value: number }) => sum + v.value, 0) ?? 0;
             const userVoted = user ? votes?.some((v: Record<string, unknown>) => v.user_id === user.id) ?? false : false;
 
+            let score = 0;
+            for (const tag of postTags) {
+              if (favTags.includes(tag)) score += 2;
+            }
+            if (post.substance_id && favSubstances.includes(post.substance_id as string)) {
+              score += 3;
+            }
+
             return {
               ...(post as object),
-              author_username: profile?.username,
-              author_avatar_url: profile?.avatar_url,
+              author_username: authorProfile?.username,
+              author_avatar_url: authorProfile?.avatar_url,
               vote_count: voteCount,
               user_voted: userVoted,
-            } as FeedPost;
-          })
-        );
+              _score: score,
+            } as FeedPost & { _score: number };
+          });
+
+          scored.sort((a, b) => b._score - a._score || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          setPosts(scored);
+        }
+      } else {
+        const { data: rawPosts } = await query;
+        if (cancelled) return;
+
+        if (rawPosts) {
+          setPosts(
+            rawPosts.map((post: Record<string, unknown>) => {
+              const authorProfile = post.user_profiles as Record<string, string> | null;
+              const votes = post.feed_post_votes as Array<{ value: number }> | null;
+              const voteCount = votes?.reduce((sum: number, v: { value: number }) => sum + v.value, 0) ?? 0;
+              const userVoted = user ? votes?.some((v: Record<string, unknown>) => v.user_id === user.id) ?? false : false;
+
+              return {
+                ...(post as object),
+                author_username: authorProfile?.username,
+                author_avatar_url: authorProfile?.avatar_url,
+                vote_count: voteCount,
+                user_voted: userVoted,
+              } as FeedPost;
+            })
+          );
+        }
       }
+
+      setLoading(false);
     }
 
-    setLoading(false);
-  }, [supabase, mode]);
+    fetchPosts();
 
-  useEffect(() => {
-    loadPosts();
-  }, [loadPosts]);
+    return () => { cancelled = true; };
+  }, [supabase, mode, refreshKey]);
 
   async function handlePost(e: React.FormEvent) {
     e.preventDefault();
-    if (!body.trim()) return;
+    if (!body.trim() || !supabase) return;
     setPosting(true);
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -141,13 +149,13 @@ export default function FeedPage() {
       setBody("");
       setTags("");
       setShowComposer(false);
-      loadPosts();
+      setRefreshKey((k) => k + 1);
     }
     setPosting(false);
   }
 
   async function handleVote(postId: string) {
-    if (!userId) return;
+    if (!userId || !supabase) return;
 
     const post = posts.find((p) => p.id === postId);
     if (!post) return;
