@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical, Network, Upload, Wand2, Sparkles } from "lucide-react";
+import { AdminStatus } from "@/components/admin-status";
+
+const ADMIN_COOKIE = "synapedia_admin_token";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -16,7 +20,18 @@ const navItems = [
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const hasAdminToken = !!process.env.ADMIN_TOKEN;
+  const adminToken = process.env.ADMIN_TOKEN;
+  const hasAdminToken = !!adminToken;
+  const isDemoMode = !hasAdminToken;
+
+  let isUnlocked = false;
+  if (isDemoMode) {
+    isUnlocked = true;
+  } else {
+    const cookieStore = await cookies();
+    const cookieToken = cookieStore.get(ADMIN_COOKIE)?.value;
+    isUnlocked = cookieToken === adminToken;
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)]">
@@ -44,6 +59,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         )}
       </aside>
       <div className="flex-1 overflow-auto">
+        <header className="flex items-center justify-end border-b border-neutral-200 px-6 py-3 dark:border-neutral-800">
+          <AdminStatus isUnlocked={isUnlocked} isDemoMode={isDemoMode} />
+        </header>
         <div className="mx-auto max-w-6xl p-6">
           {children}
         </div>

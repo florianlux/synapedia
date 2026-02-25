@@ -32,8 +32,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // 4. /admin/login is always reachable (no auth redirect)
-  if (pathname === "/admin/login") {
+  // 4. /admin/login and /admin/access are always reachable (no auth redirect)
+  if (pathname === "/admin/login" || pathname === "/admin/access") {
     return NextResponse.next();
   }
 
