@@ -212,3 +212,24 @@ export interface GeneratedCitation {
   fetched_at?: string;
   license?: string;
 }
+
+// SEO types
+
+export type SeoEntityType = "article" | "substance" | "glossary" | "page";
+
+export interface SeoDocument {
+  id: string;
+  slug: string;
+  entity_type: SeoEntityType;
+  title: string | null;
+  description: string | null;
+  canonical_url: string | null;
+  og_title: string | null;
+  og_description: string | null;
+  og_image_url: string | null;
+  robots: string;
+  keywords: string[] | null;
+  structured_data: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
