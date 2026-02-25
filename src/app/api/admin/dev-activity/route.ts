@@ -1,144 +1,139 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAdminAuthenticated } from "@/lib/auth";
+import { assertAdmin } from "@/lib/admin/require-admin";
 
-const OWNER = "florianlux";
-const REPO = "synapedia";
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-interface MergedPR {
-  number: number;
+interface DevEvent {
+  id: string;
+  type: "pr" | "commit" | "workflow";
   title: string;
-  merged_at: string;
-  user: string;
   url: string;
-  base: string;
-}
-
-interface RecentCommit {
-  sha7: string;
-  messageFirstLine: string;
   author: string;
-  date: string;
-  url: string;
+  date: string; // ISO-8601
 }
 
-interface SuccessfulRun {
-  name: string;
-  event: string;
-  branch: string;
-  updated_at: string;
-  url: string;
-}
+// ---------------------------------------------------------------------------
+// GitHub helpers
+// ---------------------------------------------------------------------------
+
+const GITHUB_API = "https://api.github.com";
 
 async function ghFetch(path: string, token: string) {
-  const res = await fetch(`https://api.github.com${path}`, {
+  const res = await fetch(`${GITHUB_API}${path}`, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `token ${token}`,
       Accept: "application/vnd.github+json",
     },
-    next: { revalidate: 60 },
+    next: { revalidate: 120 }, // cache for 2 min
   });
-  return res;
+  if (!res.ok) throw new Error(`GitHub API ${res.status}: ${path}`);
+  return res.json();
 }
 
-export async function GET(request: NextRequest) {
-  const authenticated = await isAdminAuthenticated(request);
-  if (!authenticated) {
-    return NextResponse.json({ error: "Nicht autorisiert." }, { status: 401 });
+function repoSlug(): string {
+  return process.env.GITHUB_REPO ?? "florianlux/synapedia";
+}
+
+async function fetchMergedPRs(token: string): Promise<DevEvent[]> {
+  const slug = repoSlug();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any[] = await ghFetch(
+    `/repos/${slug}/pulls?state=closed&sort=updated&direction=desc&per_page=10`,
+    token,
+  );
+  return data
+    .filter((pr) => pr.merged_at)
+    .map((pr) => ({
+      id: `pr-${pr.number}`,
+      type: "pr" as const,
+      title: pr.title,
+      url: pr.html_url,
+      author: pr.user?.login ?? "unknown",
+      date: pr.merged_at,
+    }));
+}
+
+async function fetchCommits(token: string): Promise<DevEvent[]> {
+  const slug = repoSlug();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any[] = await ghFetch(
+    `/repos/${slug}/commits?per_page=10`,
+    token,
+  );
+  return data.map((c) => ({
+    id: `commit-${c.sha.slice(0, 7)}`,
+    type: "commit" as const,
+    title: c.commit.message.split("\n")[0],
+    url: c.html_url,
+    author: c.author?.login ?? c.commit.author?.name ?? "unknown",
+    date: c.commit.author?.date ?? "",
+  }));
+}
+
+async function fetchWorkflowRuns(token: string): Promise<DevEvent[]> {
+  const slug = repoSlug();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = await ghFetch(
+    `/repos/${slug}/actions/runs?status=success&per_page=10`,
+    token,
+  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data.workflow_runs ?? []).map((r: any) => ({
+    id: `wf-${r.id}`,
+    type: "workflow" as const,
+    title: `${r.name} #${r.run_number}`,
+    url: r.html_url,
+    author: r.actor?.login ?? "ci",
+    date: r.updated_at,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Demo fallback
+// ---------------------------------------------------------------------------
+
+function demoEvents(): DevEvent[] {
+  const now = new Date();
+  return [
+    { id: "pr-42", type: "pr", title: "feat: add interaction checker", url: "#", author: "demo-user", date: new Date(now.getTime() - 3600_000).toISOString() },
+    { id: "commit-abc1234", type: "commit", title: "fix: correct receptor binding data", url: "#", author: "demo-user", date: new Date(now.getTime() - 7200_000).toISOString() },
+    { id: "wf-100", type: "workflow", title: "CI #100", url: "#", author: "github-actions", date: new Date(now.getTime() - 10800_000).toISOString() },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Route handler
+// ---------------------------------------------------------------------------
+
+export async function GET(req: NextRequest) {
+  try {
+    await assertAdmin(req);
+  } catch (res) {
+    return res as NextResponse;
   }
 
   const token = process.env.GITHUB_TOKEN;
+
   if (!token) {
-    return NextResponse.json(
-      { error: "GITHUB_TOKEN ist nicht konfiguriert." },
-      { status: 500 }
-    );
+    return NextResponse.json({ events: demoEvents(), demo: true });
   }
 
-  let warning: string | undefined;
-
-  // A) Merged PRs
-  let mergedPRs: MergedPR[] = [];
   try {
-    const res = await ghFetch(
-      `/repos/${OWNER}/${REPO}/pulls?state=closed&per_page=10&sort=updated&direction=desc`,
-      token
-    );
-    if (res.ok) {
-      const data = await res.json();
-      mergedPRs = data
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((pr: any) => pr.merged_at)
-        .slice(0, 6)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((pr: any) => ({
-          number: pr.number,
-          title: pr.title,
-          merged_at: pr.merged_at,
-          user: pr.user?.login ?? "unknown",
-          url: pr.html_url,
-          base: pr.base?.ref ?? "",
-        }));
-    }
-  } catch {
-    // swallow – return empty
-  }
+    const [prs, commits, runs] = await Promise.all([
+      fetchMergedPRs(token),
+      fetchCommits(token),
+      fetchWorkflowRuns(token),
+    ]);
 
-  // B) Recent commits
-  let recentCommits: RecentCommit[] = [];
-  try {
-    const res = await ghFetch(
-      `/repos/${OWNER}/${REPO}/commits?per_page=8`,
-      token
+    const events = [...prs, ...commits, ...runs].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
-    if (res.ok) {
-      const data = await res.json();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recentCommits = data.map((c: any) => ({
-        sha7: c.sha.substring(0, 7),
-        messageFirstLine: (c.commit?.message ?? "").split("\n")[0],
-        author: c.commit?.author?.name ?? c.author?.login ?? "unknown",
-        date: c.commit?.author?.date ?? "",
-        url: c.html_url,
-      }));
-    }
-  } catch {
-    // swallow
-  }
 
-  // C) Successful workflow runs (optional)
-  let successfulRuns: SuccessfulRun[] = [];
-  try {
-    const res = await ghFetch(
-      `/repos/${OWNER}/${REPO}/actions/runs?per_page=10`,
-      token
-    );
-    if (res.ok) {
-      const data = await res.json();
-      successfulRuns = (data.workflow_runs ?? [])
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((r: any) => r.conclusion === "success")
-        .slice(0, 5)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((r: any) => ({
-          name: r.name,
-          event: r.event,
-          branch: r.head_branch ?? "",
-          updated_at: r.updated_at,
-          url: r.html_url,
-        }));
-    } else {
-      warning = "Actions scope missing";
-    }
-  } catch {
-    warning = "Actions scope missing";
-    successfulRuns = [];
+    return NextResponse.json({ events, demo: false });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "GitHub API error";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
-
-  return NextResponse.json({
-    repo: `${OWNER}/${REPO}`,
-    mergedPRs,
-    recentCommits,
-    successfulRuns,
-    ...(warning ? { warning } : {}),
-  });
 }
