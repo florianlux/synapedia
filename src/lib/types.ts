@@ -212,3 +212,71 @@ export interface GeneratedCitation {
   fetched_at?: string;
   license?: string;
 }
+
+// ============================================================
+// Community Features
+// ============================================================
+
+export interface UserProfile {
+  user_id: string;
+  username: string;
+  phone: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  newsletter_opt_in: boolean;
+  favorite_tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export type FeedPostVisibility = "public" | "unlisted";
+export type FeedPostStatus = "published" | "flagged" | "deleted";
+
+export interface FeedPost {
+  id: string;
+  author_id: string;
+  title: string | null;
+  body: string;
+  tags: string[];
+  substance_id: string | null;
+  visibility: FeedPostVisibility;
+  status: FeedPostStatus;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  author_username?: string;
+  author_avatar_url?: string | null;
+  vote_count?: number;
+  user_voted?: boolean;
+}
+
+export interface FeedPostVote {
+  post_id: string;
+  user_id: string;
+  value: number;
+  created_at: string;
+}
+
+export interface SubstanceFavorite {
+  substance_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export type LogEntryType = "medication" | "use";
+
+export interface UserLog {
+  id: string;
+  user_id: string;
+  occurred_at: string;
+  entry_type: LogEntryType;
+  substance_id: string | null;
+  substance_name: string | null;
+  dose_value: number | null;
+  dose_unit: string | null;
+  route: string | null;
+  notes: string | null;
+  safer_use_notes: string | null;
+  created_at: string;
+}
