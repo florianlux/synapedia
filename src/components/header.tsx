@@ -14,6 +14,7 @@ const navLinks = [
   { href: "/neuro", label: "NeuroMap" },
   { href: "/glossary", label: "Glossar" },
   { href: "/compare", label: "Vergleich" },
+  { href: "/about", label: "About" },
 ];
 
 const adminEnabled = process.env.NEXT_PUBLIC_ADMIN_ENABLED === "true";
