@@ -1,0 +1,397 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Synapedia Components — Reusable UI Component Styles
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Card Enhancements ─── */
+.ds-card {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border-primary);
+  border-radius: var(--ds-radius-lg);
+  transition: box-shadow var(--ds-transition-smooth), transform var(--ds-transition-smooth);
+}
+
+.ds-card:hover {
+  box-shadow: var(--ds-shadow-lg);
+}
+
+/* Hover-Lift effect for interactive cards */
+.ds-card-lift {
+  transition: box-shadow var(--ds-transition-smooth), transform var(--ds-transition-smooth);
+}
+
+.ds-card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ds-shadow-lg);
+}
+
+/* Card with subtle accent glow on hover */
+.ds-card-glow:hover {
+  box-shadow: var(--ds-shadow-glow-accent);
+  border-color: rgba(6, 182, 212, 0.2);
+}
+
+/* ─── Mechanism Box ─── */
+.ds-mechanism-box {
+  background: var(--ds-bg-elevated);
+  border: 1px solid var(--ds-border-primary);
+  border-left: 3px solid var(--ds-purple);
+  border-radius: var(--ds-radius-lg);
+  padding: var(--ds-space-5);
+}
+
+.ds-mechanism-box .ds-mechanism-title {
+  font-family: var(--ds-font-heading);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ds-purple-text);
+  margin-bottom: var(--ds-space-3);
+}
+
+.ds-mechanism-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ds-mechanism-box li {
+  position: relative;
+  padding-left: var(--ds-space-5);
+  margin-bottom: var(--ds-space-2);
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-secondary);
+  line-height: var(--ds-leading-relaxed);
+}
+
+.ds-mechanism-box li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ds-purple);
+  opacity: 0.6;
+}
+
+/* ─── Receptor Tag ─── */
+.ds-receptor-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+  padding: var(--ds-space-1) var(--ds-space-3);
+  font-size: var(--ds-text-xs);
+  font-weight: 500;
+  font-family: var(--ds-font-body);
+  border-radius: var(--ds-radius-full);
+  border: 1px solid var(--ds-border-secondary);
+  color: var(--ds-accent-text);
+  background: var(--ds-accent-soft);
+  transition: all var(--ds-transition-base);
+}
+
+.ds-receptor-tag:hover {
+  background: var(--ds-accent-medium);
+  border-color: var(--ds-accent);
+}
+
+.ds-receptor-tag .ds-receptor-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+/* ─── Risk Badge ─── */
+.ds-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+  padding: var(--ds-space-1) var(--ds-space-3);
+  font-size: var(--ds-text-xs);
+  font-weight: 600;
+  font-family: var(--ds-font-heading);
+  border-radius: var(--ds-radius-full);
+  transition: all var(--ds-transition-base);
+}
+
+.ds-risk-badge[data-risk="low"] {
+  background: var(--ds-risk-low-bg);
+  color: var(--ds-risk-low);
+  border: 1px solid var(--ds-risk-low-border);
+}
+
+.ds-risk-badge[data-risk="moderate"] {
+  background: var(--ds-risk-moderate-bg);
+  color: var(--ds-risk-moderate);
+  border: 1px solid var(--ds-risk-moderate-border);
+}
+
+.ds-risk-badge[data-risk="high"] {
+  background: var(--ds-risk-high-bg);
+  color: var(--ds-risk-high);
+  border: 1px solid var(--ds-risk-high-border);
+}
+
+.ds-risk-badge[data-risk="unknown"] {
+  background: var(--ds-risk-unknown-bg);
+  color: var(--ds-risk-unknown);
+  border: 1px solid var(--ds-risk-unknown-border);
+}
+
+/* ─── Evidence Badge ─── */
+.ds-evidence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+  padding: var(--ds-space-1) var(--ds-space-3);
+  font-size: var(--ds-text-xs);
+  font-weight: 500;
+  font-family: var(--ds-font-heading);
+  border-radius: var(--ds-radius-full);
+  border: 1px solid var(--ds-border-secondary);
+  color: var(--ds-text-secondary);
+  background: transparent;
+}
+
+.ds-evidence-badge[data-evidence="strong"] {
+  color: var(--ds-evidence-strong);
+  border-color: rgba(6, 182, 212, 0.3);
+  background: rgba(6, 182, 212, 0.06);
+}
+
+.ds-evidence-badge[data-evidence="moderate"] {
+  color: var(--ds-evidence-moderate);
+  border-color: rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.06);
+}
+
+.ds-evidence-badge[data-evidence="weak"] {
+  color: var(--ds-evidence-weak);
+  border-color: rgba(163, 163, 163, 0.3);
+  background: rgba(163, 163, 163, 0.06);
+}
+
+/* ─── Sticky Table of Contents ─── */
+.ds-toc {
+  position: sticky;
+  top: 6rem;
+}
+
+.ds-toc-title {
+  font-family: var(--ds-font-heading);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ds-text-primary);
+  margin-bottom: var(--ds-space-3);
+}
+
+.ds-toc a {
+  display: block;
+  padding: var(--ds-space-1) var(--ds-space-3);
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-tertiary);
+  border-radius: var(--ds-radius-sm);
+  transition: all var(--ds-transition-base);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+
+.ds-toc a:hover {
+  color: var(--ds-text-primary);
+  background: var(--ds-accent-soft);
+}
+
+.ds-toc a.active {
+  color: var(--ds-accent-text);
+  background: var(--ds-accent-soft);
+  border-left-color: var(--ds-accent);
+  font-weight: 500;
+}
+
+/* ─── Side Panel (Slide-in) ─── */
+.ds-side-panel {
+  transition: transform var(--ds-transition-smooth);
+}
+
+/* ─── Search Bar ─── */
+.ds-search-container {
+  position: relative;
+}
+
+.ds-search-input {
+  width: 100%;
+  padding: var(--ds-space-3) var(--ds-space-4);
+  padding-left: var(--ds-space-10);
+  font-size: var(--ds-text-base);
+  font-family: var(--ds-font-body);
+  background: var(--ds-bg-elevated);
+  border: 1px solid var(--ds-border-primary);
+  border-radius: var(--ds-radius-xl);
+  color: var(--ds-text-primary);
+  transition: all var(--ds-transition-base);
+  outline: none;
+}
+
+.ds-search-input::placeholder {
+  color: var(--ds-text-muted);
+}
+
+.ds-search-input:focus {
+  border-color: var(--ds-accent);
+  box-shadow: 0 0 0 3px var(--ds-accent-soft), var(--ds-shadow-glow-accent);
+}
+
+.ds-search-dropdown {
+  position: absolute;
+  z-index: 50;
+  margin-top: var(--ds-space-2);
+  width: 100%;
+  border-radius: var(--ds-radius-lg);
+  border: 1px solid var(--ds-border-primary);
+  background: var(--ds-bg-card);
+  box-shadow: var(--ds-shadow-lg);
+  overflow: hidden;
+}
+
+.ds-search-dropdown a,
+.ds-search-dropdown button {
+  display: block;
+  width: 100%;
+  padding: var(--ds-space-3) var(--ds-space-4);
+  text-align: left;
+  transition: background var(--ds-transition-fast);
+}
+
+.ds-search-dropdown a:hover,
+.ds-search-dropdown button:hover {
+  background: var(--ds-accent-soft);
+}
+
+/* ─── Radar Chart Minimal ─── */
+.ds-radar {
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+/* ─── Comparison Layout ─── */
+.ds-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ds-space-6);
+}
+
+@media (min-width: 768px) {
+  .ds-compare-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ─── Section Header ─── */
+.ds-section-label {
+  font-family: var(--ds-font-heading);
+  font-size: var(--ds-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+  margin-bottom: var(--ds-space-2);
+}
+
+/* ─── Sources Panel ─── */
+.ds-sources-panel {
+  background: var(--ds-bg-elevated);
+  border: 1px solid var(--ds-border-primary);
+  border-radius: var(--ds-radius-lg);
+  padding: var(--ds-space-6);
+  margin-top: var(--ds-space-12);
+}
+
+.ds-sources-panel .ds-sources-title {
+  font-family: var(--ds-font-heading);
+  font-size: var(--ds-text-lg);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  margin-bottom: var(--ds-space-4);
+}
+
+/* ─── Version Footer ─── */
+.ds-version-footer {
+  margin-top: var(--ds-space-12);
+  padding-top: var(--ds-space-4);
+  border-top: 1px solid var(--ds-border-subtle);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-4);
+}
+
+/* ─── Animation Utilities ─── */
+
+/* Hover lift — use on any interactive element */
+.ds-hover-lift {
+  transition: transform var(--ds-transition-smooth), box-shadow var(--ds-transition-smooth);
+}
+
+.ds-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ds-shadow-lg);
+}
+
+/* Glow on interaction only */
+.ds-glow-on-hover {
+  transition: box-shadow var(--ds-transition-smooth);
+}
+
+.ds-glow-on-hover:hover {
+  box-shadow: var(--ds-shadow-glow-accent);
+}
+
+.ds-glow-on-hover:focus-visible {
+  box-shadow: var(--ds-shadow-glow-accent);
+}
+
+/* Subtle fade-in */
+.ds-fade-in {
+  animation: ds-fade-in var(--ds-transition-smooth) ease-out;
+}
+
+@keyframes ds-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Transition defaults for all interactive elements */
+.ds-transition {
+  transition: all var(--ds-transition-base);
+}
+
+.ds-transition-smooth {
+  transition: all var(--ds-transition-smooth);
+}
+
+/* ─── Accessibility: Reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .ds-hover-lift:hover {
+    transform: none;
+  }
+
+  .ds-fade-in {
+    animation: none;
+  }
+
+  .ds-card-lift:hover {
+    transform: none;
+  }
+
+  .ds-side-panel {
+    transition: none;
+  }
+}

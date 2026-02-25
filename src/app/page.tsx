@@ -20,7 +20,7 @@ export default function Home() {
     <div className="mx-auto max-w-6xl px-4 py-12">
       {/* Hero */}
       <section className="brand-hero-glow mb-12 text-center">
-        <h1 className="relative z-10 text-4xl font-bold tracking-tight sm:text-5xl text-neutral-900 dark:text-cyan-50">
+        <h1 className="relative z-10 text-4xl font-bold tracking-tight sm:text-5xl text-neutral-900 dark:text-cyan-50 font-[family-name:var(--ds-font-heading)]">
           Synapedia
         </h1>
         <p className="relative z-10 mt-4 text-lg text-neutral-600 dark:text-neutral-400">
@@ -45,7 +45,7 @@ export default function Home() {
 
       {/* Article Grid */}
       <section>
-        <h2 className="mb-6 text-2xl font-semibold">Substanzen</h2>
+        <h2 className="mb-6 text-2xl font-semibold font-[family-name:var(--ds-font-heading)]">Substanzen</h2>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {articles.map((article) => {
             const tagIds = demoArticleTags[article.id] ?? [];
@@ -53,7 +53,7 @@ export default function Home() {
 
             return (
               <Link key={article.id} href={`/articles/${article.slug}`}>
-                <Card className="h-full transition-shadow hover:shadow-md">
+                <Card className="h-full ds-card-lift ds-glow-on-hover transition-shadow hover:shadow-md">
                   <CardHeader>
                     <CardTitle className="text-xl">{article.title}</CardTitle>
                     {article.subtitle && (

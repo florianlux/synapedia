@@ -149,7 +149,7 @@ function SubstanceCard({ substance }: { substance: Substance }) {
       <CardContent className="space-y-5">
         {/* Klasse */}
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h3 className="ds-section-label">
             Klasse
           </h3>
           {classes.length > 0 ? (
@@ -167,7 +167,7 @@ function SubstanceCard({ substance }: { substance: Substance }) {
 
         {/* Mechanismen */}
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h3 className="ds-section-label">
             Mechanismen
           </h3>
           {substance.mechanisms && substance.mechanisms.length > 0 ? (
@@ -183,7 +183,7 @@ function SubstanceCard({ substance }: { substance: Substance }) {
 
         {/* Rezeptoren */}
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h3 className="ds-section-label">
             Rezeptoren
           </h3>
           {substance.receptors && substance.receptors.length > 0 ? (
@@ -201,7 +201,7 @@ function SubstanceCard({ substance }: { substance: Substance }) {
 
         {/* Risikolevel */}
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h3 className="ds-section-label">
             Risikolevel
           </h3>
           <Badge variant={riskVariant[risk] ?? "unknown"}>
@@ -211,7 +211,7 @@ function SubstanceCard({ substance }: { substance: Substance }) {
 
         {/* Tags */}
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h3 className="ds-section-label">
             Tags
           </h3>
           {substance.tags && substance.tags.length > 0 ? (
@@ -229,7 +229,7 @@ function SubstanceCard({ substance }: { substance: Substance }) {
 
         {/* Zusammenfassung */}
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h3 className="ds-section-label">
             Zusammenfassung
           </h3>
           {substance.summary ? (
@@ -243,7 +243,7 @@ function SubstanceCard({ substance }: { substance: Substance }) {
 
         {/* Quellen */}
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h3 className="ds-section-label">
             Quellen
           </h3>
           {substance.sources && substance.sources.length > 0 ? (
@@ -295,7 +295,7 @@ export function CompareTool({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">
-      <h1 className="mb-6 text-4xl font-bold tracking-tight">
+      <h1 className="mb-6 text-4xl font-bold tracking-tight font-[family-name:var(--ds-font-heading)]">
         Substanz-Vergleich
       </h1>
 

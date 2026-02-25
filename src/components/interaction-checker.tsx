@@ -112,12 +112,12 @@ function SubstanceSearch({
         />
       </div>
       {open && filtered.length > 0 && !selected && (
-        <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-neutral-700 bg-neutral-900 shadow-lg">
+        <ul className="ds-search-dropdown absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-neutral-700 bg-neutral-900 shadow-lg">
           {filtered.map((s) => (
             <li key={s.id}>
               <button
                 type="button"
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-neutral-800"
+                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-neutral-800 ds-transition"
                 onClick={() => {
                   onSelect(s);
                   setQuery(s.title);
@@ -170,7 +170,7 @@ export function InteractionChecker({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
-      <h1 className="mb-6 text-4xl font-bold tracking-tight">
+      <h1 className="mb-6 text-4xl font-bold tracking-tight font-[family-name:var(--ds-font-heading)]">
         Interaktions-Checker
       </h1>
 
@@ -253,11 +253,11 @@ export function InteractionChecker({
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Mechanism */}
-            <section>
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            <section className="ds-mechanism-box">
+              <h3 className="ds-mechanism-title">
                 Mechanismus
               </h3>
-              <ul className="list-inside list-disc space-y-1 text-sm text-neutral-300">
+              <ul>
                 {filteredResult.mechanism_conflict.map((m) => (
                   <li key={m}>{m}</li>
                 ))}
@@ -266,7 +266,7 @@ export function InteractionChecker({
 
             {/* Explanation */}
             <section>
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+              <h3 className="ds-section-label">
                 Erklärung
               </h3>
               <p className="text-sm leading-relaxed text-neutral-300">
@@ -276,7 +276,7 @@ export function InteractionChecker({
 
             {/* Harm Reduction */}
             <section>
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+              <h3 className="ds-section-label">
                 Harm Reduction
               </h3>
               <ul className="list-inside list-disc space-y-1 text-sm text-neutral-300">
@@ -288,7 +288,7 @@ export function InteractionChecker({
 
             {/* Sources */}
             <section>
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+              <h3 className="ds-section-label">
                 Quellen
               </h3>
               <ul className="space-y-1">
