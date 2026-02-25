@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, ClipboardList } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClientSafe } from "@/lib/supabase/client";
 import type { UserLog, LogEntryType } from "@/lib/types";
 
 export default function LogsPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = createClientSafe();
   const [logs, setLogs] = useState<UserLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -29,6 +29,7 @@ export default function LogsPage() {
 
   useEffect(() => {
     async function load() {
+      if (!supabase) { router.push("/auth/login"); return; }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push("/auth/login");
@@ -50,6 +51,7 @@ export default function LogsPage() {
 
   async function handleAddLog(e: React.FormEvent) {
     e.preventDefault();
+    if (!supabase) return;
     setSaving(true);
 
     const { data: { user } } = await supabase.auth.getUser();

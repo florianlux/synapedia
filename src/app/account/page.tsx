@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { createClientSafe } from "@/lib/supabase/client";
 import type { UserProfile } from "@/lib/types";
 
 export default function AccountPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = createClientSafe();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -23,6 +23,7 @@ export default function AccountPage() {
 
   useEffect(() => {
     async function load() {
+      if (!supabase) { router.push("/auth/login"); return; }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push("/auth/login");
@@ -50,6 +51,7 @@ export default function AccountPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!supabase) return;
     setSaving(true);
     setMessage(null);
 
@@ -78,6 +80,7 @@ export default function AccountPage() {
   }
 
   async function handleLogout() {
+    if (!supabase) return;
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();

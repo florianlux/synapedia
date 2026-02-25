@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Heart, Trash2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClientSafe } from "@/lib/supabase/client";
 
 interface FavoriteWithSubstance {
   substance_id: string;
@@ -15,12 +15,13 @@ interface FavoriteWithSubstance {
 
 export default function FavoritesPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = createClientSafe();
   const [favorites, setFavorites] = useState<FavoriteWithSubstance[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
+      if (!supabase) { router.push("/auth/login"); return; }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push("/auth/login");
@@ -52,6 +53,7 @@ export default function FavoritesPage() {
   }, [supabase, router]);
 
   async function removeFavorite(substanceId: string) {
+    if (!supabase) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
