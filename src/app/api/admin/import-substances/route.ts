@@ -12,11 +12,32 @@ const MAX_BATCH_SIZE = 50;
 
 export async function POST(request: NextRequest) {
   const batchStart = Date.now();
+  const requestId = crypto.randomUUID();
 
   try {
     const isAuth = await isAdminAuthenticated(request);
     if (!isAuth) {
-      return NextResponse.json({ ok: false, error: "Nicht autorisiert.", results: [] }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, code: "UNAUTHORIZED", message: "Nicht autorisiert.", detail: null, context: { requestId }, results: [] },
+        { status: 401 },
+      );
+    }
+
+    // Pre-flight check: Supabase configuration
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "SUPABASE_NOT_CONFIGURED",
+          message: "Supabase ist nicht konfiguriert.",
+          detail: "NEXT_PUBLIC_SUPABASE_URL und ein Supabase-Key müssen gesetzt sein.",
+          context: { requestId },
+          results: [],
+        },
+        { status: 503 },
+      );
     }
 
     let body: {
@@ -30,24 +51,30 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ ok: false, error: "Ungültiger Request-Body.", results: [] }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, code: "INVALID_BODY", message: "Ungültiger Request-Body.", detail: null, context: { requestId }, results: [] },
+        { status: 400 },
+      );
     }
 
     const { items, dryRun = false, skipAi = false, skipPubChem = false } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ ok: false, error: "Keine Items angegeben.", results: [] }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, code: "NO_ITEMS", message: "Keine Items angegeben.", detail: null, context: { requestId }, results: [] },
+        { status: 400 },
+      );
     }
 
     if (items.length > MAX_BATCH_SIZE) {
       return NextResponse.json(
-        { ok: false, error: `Max ${MAX_BATCH_SIZE} Items pro Batch.`, results: [] },
+        { ok: false, code: "BATCH_TOO_LARGE", message: `Max ${MAX_BATCH_SIZE} Items pro Batch.`, detail: null, context: { requestId }, results: [] },
         { status: 400 },
       );
     }
 
     console.log(
-      `[import-substances] Batch received: ${items.length} items, dryRun=${dryRun}, skipAi=${skipAi}, skipPubChem=${skipPubChem}`,
+      `[import-substances] [${requestId}] Batch received: ${items.length} items, dryRun=${dryRun}, skipAi=${skipAi}, skipPubChem=${skipPubChem}`,
     );
 
     const result = await runImport(items, {
@@ -59,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     const elapsed = Date.now() - batchStart;
     console.log(
-      `[import-substances] Batch done in ${elapsed}ms: ${result.summary.inserted} inserted, ${result.summary.updated} updated, ${result.summary.failed} failed`,
+      `[import-substances] [${requestId}] Batch done in ${elapsed}ms: ${result.summary.inserted} inserted, ${result.summary.updated} updated, ${result.summary.failed} failed`,
     );
 
     // Map to the structured per-item format expected by the client
@@ -88,18 +115,21 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ ok: true, results });
+    return NextResponse.json({ ok: true, context: { requestId }, results });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unbekannter Fehler";
     const elapsed = Date.now() - batchStart;
-    console.error(`[import-substances] Unhandled error after ${elapsed}ms:`, message);
+    console.error(`[import-substances] [${requestId}] Unhandled error after ${elapsed}ms:`, message);
 
     // User-friendly timeout warning
     if (elapsed > 8_000) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Batch hat zu lange gedauert. Bitte kleinere Batch-Größe wählen.",
+          code: "TIMEOUT",
+          message: "Batch hat zu lange gedauert. Bitte kleinere Batch-Größe wählen.",
+          detail: message,
+          context: { requestId },
           results: [],
         },
         { status: 500 },
@@ -107,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { ok: false, error: message, results: [] },
+      { ok: false, code: "INTERNAL_ERROR", message, detail: null, context: { requestId }, results: [] },
       { status: 500 },
     );
   }
