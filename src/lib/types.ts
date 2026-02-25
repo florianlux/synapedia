@@ -404,3 +404,41 @@ export interface SubstancePharmacology {
   pkRoutes: PharmacokineticRoute[];
   pdParams: Pharmacodynamics[];
 }
+
+// ============================================================
+// Safer-Use Companion Chat
+// ============================================================
+
+export interface SaferUseUserProfile {
+  age_range: "18-24" | "25-34" | "35-44" | "45+" | "unknown";
+  weight_kg: number | null;
+  tolerance: "low" | "medium" | "high" | "unknown";
+  conditions: string[];
+  regular_meds: string[];
+}
+
+export interface SaferUseIntakeEntry {
+  substance: string;
+  dose_mg: number | null;
+  route: "oral" | "nasal" | "smoked" | "vaped" | "iv" | "other" | "unknown";
+  time_taken: string;
+  notes: string;
+}
+
+export interface SaferUseChatRequest {
+  user_profile: SaferUseUserProfile;
+  intake_log: SaferUseIntakeEntry[];
+  user_message: string;
+  locale: string;
+}
+
+export type SaferUseRiskLevel = "GRÜN" | "GELB" | "ORANGE" | "ROT";
+
+export interface SaferUseChatResponse {
+  assessment: string;
+  risk_level: SaferUseRiskLevel;
+  interactions: string[];
+  harm_reduction: string[];
+  emergency: string | null;
+  disclaimer: string;
+}
