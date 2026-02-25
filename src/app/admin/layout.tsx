@@ -17,6 +17,8 @@ const navItems = [
   { href: "/admin/sources", label: "Quellen", icon: BookOpen },
   { href: "/admin/media", label: "Medien", icon: Image },
   { href: "/admin/audit", label: "Audit-Log", icon: ScrollText },
+  { href: "/admin/secrets", label: "Secrets", icon: KeyRound },
+  { href: "/admin/dev-activity", label: "Dev Activity", icon: GitBranch },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

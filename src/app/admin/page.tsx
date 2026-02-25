@@ -3,7 +3,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isAiEnabled } from "@/lib/ai/provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Eye, PenLine, Clock, Brain, Sparkles, GitBranch, AlertTriangle } from "lucide-react";
+import { FileText, Eye, PenLine, Clock, Brain, Sparkles, GitBranch, AlertTriangle, KeyRound, Activity } from "lucide-react";
 import Link from "next/link";
 import type { Article } from "@/lib/types";
 
@@ -182,6 +182,38 @@ export default async function AdminDashboard() {
             </p>
           </CardContent>
         </Card>
+
+        <Link href="/admin/secrets" className="block">
+          <Card className="transition-colors hover:border-cyan-300 dark:hover:border-cyan-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <KeyRound className="h-4 w-4 text-cyan-500" />
+                Secrets Register
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                Metadaten-Verwaltung für Secrets und Tokens
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/dev-activity" className="block">
+          <Card className="transition-colors hover:border-violet-300 dark:hover:border-violet-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Activity className="h-4 w-4 text-violet-500" />
+                Dev Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                GitHub PRs, Commits und Workflows
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Recent articles */}
