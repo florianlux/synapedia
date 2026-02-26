@@ -1,333 +1,238 @@
-/**
- * Poly-Substance Risk Overlay computation engine.
- *
- * DISCLAIMER: This is educational only and does NOT constitute medical advice.
- * It does NOT suggest what to take, does NOT provide dosing instructions,
- * and does NOT recommend "best combos". It only visualizes risks based on
- * categories and timing with significant uncertainty.
- *
- * If you experience severe symptoms, call emergency services immediately.
- */
+import { DosingLogEntry, RiskLevel, RiskOverlayResult, StackEntry, ReboundWindow } from "./models";
+import { classifySubstance, SubstanceCategory } from "./categories";
 
-import { classifySubstance, type SubstanceCategory } from "./categories";
-import type {
-  RiskLogEntry,
-  RiskOverlayResult,
-  StackEntry,
-  ReboundWindow,
-  OverallRiskLevel,
-} from "./models";
-
-/** Hours between a given date and now */
-function hoursAgo(takenAt: string, now: Date): number {
+/** Hours since a given timestamp relative to `now`. */
+function hoursSince(takenAt: string, now: Date): number {
   return (now.getTime() - new Date(takenAt).getTime()) / (1000 * 60 * 60);
 }
 
-/** Check if route is vaporized/smoked */
-function isVaporized(route?: string | null): boolean {
-  if (!route) return false;
-  const r = route.toLowerCase();
-  return r === "vaporized" || r === "smoked" || r === "vaped" || r === "geraucht" || r === "verdampft";
+/** Shift a date by hours (positive = future). */
+function addHours(date: Date, hours: number): string {
+  return new Date(date.getTime() + hours * 3600_000).toISOString();
 }
 
-interface CategorizedEntry {
-  entry: RiskLogEntry;
-  category: SubstanceCategory;
-  hoursAgo: number;
+function bucketByCategory(logs: DosingLogEntry[]): Map<SubstanceCategory, DosingLogEntry[]> {
+  const map = new Map<SubstanceCategory, DosingLogEntry[]>();
+  for (const log of logs) {
+    const cat = classifySubstance(log.substance);
+    if (!map.has(cat)) {
+      map.set(cat, []);
+    }
+    map.get(cat)!.push(log);
+  }
+  return map;
+}
+
+function computeStackLevel(count: number, hasVaporized: boolean): RiskLevel {
+  const effective = count + (hasVaporized ? 1 : 0);
+  if (effective <= 1) return "low";
+  if (effective <= 2) return "moderate";
+  if (effective <= 4) return "high";
+  return "critical";
 }
 
 /**
- * Compute a risk overlay from dosing log entries.
+ * Compute a harm-reduction risk overlay from dosing logs.
  *
- * @param logs - Array of log entries (substance, dose, route, timestamp)
- * @param now - Current time (defaults to new Date())
- * @returns Risk overlay result with stack counters, warnings, and rebound windows
+ * DISCLAIMER: This is educational only and NOT medical advice.
+ * The output is intentionally conservative and cannot replace
+ * professional medical assessment.
  */
 export function computeRiskOverlay(
-  logs: RiskLogEntry[],
+  logs: DosingLogEntry[],
   now: Date = new Date()
 ): RiskOverlayResult {
   const warnings: string[] = [];
   const stacks: StackEntry[] = [];
   const rebound: ReboundWindow[] = [];
   const notes: string[] = [
-    "⚠️ Diese Analyse ist rein heuristisch und ersetzt keine medizinische Beurteilung.",
-    "Individuelle Faktoren (Toleranz, Gewicht, Gesundheitszustand, Genetik) beeinflussen Risiken erheblich.",
-    "Angaben zu Zeitfenstern sind grobe Schätzungen mit hoher Unsicherheit.",
+    "Diese Analyse ist rein edukativ und stellt KEINE medizinische Beratung dar.",
+    "Individuelle Toleranz, Gesundheitszustand und Wechselwirkungen können die Risiken erheblich verändern.",
+    "Im Zweifelsfall oder bei schweren Symptomen: Notruf 112.",
   ];
 
-  // Categorize all entries
-  const categorized: CategorizedEntry[] = logs.map((entry) => ({
-    entry,
-    category: classifySubstance(entry.substance),
-    hoursAgo: hoursAgo(entry.taken_at, now),
-  }));
+  // Filter logs by recency
+  const last12h = logs.filter((l) => hoursSince(l.taken_at, now) <= 12);
+  const last24h = logs.filter((l) => hoursSince(l.taken_at, now) <= 24);
 
-  // ── Stack Counters ──────────────────────────────────────
+  const buckets12 = bucketByCategory(last12h);
+  const buckets24 = bucketByCategory(last24h);
 
-  // Stimulant stack: last 12h
-  const stimEntries = categorized.filter(
-    (e) => e.category === "stimulant" && e.hoursAgo >= 0 && e.hoursAgo <= 12
-  );
-  const stimVaporized = stimEntries.filter((e) => isVaporized(e.entry.route));
-  // stimVaporized is a subset of stimEntries; add 0.5 bonus per vaporized entry for acute spike
-  const stimScore = stimEntries.length + stimVaporized.length * 0.5;
-  const stimLevel = stackLevel(stimScore, 1, 2, 4);
-  stacks.push({
-    type: "Stimulanzien",
-    level: stimLevel,
-    count: stimEntries.length,
-    rationale: stimEntries.length === 0
-      ? "Keine Stimulanzien in den letzten 12 Stunden."
-      : `${stimEntries.length} Stimulanzien-Einnahme(n) in 12h.${stimVaporized.length > 0 ? ` Davon ${stimVaporized.length}× verdampft/geraucht (schnellerer Anflutung).` : ""}`,
-  });
+  // --- Stack Counter ---
 
-  // Opioid stack: last 12h
-  const opioidEntries = categorized.filter(
-    (e) => e.category === "opioid" && e.hoursAgo >= 0 && e.hoursAgo <= 12
-  );
-  const opioidLevel = stackLevel(opioidEntries.length, 1, 2, 3);
-  stacks.push({
-    type: "Opioide",
-    level: opioidLevel,
-    count: opioidEntries.length,
-    rationale: opioidEntries.length === 0
-      ? "Keine Opioide in den letzten 12 Stunden."
-      : `${opioidEntries.length} Opioid-Einnahme(n) in 12h.`,
-  });
+  // Stimulant stack (12h window)
+  const stimEntries = buckets12.get("stimulant") ?? [];
+  if (stimEntries.length > 0) {
+    const hasVaporized = stimEntries.some((e) => {
+      const route = e.route?.toLowerCase();
+      return route === "vaporized" || route === "geraucht";
+    });
+    const level = computeStackLevel(stimEntries.length, hasVaporized);
+    stacks.push({
+      type: "Stimulanzien",
+      level,
+      rationale: `${stimEntries.length} Einnahme(n) in den letzten 12 h${hasVaporized ? " (inkl. vaporisiert – schnellerer Wirkeintritt)" : ""}.`,
+    });
+    if (level === "high" || level === "critical") {
+      warnings.push("Hohes Stimulanzien-Stacking: erhöhtes Risiko für Herzrasen, Bluthochdruck und Krampfanfälle.");
+    }
+  }
 
-  // GABAergic stack: last 24h (phenibut has a long tail)
-  const gabaEntries = categorized.filter(
-    (e) => e.category === "gabaergic" && e.hoursAgo >= 0 && e.hoursAgo <= 24
-  );
-  const gabaLevel = stackLevel(gabaEntries.length, 1, 2, 3);
-  stacks.push({
-    type: "GABAerg",
-    level: gabaLevel,
-    count: gabaEntries.length,
-    rationale: gabaEntries.length === 0
-      ? "Keine GABAergen Substanzen in den letzten 24 Stunden."
-      : `${gabaEntries.length} GABAerge Einnahme(n) in 24h. Phenibut und GHB haben lange Wirkdauern.`,
-  });
+  // Opioid stack (12h window)
+  const opioidEntries = buckets12.get("opioid") ?? [];
+  if (opioidEntries.length > 0) {
+    const level = computeStackLevel(opioidEntries.length, false);
+    stacks.push({
+      type: "Opioide",
+      level,
+      rationale: `${opioidEntries.length} Einnahme(n) in den letzten 12 h.`,
+    });
+    if (level === "high" || level === "critical") {
+      warnings.push("Hohes Opioid-Stacking: Atemdepression möglich. Bei Atemnot sofort Notruf wählen.");
+    }
+  }
 
-  // Cannabis stack: last 12h
-  const cannabisEntries = categorized.filter(
-    (e) => e.category === "cannabis" && e.hoursAgo >= 0 && e.hoursAgo <= 12
-  );
-  stacks.push({
-    type: "Cannabis",
-    level: stackLevel(cannabisEntries.length, 1, 3, 5),
-    count: cannabisEntries.length,
-    rationale: cannabisEntries.length === 0
-      ? "Kein Cannabis in den letzten 12 Stunden."
-      : `${cannabisEntries.length} Cannabis-Einnahme(n) in 12h.`,
-  });
+  // GABAergic stack (24h window – phenibut has long tail)
+  const gabaEntries = buckets24.get("gabaergic") ?? [];
+  if (gabaEntries.length > 0) {
+    const level = computeStackLevel(gabaEntries.length, false);
+    stacks.push({
+      type: "GABAerg",
+      level,
+      rationale: `${gabaEntries.length} Einnahme(n) in den letzten 24 h (GABAerge Substanzen wie Phenibut wirken lang).`,
+    });
+    if (level === "high" || level === "critical") {
+      warnings.push("Hohes GABAerges Stacking: Verstärkte Sedierung und Atemdepression möglich.");
+    }
+  }
 
-  // Nicotine stack: last 6h
-  const nicotineEntries = categorized.filter(
-    (e) => e.category === "nicotine" && e.hoursAgo >= 0 && e.hoursAgo <= 6
-  );
-  stacks.push({
-    type: "Nikotin",
-    level: stackLevel(nicotineEntries.length, 3, 8, 15),
-    count: nicotineEntries.length,
-    rationale: nicotineEntries.length === 0
-      ? "Kein Nikotin in den letzten 6 Stunden."
-      : `${nicotineEntries.length} Nikotin-Einnahme(n) in 6h.`,
-  });
+  // Cannabis (24h)
+  const cannabisEntries = buckets24.get("cannabis") ?? [];
+  if (cannabisEntries.length > 0) {
+    stacks.push({
+      type: "Cannabis",
+      level: cannabisEntries.length >= 3 ? "moderate" : "low",
+      rationale: `${cannabisEntries.length} Einnahme(n) in den letzten 24 h.`,
+    });
+  }
 
-  // ── Cross-Category Warnings ─────────────────────────────
+  // Nicotine (24h)
+  const nicotineEntries = buckets24.get("nicotine") ?? [];
+  if (nicotineEntries.length > 0) {
+    stacks.push({
+      type: "Nikotin",
+      level: "low",
+      rationale: `${nicotineEntries.length} Einnahme(n) in den letzten 24 h.`,
+    });
+  }
+
+  // --- Cross-category interactions ---
 
   // Opioid + GABAergic overlap → respiratory depression
   if (opioidEntries.length > 0 && gabaEntries.length > 0) {
     warnings.push(
-      "🔴 ATEMDEPRESSION: Opioide und GABAerge Substanzen zusammen erhöhen das Risiko einer Atemdepression erheblich. Dies ist eine der häufigsten Todesursachen bei Mischkonsum."
+      "⚠️ Opioide + GABAerge Substanzen gleichzeitig: HOHES Risiko für Atemdepression. " +
+      "Keine weiteren Depressiva einnehmen. Im Notfall: 112."
     );
   }
 
   // Stimulant + Opioid overlap → masking
   if (stimEntries.length > 0 && opioidEntries.length > 0) {
     warnings.push(
-      "🟠 MASKIERUNG: Stimulanzien können die sedierende Wirkung von Opioiden überdecken. Wenn das Stimulans nachlässt, kann die volle Opioid-Wirkung durchschlagen – Überdosis-Risiko."
+      "⚠️ Stimulanzien + Opioide: Stimulanzien können die Sedierung maskieren – " +
+      "das Risiko einer Opioid-Überdosis bleibt bestehen oder steigt, wenn das Stimulans nachlässt."
     );
   }
 
-  // Stimulant + Cannabis → anxiety
+  // Stimulant + Cannabis → anxiety/paranoia
   if (stimEntries.length > 0 && cannabisEntries.length > 0) {
     warnings.push(
-      "🟡 ANGST/PARANOIA: Die Kombination von Stimulanzien und Cannabis kann Angst, Paranoia und Herzrasen verstärken."
+      "Stimulanzien + Cannabis: Erhöhtes Risiko für Angst, Paranoia und Herzrasen."
     );
   }
 
-  // Multiple opioids
-  if (opioidEntries.length >= 2) {
-    const substances = [...new Set(opioidEntries.map((e) => e.entry.substance))];
-    if (substances.length >= 2) {
-      warnings.push(
-        "🔴 MEHRERE OPIOIDE: Verschiedene Opioide gleichzeitig potenzieren sich gegenseitig. Extremes Überdosis-Risiko."
-      );
-    }
-  }
-
-  // Multiple GABAergics
-  if (gabaEntries.length >= 2) {
-    const substances = [...new Set(gabaEntries.map((e) => e.entry.substance))];
-    if (substances.length >= 2) {
-      warnings.push(
-        "🔴 MEHRERE GABAerge SUBSTANZEN: Die Kombination mehrerer zentraldämpfender Substanzen ist besonders gefährlich (z.B. Benzos + Alkohol, Phenibut + GHB)."
-      );
-    }
-  }
-
-  // General hydration warning for stimulants
-  if (stimEntries.length > 0) {
-    warnings.push(
-      "💧 HYDRATION: Achte bei Stimulanzien auf ausreichende Flüssigkeitszufuhr und regelmäßige Pausen."
-    );
-  }
-
-  // ── Rebound Predictor ───────────────────────────────────
+  // --- Rebound Predictor ---
 
   // Stimulant rebound
   if (stimEntries.length > 0) {
     const lastStim = stimEntries.reduce((a, b) =>
-      new Date(a.entry.taken_at) > new Date(b.entry.taken_at) ? a : b
+      new Date(a.taken_at) > new Date(b.taken_at) ? a : b
     );
-    const isVap = isVaporized(lastStim.entry.route);
-    // Vaporized: shorter action = earlier rebound (1-4h), oral: 2-10h
-    const startH = isVap ? 1 : 2;
-    const endH = isVap ? 4 : 10;
+    const lastTime = new Date(lastStim.taken_at);
+    const lastRoute = lastStim.route?.toLowerCase();
+    const isVaporized = lastRoute === "vaporized" || lastRoute === "geraucht";
+    const startH = isVaporized ? 1 : 2;
+    const endH = isVaporized ? 6 : 10;
 
     rebound.push({
-      window_start: `+${startH}h nach letzter Stimulans-Einnahme`,
-      window_end: `+${endH}h nach letzter Stimulans-Einnahme`,
-      risks: [
-        "Rebound-Angst und Unruhe",
-        "Schlafstörungen / Insomnie",
-        "Stimmungstief (Crash)",
-        "Craving (Nachlegebedürfnis)",
-      ],
-      rationale: `Stimulanzien-Rebound typischerweise ${startH}–${endH}h nach Einnahme${isVap ? " (kürzer bei inhalativer Aufnahme)" : ""}. Breites Unsicherheitsfenster.`,
+      window_start: addHours(lastTime, startH),
+      window_end: addHours(lastTime, endH),
+      risks: ["Rebound-Angst", "Schlaflosigkeit", "Stimmungstief", "Erschöpfung"],
+      rationale: `Stimulanzien-Rebound ca. ${startH}–${endH} h nach letzter Einnahme${isVaporized ? " (vaporisiert: kürzeres Fenster)" : ""}.`,
     });
   }
 
-  // Opioid withdrawal — only generic warning, no exact timing
+  // Opioid discontinuation warning (broad range, no exact timing)
   if (opioidEntries.length > 0) {
-    rebound.push({
-      window_start: "Variabel (Stunden bis Tage)",
-      window_end: "Abhängig von Substanz und Nutzungsmuster",
-      risks: [
-        "Entzugssymptome bei regelmäßiger Nutzung",
-        "Unruhe, Schwitzen, Muskelschmerzen",
-        "Gastrointestinale Beschwerden",
-      ],
-      rationale:
-        "Opioid-Entzug hängt stark von der Substanz, Dosis und Nutzungsdauer ab. Exaktes Timing kann NICHT zuverlässig geschätzt werden. Bei regelmäßiger Nutzung: ärztliche Begleitung empfohlen.",
-    });
-  }
-
-  // GABAergic rebound
-  if (gabaEntries.length > 0) {
-    rebound.push({
-      window_start: "Variabel (6–72h)",
-      window_end: "Abhängig von Substanz und Halbwertszeit",
-      risks: [
-        "Rebound-Angst",
-        "Schlafstörungen",
-        "Bei längerer Nutzung: Krampfanfall-Risiko (medizinischer Notfall)",
-      ],
-      rationale:
-        "GABAerger Rebound variiert stark. Phenibut hat eine HWZ von ~5h, Benzos variieren von 2–100h+. Abruptes Absetzen nach regelmäßiger Nutzung kann lebensgefährlich sein – ärztliche Begleitung empfohlen.",
-    });
-  }
-
-  // Sleep opportunity (neutral, not advice)
-  if (stimEntries.length > 0) {
-    const lastStim = stimEntries.reduce((a, b) =>
-      new Date(a.entry.taken_at) > new Date(b.entry.taken_at) ? a : b
+    const lastOpioid = opioidEntries.reduce((a, b) =>
+      new Date(a.taken_at) > new Date(b.taken_at) ? a : b
     );
-    const isVap = isVaporized(lastStim.entry.route);
-    const sleepH = isVap ? 3 : 6;
-
+    const lastTime = new Date(lastOpioid.taken_at);
     rebound.push({
-      window_start: `+${sleepH}h nach letzter Stimulans-Einnahme`,
-      window_end: `+${sleepH + 6}h`,
-      risks: [],
-      rationale: `Du könntest frühestens ab ~${sleepH}h nach der letzten Stimulans-Einnahme müde werden. Dies ist eine grobe Schätzung – keine Einschlafgarantie.`,
+      window_start: addHours(lastTime, 4),
+      window_end: addHours(lastTime, 48),
+      risks: ["Entzugssymptome möglich", "Unruhe", "Muskelschmerzen", "Schlafstörungen"],
+      rationale:
+        "Opioid-Entzugsfenster ist sehr individuell (4–48 h+). " +
+        "Keine genaue Vorhersage möglich – hängt von Substanz, Dauer des Gebrauchs und Toleranz ab.",
     });
   }
 
-  // ── Overall Level ──────────────────────────────────────
+  // GABAergic rebound (longer window)
+  if (gabaEntries.length > 0) {
+    const lastGaba = gabaEntries.reduce((a, b) =>
+      new Date(a.taken_at) > new Date(b.taken_at) ? a : b
+    );
+    const lastTime = new Date(lastGaba.taken_at);
+    rebound.push({
+      window_start: addHours(lastTime, 6),
+      window_end: addHours(lastTime, 72),
+      risks: ["Rebound-Angst", "Schlafstörungen", "Krampfanfälle (bei abruptem Absetzen)"],
+      rationale:
+        "GABAerge Substanzen können Rebound-Effekte über Tage zeigen. " +
+        "Abruptes Absetzen kann gefährlich sein – ärztliche Begleitung empfohlen.",
+    });
+  }
 
-  let overall_level: OverallRiskLevel = "low";
+  // --- Determine overall level ---
+  let overall_level: RiskLevel = "low";
 
-  // Critical if opioid + GABA overlap or multiple opioids with 2+ substances
+  // Check cross-category danger combos first
   if (opioidEntries.length > 0 && gabaEntries.length > 0) {
     overall_level = "critical";
-  } else if (
-    opioidEntries.length >= 2 &&
-    [...new Set(opioidEntries.map((e) => e.entry.substance))].length >= 2
-  ) {
-    overall_level = "critical";
-  } else if (
-    gabaEntries.length >= 2 &&
-    [...new Set(gabaEntries.map((e) => e.entry.substance))].length >= 2
-  ) {
-    overall_level = "critical";
+  } else {
+    const stackLevels = stacks.map((s) => s.level);
+    if (stackLevels.includes("critical")) overall_level = "critical";
+    else if (stackLevels.includes("high")) overall_level = "high";
+    else if (stackLevels.includes("moderate")) overall_level = "moderate";
   }
 
-  // High if stimulant + opioid masking or high stack scores
-  if (overall_level !== "critical") {
-    if (stimEntries.length > 0 && opioidEntries.length > 0) {
-      overall_level = "high";
-    } else if (stimLevel === "high" || opioidLevel === "high" || gabaLevel === "high") {
-      overall_level = "high";
-    } else if (stimLevel === "critical" || opioidLevel === "critical" || gabaLevel === "critical") {
-      overall_level = "critical";
-    }
-  }
-
-  // Moderate if any significant stacking
-  if (overall_level === "low") {
-    const activeCategories = categorized.filter(
-      (e) => e.hoursAgo >= 0 && e.hoursAgo <= 24 && e.category !== "nicotine"
-    );
-    const uniqueCategories = new Set(activeCategories.map((e) => e.category));
-    if (uniqueCategories.size >= 2 || activeCategories.length >= 3) {
-      overall_level = "moderate";
-    } else if (activeCategories.length >= 1) {
-      overall_level = "moderate";
-    }
-  }
-
-  // Conservative additional warnings
+  // Always add conservative safety warnings
   if (overall_level === "high" || overall_level === "critical") {
+    warnings.push("Keine weiteren Substanzen einnehmen. Ausreichend Wasser trinken. Nicht alleine sein.");
     warnings.push(
-      "🚫 NICHT nachlegen – Redosing erhöht das Risiko überproportional."
-    );
-    warnings.push(
-      "📞 Bei schweren Symptomen (Atemnot, Brustschmerzen, Bewusstlosigkeit, blaue Lippen): Sofort Notruf 112."
+      "🚨 Red Flags: Brustschmerzen, schwere Atemnot, Verwirrtheit, blaue Lippen, Bewusstlosigkeit → Sofort 112 rufen!"
     );
   }
+
+  // Deduplicate warnings
+  const uniqueWarnings = Array.from(new Set(warnings));
 
   return {
     overall_level,
-    warnings,
+    warnings: uniqueWarnings,
     stacks,
     rebound,
     notes,
   };
-}
-
-/** Map a count to a risk level */
-function stackLevel(
-  score: number,
-  moderateThreshold: number,
-  highThreshold: number,
-  criticalThreshold: number
-): OverallRiskLevel {
-  if (score >= criticalThreshold) return "critical";
-  if (score >= highThreshold) return "high";
-  if (score >= moderateThreshold) return "moderate";
-  return "low";
 }

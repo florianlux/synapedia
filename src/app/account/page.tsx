@@ -132,6 +132,15 @@ export default function AccountPage() {
         </Link>
       </nav>
 
+      <div className="mb-8">
+        <Link
+          href="/account/risk"
+          className="inline-flex items-center gap-2 rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-700"
+        >
+          🛡️ Risiko-Overlay anzeigen
+        </Link>
+      </div>
+
       <form onSubmit={handleSave} className="space-y-5">
         {message && (
           <div className={`rounded-md border p-3 text-sm ${message.startsWith("Fehler") ? "border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300" : "border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300"}`}>

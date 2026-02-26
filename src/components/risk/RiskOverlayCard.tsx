@@ -8,21 +8,34 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { RiskOverlayResult, OverallRiskLevel } from "@/lib/risk/models";
+import { Separator } from "@/components/ui/separator";
+import { AlertTriangle, Shield, Clock, Heart } from "lucide-react";
+import type { RiskLevel, RiskOverlayResult } from "@/lib/risk/models";
 
-const LEVEL_LABELS: Record<OverallRiskLevel, string> = {
+const levelLabel: Record<RiskLevel, string> = {
   low: "Niedrig",
   moderate: "Moderat",
   high: "Hoch",
   critical: "Kritisch",
 };
 
-const LEVEL_BADGE_VARIANT: Record<OverallRiskLevel, "low" | "moderate" | "high" | "critical"> = {
-  low: "low",
-  moderate: "moderate",
-  high: "high",
-  critical: "critical",
+const levelBadgeClass: Record<RiskLevel, string> = {
+  low: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+  moderate:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+  high: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  critical:
+    "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 animate-pulse",
 };
+
+function formatTime(iso: string): string {
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return iso;
+  return date.toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 interface RiskOverlayCardProps {
   result: RiskOverlayResult;
@@ -30,181 +43,152 @@ interface RiskOverlayCardProps {
 
 export function RiskOverlayCard({ result }: RiskOverlayCardProps) {
   return (
-    <div className="space-y-6">
-      {/* Overall Risk Level */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Gesamt-Risikoeinschätzung</CardTitle>
-            <Badge variant={LEVEL_BADGE_VARIANT[result.overall_level]} className="text-sm px-3 py-1">
-              {LEVEL_LABELS[result.overall_level]}
-            </Badge>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+            <CardTitle>Risiko-Übersicht</CardTitle>
           </div>
-          <CardDescription>
-            Heuristische Einschätzung basierend auf deinen Einträgen der letzten 24 Stunden.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+          <Badge
+            className={`px-3 py-1 text-sm ${levelBadgeClass[result.overall_level]}`}
+          >
+            {levelLabel[result.overall_level]}
+          </Badge>
+        </div>
+        <CardDescription>
+          Automatische Einschätzung basierend auf deinem Protokoll
+        </CardDescription>
+      </CardHeader>
 
-      {/* Stack Counters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Substanzklassen-Übersicht</CardTitle>
-          <CardDescription>
-            Aktive Einnahmen pro Kategorie im relevanten Zeitfenster.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {result.stacks.map((stack) => (
-              <div
-                key={stack.type}
-                className="flex items-start justify-between gap-4 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-neutral-900 dark:text-neutral-50">
-                      {stack.type}
-                    </span>
-                    <Badge variant={LEVEL_BADGE_VARIANT[stack.level]}>
-                      {LEVEL_LABELS[stack.level]}
-                    </Badge>
-                    {stack.count > 0 && (
-                      <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                        ({stack.count}×)
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-                    {stack.rationale}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Warnings */}
-      {result.warnings.length > 0 && (
-        <Card className="border-red-200 dark:border-red-900">
-          <CardHeader>
-            <CardTitle className="text-lg text-red-700 dark:text-red-400">
-              ⚠️ Warnungen
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {result.warnings.map((warning, i) => (
-                <li
-                  key={i}
-                  className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-300"
-                >
-                  {warning}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Rebound Timeline */}
-      {result.rebound.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Rebound / Nacheffekte – Zeitfenster</CardTitle>
-            <CardDescription>
-              Grobe Schätzungen mit hoher Unsicherheit. Keine exakten Vorhersagen.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {result.rebound.map((rb, i) => (
+      <CardContent className="space-y-6">
+        {/* Stack Counters */}
+        {result.stacks.length > 0 && (
+          <section>
+            <h3 className="mb-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+              Substanz-Stacking
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {result.stacks.map((stack) => (
                 <div
-                  key={i}
-                  className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+                  key={stack.type}
+                  className="rounded-md border border-neutral-200 p-3 dark:border-neutral-800"
                 >
-                  <div className="flex items-center gap-2 text-sm font-medium text-neutral-900 dark:text-neutral-50">
-                    <span className="inline-block rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900 dark:text-amber-300">
-                      {rb.window_start} — {rb.window_end}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{stack.type}</span>
+                    <Badge
+                      className={`text-xs ${levelBadgeClass[stack.level]}`}
+                    >
+                      {levelLabel[stack.level]}
+                    </Badge>
                   </div>
-                  {rb.risks.length > 0 && (
-                    <ul className="mt-2 list-inside list-disc text-sm text-neutral-600 dark:text-neutral-400">
-                      {rb.risks.map((risk, j) => (
-                        <li key={j}>{risk}</li>
-                      ))}
-                    </ul>
-                  )}
-                  <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-500">
-                    {rb.rationale}
+                  <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                    {stack.rationale}
                   </p>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </section>
+        )}
 
-      {/* Red Flags – Emergency Section */}
-      <Card className="border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
-        <CardHeader>
-          <CardTitle className="text-lg text-red-700 dark:text-red-400">
-            🚨 Notruf-Warnsignale (Red Flags)
-          </CardTitle>
-          <CardDescription className="text-red-600 dark:text-red-400">
-            Bei diesen Symptomen sofort Notruf 112 wählen:
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {[
-              "Schwere Atemnot oder Atemaussetzer",
-              "Brustschmerzen oder starkes Herzrasen",
-              "Blaue Lippen oder Fingerspitzen (Zyanose)",
-              "Bewusstlosigkeit oder Nicht-Ansprechbarkeit",
-              "Starke Verwirrung oder Desorientierung",
-              "Krampfanfälle",
-              "Starkes unkontrollierbares Zittern",
-              "Suizidgedanken oder schwere Angst",
-            ].map((flag) => (
-              <li
-                key={flag}
-                className="flex items-start gap-2 text-sm text-red-800 dark:text-red-300"
-              >
-                <span className="mt-0.5 text-red-500">•</span>
-                {flag}
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+        {/* Warnings */}
+        {result.warnings.length > 0 && (
+          <>
+            <Separator />
+            <section>
+              <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                Warnungen
+              </h3>
+              <div className="rounded-md border border-orange-200 bg-orange-50 p-3 dark:border-orange-900 dark:bg-orange-950">
+                <ul className="space-y-1.5">
+                  {result.warnings.map((warning, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-sm text-orange-800 dark:text-orange-300"
+                    >
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      {warning}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          </>
+        )}
 
-      {/* Disclaimers & Notes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">📋 Hinweise &amp; Disclaimer</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {result.notes.map((note, i) => (
-              <li
-                key={i}
-                className="text-sm text-neutral-600 dark:text-neutral-400"
-              >
-                {note}
-              </li>
-            ))}
-            <li className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-              Diese Analyse dient ausschließlich der Aufklärung und Schadensminimierung (Harm Reduction).
-              Sie stellt keine medizinische Beratung dar und ersetzt keinen Arztbesuch.
-            </li>
-            <li className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-              Es werden keine Dosierungsempfehlungen oder Konsumhinweise gegeben.
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
-    </div>
+        {/* Rebound Timeline */}
+        {result.rebound.length > 0 && (
+          <>
+            <Separator />
+            <section>
+              <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                <Clock className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                Rebound-Zeitfenster
+              </h3>
+              <div className="space-y-2">
+                {result.rebound.map((window, i) => (
+                  <div
+                    key={i}
+                    className="rounded-md border border-neutral-200 p-3 dark:border-neutral-800"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {formatTime(window.window_start)} –{" "}
+                        {formatTime(window.window_end)}
+                      </span>
+                      <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                        {window.risks.join(", ")}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      {window.rationale}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* Red Flags */}
+        <Separator />
+        <section>
+          <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-red-700 dark:text-red-400">
+            <Heart className="h-4 w-4" />
+            Notfall
+          </h3>
+          <div className="rounded-md border border-red-300 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
+            <p className="mb-2 text-sm font-semibold text-red-800 dark:text-red-300">
+              🚨 Sofort 112 rufen bei:
+            </p>
+            <ul className="list-inside list-disc space-y-1 text-sm text-red-700 dark:text-red-400">
+              <li>Brustschmerzen</li>
+              <li>Schwere Atemnot</li>
+              <li>Bewusstlosigkeit</li>
+              <li>Verwirrtheit</li>
+              <li>Blaue Lippen / Fingernägel</li>
+              <li>Krampfanfälle</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Disclaimer */}
+        <Separator />
+        <section className="space-y-1.5">
+          {result.notes.map((note, i) => (
+            <p
+              key={i}
+              className="text-xs text-neutral-500 dark:text-neutral-400"
+            >
+              {note}
+            </p>
+          ))}
+          <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            Dieses Tool ersetzt keine ärztliche Beratung.
+          </p>
+        </section>
+      </CardContent>
+    </Card>
   );
 }

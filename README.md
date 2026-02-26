@@ -203,6 +203,39 @@ npm run start    # Production Server starten
 npm run lint     # ESLint ausführen
 ```
 
+## Registrierung & Dosing Tracker
+
+### Registrierung
+
+Nutzer können sich unter `/auth/signup` registrieren (E-Mail, Passwort, optionaler Benutzername, Newsletter-Opt-in). Die Registrierung nutzt Supabase Auth. Ein `user_profiles`-Eintrag wird automatisch per Trigger erstellt.
+
+### Dosing Tracker & Risiko-Overlay
+
+- **Dosing-Logs**: Unter `/account/logs` können authentifizierte Nutzer Substanzeinnahmen protokollieren.
+- **Dosing-Logs API**: `GET/POST/DELETE /api/dosing-logs` – CRUD-Endpunkte für die `dosing_logs`-Tabelle (RLS-geschützt).
+- **Risiko-Overlay**: Unter `/account/risk` wird ein automatisches Harm-Reduction-Overlay berechnet:
+  - Stack Counter (Stimulanzien, Opioide, GABAerg, Cannabis, Nikotin)
+  - Kreuz-Kategorie-Warnungen (z.B. Opioid + GABAerg → Atemdepression)
+  - Rebound-Zeitfenster
+  - Notfall-Hinweise (Red Flags)
+- **Demo-Modus**: `/account/risk?demo=1` lädt Beispieldaten zum Testen.
+
+### Migration ausführen
+
+```bash
+# SQL-Migration anwenden (Supabase CLI)
+supabase db push
+# oder manuell: supabase/migrations/00017_dosing_logs_and_profile_trigger.sql
+```
+
+### Relevante Umgebungsvariablen
+
+| Variable | Beschreibung |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase Projekt-URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key (serverseitig) |
+
 ## Lizenz
 
 MIT
