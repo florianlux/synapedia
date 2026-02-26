@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical, Network, Upload, Wand2, Sparkles, KeyRound, GitBranch, Search } from "lucide-react";
+import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical, Network, Upload, Wand2, Sparkles, KeyRound, GitBranch, MessageSquare } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/templates", label: "Templates", icon: Boxes },
   { href: "/admin/sources", label: "Quellen", icon: BookOpen },
   { href: "/admin/media", label: "Medien", icon: Image },
+  { href: "/admin/chat-sessions", label: "Chat Sessions", icon: MessageSquare },
   { href: "/admin/audit", label: "Audit-Log", icon: ScrollText },
   { href: "/admin/secrets", label: "Secrets", icon: KeyRound },
   { href: "/admin/experience-search", label: "Experience Search", icon: Search },

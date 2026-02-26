@@ -404,3 +404,69 @@ export interface SubstancePharmacology {
   pkRoutes: PharmacokineticRoute[];
   pdParams: Pharmacodynamics[];
 }
+
+// ============================================================
+// Safer-Use Companion Chat
+// ============================================================
+
+export interface SaferUseUserProfile {
+  age_range: "18-24" | "25-34" | "35-44" | "45+" | "unknown";
+  weight_kg: number | null;
+  tolerance: "low" | "medium" | "high" | "unknown";
+  conditions: string[];
+  regular_meds: string[];
+}
+
+export interface SaferUseIntakeEntry {
+  substance: string;
+  dose_mg: number | null;
+  route: "oral" | "nasal" | "smoked" | "vaped" | "iv" | "other" | "unknown";
+  time_taken: string;
+  notes: string;
+}
+
+export interface SaferUseChatRequest {
+  user_profile: SaferUseUserProfile;
+  intake_log: SaferUseIntakeEntry[];
+  user_message: string;
+  locale: string;
+}
+
+export type SaferUseRiskLevel = "GRÜN" | "GELB" | "ORANGE" | "ROT";
+
+export interface SaferUseChatResponse {
+  assessment: string;
+  risk_level: SaferUseRiskLevel;
+  interactions: string[];
+  harm_reduction: string[];
+  emergency: string | null;
+  disclaimer: string;
+}
+
+// ============================================================
+// Chat Session Persistence (Admin)
+// ============================================================
+
+export interface ChatSession {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string | null;
+  visitor_id: string | null;
+  ip_hash: string | null;
+  user_agent: string | null;
+  title: string | null;
+  risk_level: string | null;
+  message_count: number;
+  consent_at: string | null;
+  retain_until: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  session_id: string;
+  created_at: string;
+  role: "user" | "assistant";
+  content: Record<string, unknown>;
+  risk_level: string | null;
+}

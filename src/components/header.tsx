@@ -21,6 +21,7 @@ const navLinks = [
   { href: "/neuro", label: "NeuroMap" },
   { href: "/glossary", label: "Glossar" },
   { href: "/compare", label: "Vergleich" },
+  { href: "/safer-use", label: "🛡️ Safer-Use" },
   { href: "/hilfe", label: "🆘 Hilfe", highlight: true },
 ];
 
