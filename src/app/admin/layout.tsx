@@ -15,6 +15,7 @@ const navItems = [
   { href: "/admin/chat-sessions", label: "Chat Sessions", icon: MessageSquare },
   { href: "/admin/audit", label: "Audit-Log", icon: ScrollText },
   { href: "/admin/secrets", label: "Secrets", icon: KeyRound },
+  { href: "/admin/experience-search", label: "Experience Search", icon: Search },
   { href: "/admin/dev-activity", label: "Dev Activity", icon: GitBranch },
 ];
 
