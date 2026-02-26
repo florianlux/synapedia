@@ -31,7 +31,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/auth/login`);
     }
 
-    // Check if profile has a username; if not, redirect to onboarding
+    // For OAuth users: check if profile has a username set.
+    // The handle_new_user trigger creates the profile row automatically,
+    // but OAuth users won't have a username in metadata.
+    // Only redirect to onboarding if profile exists but username is null.
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data: profile } = await supabase
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest) {
         .eq("id", user.id)
         .maybeSingle();
 
-      if (!profile?.username) {
+      if (profile && !profile.username) {
         return NextResponse.redirect(`${origin}/onboarding`);
       }
     }
