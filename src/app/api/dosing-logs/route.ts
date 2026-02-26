@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const from = searchParams.get("from");
   const to = searchParams.get("to");
-  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
+  const parsed = parseInt(searchParams.get("limit") || "50");
+  const limit = Math.min(Number.isFinite(parsed) ? parsed : 50, 200);
 
   let query = supabase
     .from("dosing_logs")

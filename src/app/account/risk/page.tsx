@@ -10,12 +10,11 @@ import type { RiskLogEntry, RiskOverlayResult } from "@/lib/risk/models";
 import type { UserLog } from "@/lib/types";
 import { RiskOverlayCard } from "@/components/risk/RiskOverlayCard";
 
-/** Demo dataset for testing (activated via ?demo=1) */
+/** Demo dataset for testing (activated via ?demo=1).
+ *  Times are relative to `now` so the demo always shows the full risk scenario. */
 function getDemoLogs(now: Date): RiskLogEntry[] {
-  const today = now.toISOString().slice(0, 10);
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
+  const h = (hoursAgo: number) =>
+    new Date(now.getTime() - hoursAgo * 60 * 60 * 1000).toISOString();
 
   return [
     {
@@ -23,28 +22,28 @@ function getDemoLogs(now: Date): RiskLogEntry[] {
       dose_value: 800,
       dose_unit: "mg",
       route: "oral",
-      taken_at: `${yesterday}T18:00:00.000Z`,
+      taken_at: h(10), // 10 hours ago
     },
     {
       substance: "a-pvp",
       dose_value: null,
       dose_unit: null,
       route: "vaporized",
-      taken_at: `${today}T03:00:00.000Z`,
+      taken_at: h(3), // 3 hours ago
     },
     {
       substance: "2-map-237",
       dose_value: 60,
       dose_unit: "mg",
       route: null,
-      taken_at: `${today}T03:30:00.000Z`,
+      taken_at: h(2.5), // 2.5 hours ago
     },
     {
       substance: "kratom",
       dose_value: 5,
       dose_unit: "g",
       route: "oral",
-      taken_at: `${today}T08:00:00.000Z`,
+      taken_at: h(1), // 1 hour ago
     },
   ];
 }
@@ -116,7 +115,8 @@ export default function RiskOverlayPage() {
       setLoading(false);
     }
     load();
-  }, [supabase, router, isDemo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemo]);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">

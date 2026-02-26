@@ -70,7 +70,7 @@ export function computeRiskOverlay(
     (e) => e.category === "stimulant" && e.hoursAgo >= 0 && e.hoursAgo <= 12
   );
   const stimVaporized = stimEntries.filter((e) => isVaporized(e.entry.route));
-  // Vaporized entries count 1.5x for acute spike assessment
+  // stimVaporized is a subset of stimEntries; add 0.5 bonus per vaporized entry for acute spike
   const stimScore = stimEntries.length + stimVaporized.length * 0.5;
   const stimLevel = stackLevel(stimScore, 1, 2, 4);
   stacks.push({
