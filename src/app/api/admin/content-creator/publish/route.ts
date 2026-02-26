@@ -160,7 +160,10 @@ export async function POST(request: NextRequest) {
       if (error) {
         return Response.json({ ok: false, error: error.message }, { status: 500 });
       }
-      articleId = data!.id;
+      if (!data) {
+        return Response.json({ ok: false, error: "Artikel konnte nicht aktualisiert werden." }, { status: 500 });
+      }
+      articleId = data.id;
     } else {
       // Create new article
       const insertData: Record<string, unknown> = {
@@ -197,7 +200,10 @@ export async function POST(request: NextRequest) {
       if (error) {
         return Response.json({ ok: false, error: error.message }, { status: 500 });
       }
-      articleId = data!.id;
+      if (!data) {
+        return Response.json({ ok: false, error: "Artikel konnte nicht erstellt werden." }, { status: 500 });
+      }
+      articleId = data.id;
     }
 
     // Insert sources into sources + article_sources (best-effort)
