@@ -207,6 +207,55 @@ npm run lint     # ESLint ausführen
 
 MIT
 
+## User Registration & Risk Overlay
+
+### Registration & Auth
+
+Users can register via **Registrieren** button in the header or navigate to `/auth/signup`. Login is at `/auth/login`. After registration, email confirmation may be required (configurable in Supabase dashboard).
+
+Auth pages use Supabase Auth (`signUp`, `signInWithPassword`). User profiles are stored in `user_profiles` with an auto-insert trigger on `auth.users`.
+
+### Database Migrations
+
+Apply the dosing logs migration:
+
+```bash
+# Via Supabase CLI (if linked to a project)
+supabase db push
+
+# Or manually via Supabase SQL Editor:
+# Run the contents of supabase/migrations/00017_dosing_logs_and_profile_trigger.sql
+```
+
+The migration creates:
+- `dosing_logs` table with RLS (user can CRUD only their own rows)
+- Indexes on `(user_id, taken_at DESC)` and `(substance)`
+- Auto-insert trigger on `auth.users` to create `user_profiles` rows
+
+### Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | For live mode | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | For live mode | Supabase anonymous key |
+| `SUPABASE_SERVICE_ROLE_KEY` | For server-side | Supabase service role key |
+| `ADMIN_TOKEN` | Optional | Protects `/admin` panel |
+
+Demo mode (no Supabase) works for public pages. Auth features require Supabase credentials.
+
+### Testing the Risk Overlay
+
+1. Navigate to `/account/risk?demo=1` to see the demo analysis
+2. The demo loads test data: Phenibut (800 mg oral), α-PVP (vaporized), 2-MAP-237 (60 mg), Kratom (5 g oral)
+3. The overlay shows: overall risk level, stack counters per substance category, cross-category warnings (respiratory depression, masking), rebound timeline, red flags, and disclaimers
+
+For authenticated users: add entries via `/account/logs`, then visit `/account/risk` to generate a real analysis from the last 24 hours.
+
+### API Endpoints
+
+- `POST /api/dosing-logs` — Create a dosing log entry (requires auth)
+- `GET /api/dosing-logs?from=...&to=...` — List dosing logs with optional date filters (requires auth)
+
 ## Disclaimer
 
 Diese Plattform wurde ausschließlich zu Bildungs- und Forschungszwecken entwickelt. Die bereitgestellten Informationen ersetzen keine professionelle medizinische Beratung. Die Inhalte enthalten keine Konsumanleitungen, Dosierungsempfehlungen oder Beschaffungshinweise.

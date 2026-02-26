@@ -100,12 +100,20 @@ export function Header() {
               Konto
             </Link>
           ) : (
-            <Link
-              href="/auth/login"
-              className="hidden rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-cyan-700 lg:inline-flex"
-            >
-              Anmelden
-            </Link>
+            <>
+              <Link
+                href="/auth/login"
+                className="hidden rounded-md border border-cyan-600 px-3 py-1.5 text-sm font-medium text-cyan-600 transition-colors hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-950 lg:inline-flex"
+              >
+                Anmelden
+              </Link>
+              <Link
+                href="/auth/signup"
+                className="hidden rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-cyan-700 lg:inline-flex"
+              >
+                Registrieren
+              </Link>
+            </>
           )}
           <ThemeToggle />
           <button
@@ -151,13 +159,22 @@ export function Header() {
                 Konto
               </Link>
             ) : (
-              <Link
-                href="/auth/login"
-                onClick={() => setMobileOpen(false)}
-                className="block rounded-md px-3 py-2 text-base font-medium text-cyan-600 transition-colors hover:bg-neutral-100 dark:text-cyan-400 dark:hover:bg-neutral-800"
-              >
-                Anmelden
-              </Link>
+              <>
+                <Link
+                  href="/auth/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="block rounded-md px-3 py-2 text-base font-medium text-cyan-600 transition-colors hover:bg-neutral-100 dark:text-cyan-400 dark:hover:bg-neutral-800"
+                >
+                  Anmelden
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  onClick={() => setMobileOpen(false)}
+                  className="block rounded-md px-3 py-2 text-base font-medium text-cyan-600 transition-colors hover:bg-neutral-100 dark:text-cyan-400 dark:hover:bg-neutral-800"
+                >
+                  Registrieren
+                </Link>
+              </>
             )}
             {adminEnabled && (
               <Link
