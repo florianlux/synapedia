@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Lock, Menu, User, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SynapediaLogo } from "@/components/synapedia-logo";
+import { BrandWordmark } from "@/components/BrandWordmark";
 
 function isSupabaseReady() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -62,9 +63,7 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 group">
           <SynapediaLogo className="h-7 w-7 text-cyan-500 transition-transform duration-300 group-hover:scale-105" />
-          <span className="text-xl font-bold tracking-tight text-neutral-900 dark:text-cyan-50">
-            Synapedia
-          </span>
+          <BrandWordmark className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50" />
         </Link>
         <nav className="hidden items-center gap-4 lg:flex">
           {navLinks.map((link) => (
