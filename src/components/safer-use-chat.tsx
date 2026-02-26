@@ -70,6 +70,7 @@ export function SaferUseChat() {
   const [profileOpen, setProfileOpen] = useState(true);
   const [medsInput, setMedsInput] = useState("");
   const [conditionsInput, setConditionsInput] = useState("");
+  const [consentGiven, setConsentGiven] = useState(false);
   const responseRef = useRef<HTMLDivElement>(null);
 
   // Scroll to response when it appears
@@ -123,7 +124,10 @@ export function SaferUseChat() {
       const res = await fetch("/api/safer-use", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req),
+        body: JSON.stringify({
+          ...req,
+          consent_at: consentGiven ? new Date().toISOString() : null,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -154,6 +158,27 @@ export function SaferUseChat() {
           anrufen.
         </p>
       </div>
+
+      {/* ───── Chat logging consent (non-blocking) ───── */}
+      {!consentGiven && (
+        <div className="flex items-start gap-3 rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400">
+          <Shield className="mt-0.5 h-5 w-5 shrink-0 text-cyan-500" />
+          <div className="flex-1">
+            <p>
+              <strong>Chat-Protokollierung:</strong> Zur Qualitätssicherung können Chat-Verläufe
+              pseudonymisiert gespeichert werden. IP-Adressen werden nur gehasht (nicht im Klartext)
+              gespeichert. Daten werden nach 90 Tagen automatisch gelöscht.
+            </p>
+            <button
+              type="button"
+              onClick={() => setConsentGiven(true)}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-cyan-700"
+            >
+              Einverstanden
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ───── User profile (collapsible) ───── */}
       <section className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">

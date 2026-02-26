@@ -442,3 +442,31 @@ export interface SaferUseChatResponse {
   emergency: string | null;
   disclaimer: string;
 }
+
+// ============================================================
+// Chat Session Persistence (Admin)
+// ============================================================
+
+export interface ChatSession {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string | null;
+  visitor_id: string | null;
+  ip_hash: string | null;
+  user_agent: string | null;
+  title: string | null;
+  risk_level: string | null;
+  message_count: number;
+  consent_at: string | null;
+  retain_until: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  session_id: string;
+  created_at: string;
+  role: "user" | "assistant";
+  content: Record<string, unknown>;
+  risk_level: string | null;
+}
