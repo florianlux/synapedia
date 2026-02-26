@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical, Network, Upload, Wand2, Sparkles, KeyRound, GitBranch, MessageSquare } from "lucide-react";
+import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical, Network, Upload, Wand2, Sparkles, KeyRound, GitBranch, MessageSquare, Search } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
