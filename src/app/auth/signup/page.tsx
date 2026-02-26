@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+// Default cooldown in seconds when the server returns 429 but no explicit duration
+const DEFAULT_COOLDOWN_SECONDS = 32;
 
 export default function SignupPage() {
   const router = useRouter();
@@ -15,81 +18,106 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const isSubmitting = useRef(false);
+
+  // Decrement cooldown every second
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Prevent double-submission (race condition guard)
+    if (isSubmitting.current || cooldown > 0) return;
+    isSubmitting.current = true;
     setError(null);
     setLoading(true);
 
-    // Validate username
-    if (username.length < 3 || username.length > 30) {
-      setError("Benutzername muss zwischen 3 und 30 Zeichen lang sein.");
-      setLoading(false);
-      return;
-    }
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      setError("Benutzername darf nur Buchstaben, Zahlen, _ und - enthalten.");
-      setLoading(false);
-      return;
-    }
+    try {
+      // Validate username
+      if (username.length < 3 || username.length > 30) {
+        setError("Benutzername muss zwischen 3 und 30 Zeichen lang sein.");
+        return;
+      }
+      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        setError("Benutzername darf nur Buchstaben, Zahlen, _ und - enthalten.");
+        return;
+      }
 
-    const supabase = createClient();
+      const supabase = createClient();
 
-    // Check username uniqueness
-    const { data: existing } = await supabase
-      .from("user_profiles")
-      .select("id")
-      .ilike("username", username)
-      .maybeSingle();
+      // Check username uniqueness
+      const { data: existing } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .ilike("username", username)
+        .maybeSingle();
 
-    if (existing) {
-      setError("Dieser Benutzername ist bereits vergeben.");
-      setLoading(false);
-      return;
-    }
+      if (existing) {
+        setError("Dieser Benutzername ist bereits vergeben.");
+        return;
+      }
 
-    // Sign up – pass metadata so the handle_new_user trigger can create the profile
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-          phone: phone || null,
-          newsletter_opt_in: newsletter,
-        },
-      },
-    });
-
-    if (authError) {
-      setError(authError.message);
-      setLoading(false);
-      return;
-    }
-
-    // Create profile
-    if (authData.user) {
-      const { error: profileError } = await supabase.from("user_profiles").insert({
-        id: authData.user.id,
+      // Sign up – pass metadata so the handle_new_user trigger can create the profile
+      const profileData = {
         username,
         phone: phone || null,
         newsletter_opt_in: newsletter,
+      };
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: profileData,
+        },
       });
 
-      if (profileError) {
-        setError("Profil konnte nicht erstellt werden: " + profileError.message);
-        setLoading(false);
+      if (authError) {
+        // Handle 429 Too Many Requests – start a cooldown countdown
+        if (authError.status === 429 || authError.message.toLowerCase().includes("after")) {
+          const match = authError.message.match(/(\d+)\s*second/i);
+          const seconds = match ? parseInt(match[1], 10) : DEFAULT_COOLDOWN_SECONDS;
+          setCooldown(seconds);
+          setError(`Zu viele Anfragen. Bitte warte ${seconds} Sekunden.`);
+        } else {
+          setError(authError.message);
+        }
         return;
       }
-    }
 
-    setSuccess(true);
-    setLoading(false);
+      // Upsert profile only when a session is available (email confirmation not required).
+      // When email confirmation IS required there is no session yet; the handle_new_user
+      // database trigger already created the profile row, so no client-side write is needed.
+      if (authData.user?.id && authData.session) {
+        const { error: profileError } = await supabase.from("user_profiles").upsert(
+          {
+            id: authData.user.id,
+            email: authData.user.email,
+            ...profileData,
+          },
+          { onConflict: "id" },
+        );
 
-    // If email confirmation is not required, redirect
-    if (authData.session) {
-      router.push("/account");
-      router.refresh();
+        if (profileError) {
+          // Non-fatal: the trigger already created the row; log but don't block the user.
+          console.error("Profil-Upsert fehlgeschlagen:", profileError.message);
+        }
+      }
+
+      setSuccess(true);
+
+      // Redirect immediately if a session was returned
+      if (authData.session) {
+        router.push("/account");
+        router.refresh();
+      }
+    } finally {
+      setLoading(false);
+      isSubmitting.current = false;
     }
   }
 
@@ -201,10 +229,14 @@ export default function SignupPage() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || cooldown > 0}
           className="w-full rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-700 disabled:opacity-50"
         >
-          {loading ? "Wird registriert…" : "Konto erstellen"}
+          {loading
+            ? "Wird registriert…"
+            : cooldown > 0
+              ? `Bitte warten… (${cooldown}s)`
+              : "Konto erstellen"}
         </button>
       </form>
 
