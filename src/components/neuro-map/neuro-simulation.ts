@@ -32,9 +32,9 @@ export function simulationTick(
     for (let j = i + 1; j < nodes.length; j++) {
       const a = nodes[i];
       const b = nodes[j];
-      let dx = a.x - b.x;
-      let dy = a.y - b.y;
-      let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
       const force = REPULSION / (dist * dist);
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;

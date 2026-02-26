@@ -15,6 +15,7 @@ import {
   demoSources,
 } from "@/lib/demo-data";
 import { riskLabels, evidenceLabels } from "@/lib/types";
+import { SubstancePharmacologySection } from "@/components/substance-pharmacology";
 import { getSeoDocument } from "@/lib/db/seo";
 
 function slugify(text: string): string {
