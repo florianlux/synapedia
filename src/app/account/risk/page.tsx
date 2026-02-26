@@ -66,8 +66,8 @@ function RiskPageInner() {
             setResult(computeRiskOverlay(data));
           }
         }
-      } catch {
-        // fetch failed – leave entries empty
+      } catch (err) {
+        console.error("Failed to fetch dosing logs:", err);
       }
 
       setLoading(false);
