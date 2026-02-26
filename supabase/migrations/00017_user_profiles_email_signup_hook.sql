@@ -24,8 +24,8 @@ BEGIN
   VALUES (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data->>'username', null),
-    coalesce(new.raw_user_meta_data->>'phone', null),
+    new.raw_user_meta_data->>'username',
+    new.raw_user_meta_data->>'phone',
     coalesce((new.raw_user_meta_data->>'newsletter_opt_in')::boolean, false)
   )
   ON CONFLICT (user_id) DO NOTHING;
