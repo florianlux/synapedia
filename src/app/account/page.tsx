@@ -33,7 +33,7 @@ export default function AccountPage() {
       const { data } = await supabase
         .from("user_profiles")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("id", user.id)
         .single();
 
       if (data) {
@@ -69,7 +69,7 @@ export default function AccountPage() {
         newsletter_opt_in: newsletter,
         favorite_tags: tags,
       })
-      .eq("user_id", profile!.user_id);
+      .eq("id", profile!.id);
 
     if (error) {
       setMessage("Fehler: " + error.message);
