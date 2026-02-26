@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { wikidataAdapter } from "@/lib/substances/adapters/wikidata-adapter";
 import { mergeRawSources } from "@/lib/substances/adapters/normalize";
 import { slugify } from "@/lib/substances/slugify";
+import { MAX_IMPORT_BATCH_SIZE } from "@/lib/config";
 
 interface DryRunItem {
   name: string;
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const hasSupabase = Boolean(supabaseUrl && supabaseKey);
 
-  const limited = items.slice(0, 50);
+  const limited = items.slice(0, MAX_IMPORT_BATCH_SIZE);
 
   // Fetch existing slugs from DB (if available)
   let existingSlugs = new Set<string>();

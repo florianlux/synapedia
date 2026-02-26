@@ -5,6 +5,7 @@ import { wikidataAdapter } from "@/lib/substances/adapters/wikidata-adapter";
 import { pubchemAdapter } from "@/lib/substances/adapters/pubchem-adapter";
 import { mergeRawSources } from "@/lib/substances/adapters/normalize";
 import { slugify } from "@/lib/substances/slugify";
+import { MAX_IMPORT_BATCH_SIZE } from "@/lib/config";
 
 interface CommitItem {
   name: string;
@@ -40,9 +41,9 @@ export async function POST(request: NextRequest) {
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ ok: false, error: "No items" }, { status: 400 });
   }
-  if (items.length > 50) {
+  if (items.length > MAX_IMPORT_BATCH_SIZE) {
     return NextResponse.json(
-      { ok: false, error: "Max 50 items per commit batch" },
+      { ok: false, error: `Max ${MAX_IMPORT_BATCH_SIZE} items per commit batch` },
       { status: 400 },
     );
   }
@@ -150,10 +151,11 @@ export async function POST(request: NextRequest) {
         confidence_score: normalized.confidenceScore,
       });
 
-      // Write audit item (non-blocking)
+      // Write audit item (non-blocking fire-and-forget)
       if (runId) {
-        void Promise.resolve(
-          supabase.from("import_run_items").insert({
+        void supabase
+          .from("import_run_items")
+          .insert({
             run_id: runId,
             substance_name: item.name,
             substance_slug: slug,
@@ -161,23 +163,22 @@ export async function POST(request: NextRequest) {
             action,
             confidence_score: normalized.confidenceScore,
             sources: normalized.sources,
-          }),
-        ).catch(() => {});
+          });
       }
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
       itemResults.push({ name: item.name, slug, action: "failed", confidence_score: 0, error });
       if (runId) {
-        void Promise.resolve(
-          supabase.from("import_run_items").insert({
+        void supabase
+          .from("import_run_items")
+          .insert({
             run_id: runId,
             substance_name: item.name,
             substance_slug: slug,
             action: "failed",
             error_message: error,
             confidence_score: 0,
-          }),
-        ).catch(() => {});
+          });
       }
     }
   }
@@ -190,20 +191,18 @@ export async function POST(request: NextRequest) {
     failed: itemResults.filter((r) => r.action === "failed").length,
   };
 
-  // Update audit run status
+  // Update audit run status (non-blocking fire-and-forget)
   if (runId) {
-    void Promise.resolve(
-      supabase
-        .from("import_runs")
-        .update({
-          inserted_count: summary.inserted,
-          updated_count: summary.updated,
-          skipped_count: summary.skipped,
-          error_count: summary.failed,
-          status: "done",
-        })
-        .eq("id", runId),
-    ).catch(() => {});
+    void supabase
+      .from("import_runs")
+      .update({
+        inserted_count: summary.inserted,
+        updated_count: summary.updated,
+        skipped_count: summary.skipped,
+        error_count: summary.failed,
+        status: "done",
+      })
+      .eq("id", runId);
   }
 
   return NextResponse.json({ ok: true, summary, items: itemResults, runId });

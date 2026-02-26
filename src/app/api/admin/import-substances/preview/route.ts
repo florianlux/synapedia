@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { wikidataAdapter } from "@/lib/substances/adapters/wikidata-adapter";
 import { mergeRawSources } from "@/lib/substances/adapters/normalize";
+import { MAX_IMPORT_BATCH_SIZE } from "@/lib/config";
 
 interface PreviewRequestItem {
   name: string;
@@ -27,8 +28,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "No items" }, { status: 400 });
   }
 
-  // Limit to 50 items per preview request
-  const limited = items.slice(0, 50);
+  // Limit to MAX_IMPORT_BATCH_SIZE items per preview request
+  const limited = items.slice(0, MAX_IMPORT_BATCH_SIZE);
 
   const previews = await Promise.allSettled(
     limited.map(async (item) => {

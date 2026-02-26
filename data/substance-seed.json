@@ -89,7 +89,7 @@
   { "name": "Varenicline", "wikidataQid": "Q421360", "tags": ["treatment", "nicotinic_partial_agonist", "smoking_cessation"], "category": "atypicals" },
   { "name": "Disulfiram", "wikidataQid": "Q421041", "tags": ["treatment", "aldehyde_dehydrogenase_inhibitor", "alcohol_treatment"], "category": "atypicals" },
   { "name": "Clonidine", "wikidataQid": "Q421023", "tags": ["antihypertensive", "alpha2_agonist", "sympatholytic"], "category": "atypicals" },
-  { "name": "Atomoxetine", "wikidataQid": "", "tags": ["snri", "norepinephrine_reuptake_inhibitor", "adhd"], "category": "atypicals" },
+  { "name": "Atomoxetine", "wikidataQid": "", "tags": ["nri", "norepinephrine_reuptake_inhibitor", "adhd"], "category": "atypicals" },
   { "name": "Dexmedetomidine", "wikidataQid": "Q421034", "tags": ["sedative", "alpha2_agonist", "anesthetic"], "category": "depressants" },
   { "name": "Dextroamphetamine", "wikidataQid": "", "tags": ["stimulant", "phenethylamine", "dopaminergic"], "category": "stimulants" },
   { "name": "Lisdexamfetamine", "wikidataQid": "", "tags": ["stimulant", "prodrug", "dopaminergic"], "category": "stimulants" },
