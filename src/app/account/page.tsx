@@ -124,6 +124,12 @@ export default function AccountPage() {
         >
           Protokoll
         </Link>
+        <Link
+          href="/account/risk"
+          className="pb-3 text-sm text-neutral-500 transition-colors hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+        >
+          Risiko-Overlay
+        </Link>
       </nav>
 
       <div className="mb-8">
