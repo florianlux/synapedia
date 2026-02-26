@@ -85,6 +85,7 @@ $$;
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS email text;
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS phone text;
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS newsletter_opt_in boolean NOT NULL DEFAULT false;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
 -- Allow username to be nullable (for OAuth users who haven't set one yet)
@@ -150,10 +151,10 @@ CREATE TRIGGER on_auth_user_created
 
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
--- Public can see profiles (username + avatar for feed)
-CREATE POLICY user_profiles_select_public ON user_profiles
+-- Users can read their own profile
+CREATE POLICY user_profiles_select_own ON user_profiles
   FOR SELECT TO anon, authenticated
-  USING (true);
+  USING (auth.uid() = id);
 
 -- Owner can update own profile
 CREATE POLICY user_profiles_update_own ON user_profiles

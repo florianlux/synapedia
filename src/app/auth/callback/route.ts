@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
 
       if (profile && !profile.username) {
         // Reuse the existing response so that auth cookies set by
-        // exchangeCodeForSession are preserved during onboarding redirect.
-        response.headers.set("Location", `${origin}/onboarding`);
+        // exchangeCodeForSession are preserved during redirect.
+        response.headers.set("Location", `${origin}/account`);
         return response;
       }
     }

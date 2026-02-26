@@ -35,11 +35,12 @@ export default function SignupPage() {
 
     const supabase = createClient();
 
-    // Check username uniqueness
+    // Check username uniqueness (escape ILIKE wildcards _ and % to avoid false matches)
+    const escapedUsername = username.replace(/%/g, "\\%").replace(/_/g, "\\_");
     const { data: existing } = await supabase
       .from("user_profiles")
       .select("id")
-      .ilike("username", username)
+      .ilike("username", escapedUsername)
       .maybeSingle();
 
     if (existing) {
