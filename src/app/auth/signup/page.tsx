@@ -48,10 +48,17 @@ export default function SignupPage() {
       return;
     }
 
-    // Sign up
+    // Sign up – pass metadata so the handle_new_user trigger can create the profile
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          username,
+          phone: phone || null,
+          newsletter_opt_in: newsletter,
+        },
+      },
     });
 
     if (authError) {
