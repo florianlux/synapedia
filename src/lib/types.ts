@@ -221,6 +221,7 @@ export interface GeneratedCitation {
 
 export interface UserProfile {
   user_id: string;
+  email: string | null;
   username: string;
   phone: string | null;
   bio: string | null;
