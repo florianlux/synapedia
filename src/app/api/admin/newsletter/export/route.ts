@@ -11,7 +11,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("user_profiles")
-      .select("user_id, email, username, newsletter_opt_in, created_at")
+      .select("id, email, username, newsletter_opt_in, created_at")
       .eq("newsletter_opt_in", true)
       .order("created_at", { ascending: false });
 

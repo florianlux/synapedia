@@ -26,7 +26,25 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      return NextResponse.redirect(`${origin}/auth/login`);
+    }
+
+    // Check if profile has a username; if not, redirect to onboarding
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("username")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!profile?.username) {
+        return NextResponse.redirect(`${origin}/onboarding`);
+      }
+    }
+
     return response;
   }
 

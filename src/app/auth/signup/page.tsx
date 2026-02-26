@@ -38,7 +38,7 @@ export default function SignupPage() {
     // Check username uniqueness
     const { data: existing } = await supabase
       .from("user_profiles")
-      .select("user_id")
+      .select("id")
       .ilike("username", username)
       .maybeSingle();
 
@@ -48,7 +48,7 @@ export default function SignupPage() {
       return;
     }
 
-    // Sign up – pass metadata so the handle_new_user trigger can create the profile
+    // Sign up – pass metadata so the handle_new_user trigger creates the profile automatically
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -65,22 +65,6 @@ export default function SignupPage() {
       setError(authError.message);
       setLoading(false);
       return;
-    }
-
-    // Create profile
-    if (authData.user) {
-      const { error: profileError } = await supabase.from("user_profiles").insert({
-        user_id: authData.user.id,
-        username,
-        phone: phone || null,
-        newsletter_opt_in: newsletter,
-      });
-
-      if (profileError) {
-        setError("Profil konnte nicht erstellt werden: " + profileError.message);
-        setLoading(false);
-        return;
-      }
     }
 
     setSuccess(true);

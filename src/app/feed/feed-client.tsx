@@ -48,7 +48,7 @@ export default function FeedPage() {
         const { data: profile } = await sb
           .from("user_profiles")
           .select("favorite_tags")
-          .eq("user_id", user.id)
+          .eq("id", user.id)
           .single();
 
         const { data: favorites } = await sb

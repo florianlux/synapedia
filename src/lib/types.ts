@@ -220,9 +220,9 @@ export interface GeneratedCitation {
 // ============================================================
 
 export interface UserProfile {
-  user_id: string;
+  id: string;
   email: string | null;
-  username: string;
+  username: string | null;
   phone: string | null;
   bio: string | null;
   avatar_url: string | null;
