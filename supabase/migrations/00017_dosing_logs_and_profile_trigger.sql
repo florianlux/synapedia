@@ -48,9 +48,9 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-    INSERT INTO public.user_profiles (user_id, username)
+    INSERT INTO public.user_profiles (id, username)
     VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'username', 'user_' || LEFT(NEW.id::text, 8)))
-    ON CONFLICT (user_id) DO NOTHING;
+    ON CONFLICT (id) DO NOTHING;
     RETURN NEW;
 END;
 $$;

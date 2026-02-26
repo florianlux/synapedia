@@ -38,7 +38,7 @@ export default function SignupPage() {
     // Check username uniqueness
     const { data: existing } = await supabase
       .from("user_profiles")
-      .select("user_id")
+      .select("id")
       .ilike("username", username)
       .maybeSingle();
 
@@ -70,7 +70,7 @@ export default function SignupPage() {
     // Create profile
     if (authData.user) {
       const { error: profileError } = await supabase.from("user_profiles").insert({
-        user_id: authData.user.id,
+        id: authData.user.id,
         username,
         phone: phone || null,
         newsletter_opt_in: newsletter,
