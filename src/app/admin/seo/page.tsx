@@ -85,7 +85,7 @@ export default function SeoPage() {
     } finally {
       setLoading(false);
     }
-  }, [entityFilter, search]);
+  }, [entityFilter]);
 
   useEffect(() => {
     fetchEntries();

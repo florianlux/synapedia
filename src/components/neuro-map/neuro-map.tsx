@@ -354,7 +354,6 @@ export function NeuroMap({ substances, interactions }: NeuroMapProps) {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener("resize", resize);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activeLayers,
     activeReceptors,

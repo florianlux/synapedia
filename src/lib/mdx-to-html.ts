@@ -18,7 +18,7 @@ export async function mdxToHtml(source: string): Promise<string | null> {
 
 function convertMdxToHtml(mdx: string): string {
   // Strip JSX import statements and component tags (MDX-specific)
-  let text = mdx
+  const text = mdx
     .replace(/^import\s+.*$/gm, "")
     .replace(/<[A-Z]\w*[^>]*\/>/g, "")
     .replace(/<[A-Z]\w*[^>]*>[\s\S]*?<\/[A-Z]\w*>/g, "");
