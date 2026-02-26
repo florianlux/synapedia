@@ -53,6 +53,7 @@ CREATE POLICY "seo_documents_public_read"
 -- Full access for authenticated users (admin via service role key)
 CREATE POLICY "seo_documents_admin_all"
   ON public.seo_documents
+  TO authenticated
   FOR ALL
   USING (true)
   WITH CHECK (true);
