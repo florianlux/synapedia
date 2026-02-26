@@ -20,7 +20,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.user_profiles (user_id, email, username, phone, newsletter_opt_in)
+  INSERT INTO public.user_profiles (id, email, username, phone, newsletter_opt_in)
   VALUES (
     new.id,
     new.email,
@@ -28,7 +28,7 @@ BEGIN
     new.raw_user_meta_data->>'phone',
     coalesce((new.raw_user_meta_data->>'newsletter_opt_in')::boolean, false)
   )
-  ON CONFLICT (user_id) DO NOTHING;
+  ON CONFLICT (id) DO NOTHING;
 
   RETURN new;
 END;

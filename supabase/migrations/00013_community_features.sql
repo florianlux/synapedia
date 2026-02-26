@@ -11,7 +11,7 @@ SET search_path TO public;
 
 -- User Profiles
 CREATE TABLE IF NOT EXISTS user_profiles (
-    user_id         uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id              uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     username        text        UNIQUE NOT NULL,
     phone           text,
     bio             text,
@@ -122,16 +122,16 @@ CREATE POLICY user_profiles_select_public ON user_profiles
 
 CREATE POLICY user_profiles_insert_own ON user_profiles
     FOR INSERT TO authenticated
-    WITH CHECK (user_id = auth.uid());
+    WITH CHECK (id = auth.uid());
 
 CREATE POLICY user_profiles_update_own ON user_profiles
     FOR UPDATE TO authenticated
-    USING (user_id = auth.uid())
-    WITH CHECK (user_id = auth.uid());
+    USING (id = auth.uid())
+    WITH CHECK (id = auth.uid());
 
 CREATE POLICY user_profiles_delete_own ON user_profiles
     FOR DELETE TO authenticated
-    USING (user_id = auth.uid());
+    USING (id = auth.uid());
 
 -- feed_posts: public SELECT on published+public; INSERT/UPDATE only owner
 CREATE POLICY feed_posts_select_public ON feed_posts
