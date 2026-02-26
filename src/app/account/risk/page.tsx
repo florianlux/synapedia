@@ -30,6 +30,7 @@ function RiskPageInner() {
   const [entries, setEntries] = useState<DosingLogEntry[]>([]);
   const [result, setResult] = useState<RiskOverlayResult | null>(null);
   const [demoLoaded, setDemoLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isDemo = searchParams.get("demo") === "1";
 
@@ -65,9 +66,12 @@ function RiskPageInner() {
           if (data.length > 0) {
             setResult(computeRiskOverlay(data));
           }
+        } else {
+          setError("Daten konnten nicht geladen werden. Bitte versuche es erneut.");
         }
       } catch (err) {
         console.error("Failed to fetch dosing logs:", err);
+        setError("Verbindungsfehler. Bitte prüfe deine Internetverbindung.");
       }
 
       setLoading(false);
@@ -96,6 +100,12 @@ function RiskPageInner() {
       <h1 className="mb-6 text-2xl font-bold text-neutral-900 dark:text-neutral-50">
         Risiko-Overlay (letzte 24&nbsp;h)
       </h1>
+
+      {error && (
+        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+          {error}
+        </p>
+      )}
 
       {hasEntries && result ? (
         <>

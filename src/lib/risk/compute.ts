@@ -15,9 +15,10 @@ function bucketByCategory(logs: DosingLogEntry[]): Map<SubstanceCategory, Dosing
   const map = new Map<SubstanceCategory, DosingLogEntry[]>();
   for (const log of logs) {
     const cat = classifySubstance(log.substance);
-    const arr = map.get(cat) ?? [];
-    arr.push(log);
-    map.set(cat, arr);
+    if (!map.has(cat)) {
+      map.set(cat, []);
+    }
+    map.get(cat)!.push(log);
   }
   return map;
 }

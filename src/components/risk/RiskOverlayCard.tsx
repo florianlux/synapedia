@@ -29,15 +29,12 @@ const levelBadgeClass: Record<RiskLevel, string> = {
 };
 
 function formatTime(iso: string): string {
-  try {
-    const date = new Date(iso);
-    return date.toLocaleTimeString("de-DE", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return iso;
+  return date.toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 interface RiskOverlayCardProps {
