@@ -27,19 +27,11 @@ CREATE TABLE IF NOT EXISTS public.seo_documents (
 CREATE INDEX IF NOT EXISTS idx_seo_documents_slug ON public.seo_documents (slug);
 CREATE INDEX IF NOT EXISTS idx_seo_documents_entity_type ON public.seo_documents (entity_type);
 
--- 3) Auto-update updated_at trigger
-CREATE OR REPLACE FUNCTION public.seo_documents_set_updated_at()
-RETURNS trigger AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- 3) Auto-update updated_at trigger (reuse generic function from initial schema)
 CREATE TRIGGER trg_seo_documents_updated_at
   BEFORE UPDATE ON public.seo_documents
   FOR EACH ROW
-  EXECUTE FUNCTION public.seo_documents_set_updated_at();
+  EXECUTE FUNCTION public.update_updated_at_column();
 
 -- 4) Enable RLS
 ALTER TABLE public.seo_documents ENABLE ROW LEVEL SECURITY;
