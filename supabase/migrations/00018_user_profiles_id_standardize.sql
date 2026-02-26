@@ -86,6 +86,7 @@ ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS email text;
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS phone text;
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS newsletter_opt_in boolean NOT NULL DEFAULT false;
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
 -- Allow username to be nullable (for OAuth users who haven't set one yet)
