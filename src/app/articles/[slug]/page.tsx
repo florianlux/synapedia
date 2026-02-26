@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -6,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { RiskBanner } from "@/components/risk-banner";
 import { SourceBox } from "@/components/source-box";
 import { TableOfContents, type TocHeading } from "@/components/table-of-contents";
-import { SubstancePharmacologySection } from "@/components/substance-pharmacology";
+import { JsonLd } from "@/components/json-ld";
 import {
   demoArticles,
   demoTags,
@@ -14,6 +15,7 @@ import {
   demoSources,
 } from "@/lib/demo-data";
 import { riskLabels, evidenceLabels } from "@/lib/types";
+import { getSeoDocument } from "@/lib/db/seo";
 
 function slugify(text: string): string {
   return text
@@ -65,6 +67,47 @@ const mdxComponents = {
   h3: createHeadingComponent(3),
 };
 
+const BASE_URL = "https://synapedia.com";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const article = demoArticles.find((a) => a.slug === slug);
+  if (!article) return {};
+
+  // Try to load SEO override from seo_documents
+  const seo = await getSeoDocument(slug, "article");
+
+  const title = seo?.title ?? `${article.title} – Synapedia`;
+  const description = seo?.description ?? article.summary;
+  const canonical = seo?.canonical_url ?? `${BASE_URL}/articles/${slug}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: seo?.og_title ?? title,
+      description: seo?.og_description ?? description,
+      url: canonical,
+      type: "article",
+      siteName: "Synapedia",
+      locale: "de_DE",
+      ...(seo?.og_image_url ? { images: [{ url: seo.og_image_url }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seo?.og_title ?? title,
+      description: seo?.og_description ?? description,
+    },
+    robots: seo?.robots ?? "index, follow",
+    ...(seo?.keywords ? { keywords: seo.keywords } : {}),
+  };
+}
+
 export default async function ArticlePage({
   params,
 }: {
@@ -86,6 +129,24 @@ export default async function ArticlePage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      {/* Article JSON-LD */}
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: article.title,
+          description: article.summary,
+          url: `${BASE_URL}/articles/${slug}`,
+          inLanguage: "de",
+          publisher: {
+            "@type": "Organization",
+            name: "Synapedia",
+            url: BASE_URL,
+          },
+          datePublished: article.published_at ?? article.created_at,
+          dateModified: article.updated_at,
+        }}
+      />
       {/* Back link */}
       <Link
         href="/articles"

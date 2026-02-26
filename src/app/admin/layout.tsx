@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical, Network, Upload, Wand2, Sparkles, KeyRound, GitBranch, MessageSquare, Search } from "lucide-react";
+import { LayoutDashboard, FileText, BookOpen, Image, ScrollText, Shield, Boxes, Brain, FlaskConical, Network, Upload, Wand2, Sparkles, KeyRound, Activity, Globe } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -8,6 +8,7 @@ const navItems = [
   { href: "/admin/substances", label: "Substanzen", icon: FlaskConical },
   { href: "/admin/substances/generate", label: "Auto-Generate", icon: Sparkles },
   { href: "/admin/import-substances", label: "Import-Pipeline", icon: Upload },
+  { href: "/admin/seo", label: "SEO", icon: Globe },
   { href: "/admin/neuro", label: "NeuroMap", icon: Network },
   { href: "/admin/templates", label: "Templates", icon: Boxes },
   { href: "/admin/sources", label: "Quellen", icon: BookOpen },
