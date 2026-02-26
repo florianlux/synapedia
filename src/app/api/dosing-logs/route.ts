@@ -10,14 +10,12 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = request.nextUrl;
-  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
+  const parsed = parseInt(searchParams.get("limit") || "50");
+  const rawLimit = Number.isFinite(parsed) ? parsed : 50;
+  const limit = Math.min(Math.max(1, rawLimit), 200);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const substance = searchParams.get("substance");
-  const from = searchParams.get("from");
-  const to = searchParams.get("to");
-  const parsed = parseInt(searchParams.get("limit") || "50");
-  const limit = Math.min(Number.isFinite(parsed) ? parsed : 50, 200);
 
   let query = supabase
     .from("dosing_logs")
@@ -67,8 +65,6 @@ export async function POST(request: NextRequest) {
     .insert({
       user_id: user.id,
       substance: body.substance,
-      dose_mg: body.dose_mg || null,
-      dose_g: body.dose_g || null,
       dose_mg: body.dose_mg ?? null,
       dose_g: body.dose_g ?? null,
       route: body.route || null,

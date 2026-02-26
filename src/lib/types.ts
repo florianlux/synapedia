@@ -222,7 +222,7 @@ export interface GeneratedCitation {
 export interface UserProfile {
   id: string;
   email: string | null;
-  username: string;
+  username: string | null;
   phone: string | null;
   bio: string | null;
   avatar_url: string | null;

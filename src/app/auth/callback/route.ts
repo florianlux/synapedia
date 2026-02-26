@@ -26,7 +26,31 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      return NextResponse.redirect(`${origin}/auth/login`);
+    }
+
+    // For OAuth users: check if profile has a username set.
+    // The handle_new_user trigger creates the profile row automatically,
+    // but OAuth users won't have a username in metadata.
+    // Only redirect to onboarding if profile exists but username is null.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("username")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profile && !profile.username) {
+        // Reuse the existing response so that auth cookies set by
+        // exchangeCodeForSession are preserved during redirect.
+        response.headers.set("Location", `${origin}/account`);
+        return response;
+      }
+    }
+
     return response;
   }
 
