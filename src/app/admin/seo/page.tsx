@@ -73,7 +73,6 @@ export default function SeoPage() {
     setError(null);
     const params = new URLSearchParams();
     if (entityFilter) params.set("entity_type", entityFilter);
-    if (search) params.set("slug", search);
 
     try {
       const res = await fetch(`/api/admin/seo?${params.toString()}`);
