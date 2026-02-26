@@ -109,27 +109,39 @@ export async function POST(request: NextRequest) {
             articleId = data.id;
           }
         } else {
-          const { data, error } = await supabase
+          const insertData: Record<string, unknown> = {
+            title: substanceName,
+            slug,
+            substance_slug: slug,
+            summary: `Wissenschaftlicher Artikel über ${substanceName}`,
+            content_mdx: result.contentMdx,
+            status: "draft",
+            risk_level: riskLevel ?? "unknown",
+            sources: sourcesJsonb,
+            generation_meta: generationMeta,
+            ai_model: "template-renderer",
+            substance_id: substanceId ?? null,
+          };
+
+          let { data, error } = await supabase
             .from("articles")
-            .insert({
-              title: substanceName,
-              slug,
-              substance_slug: slug,
-              summary: `Wissenschaftlicher Artikel über ${substanceName}`,
-              content_mdx: result.contentMdx,
-              status: "draft",
-              risk_level: riskLevel ?? "unknown",
-              sources: sourcesJsonb,
-              generation_meta: generationMeta,
-              ai_model: "template-renderer",
-              substance_id: substanceId ?? null,
-            })
+            .insert(insertData)
             .select("id")
             .single();
 
+          // Retry without risk_level if the column is missing from the schema cache
+          if (error?.message?.includes("schema cache")) {
+            delete insertData.risk_level;
+            ({ data, error } = await supabase
+              .from("articles")
+              .insert(insertData)
+              .select("id")
+              .single());
+          }
+
           if (error) {
             console.error("[generate] DB insert error:", error.message);
-          } else {
+          } else if (data) {
             articleStatus = "created";
             articleId = data.id;
           }
