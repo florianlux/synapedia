@@ -127,28 +127,57 @@ async function processItem(
     confidence_score: 0,
   };
 
+  // ── Input validation ──
+  if (!item.qid || !/^Q\d+$/.test(item.qid)) {
+    result.wikidata_status = "failed";
+    result.error = `wikidata: Ungültiges QID-Format: "${item.qid ?? ""}"`;
+    return result;
+  }
+
+  if (!item.label || !slugify(item.label)) {
+    result.wikidata_status = "failed";
+    result.error = "wikidata: Label fehlt oder ergibt leeren Slug";
+    return result;
+  }
+
+  if (item.pubchem_cid != null && (typeof item.pubchem_cid !== "number" || item.pubchem_cid <= 0)) {
+    result.pubchem_status = "error";
+    result.error = `pubchem: Ungültige pubchem_cid: ${item.pubchem_cid}`;
+    return result;
+  }
+
   // ── Step 1: Wikidata is already fetched (passed in) ──
   if (!item.qid || !item.label) {
     result.wikidata_status = "failed";
-    result.error = "Missing QID or label";
+    result.error = "wikidata: Missing QID or label";
     return result;
   }
 
   // ── Step 2: PubChem enrichment (optional, best-effort) ──
   let pubchemData: PubChemHardenedResult | null = null;
   if (!options.skipPubChem && item.pubchem_cid) {
-    pubchemData = await fetchPubChemHardened(item.label, item.pubchem_cid);
-    result.pubchem_status = pubchemData.status;
+    try {
+      pubchemData = await fetchPubChemHardened(item.label, item.pubchem_cid);
+      result.pubchem_status = pubchemData.status;
+    } catch (err) {
+      result.pubchem_status = "error";
+      result.error = `pubchem: ${err instanceof Error ? err.message : "Unbekannter Fehler"}`;
+    }
   }
 
   // ── Step 3: AI enrichment ──
   let aiData: Awaited<ReturnType<typeof runAiEnrichment>> | null = null;
   if (!options.skipAi) {
-    aiData = await runAiEnrichment(item.label, item.description || "", {
-      molecularFormula: pubchemData?.data?.molecularFormula,
-      synonyms: pubchemData?.data?.synonyms,
-    });
-    result.ai_status = aiData.status;
+    try {
+      aiData = await runAiEnrichment(item.label, item.description || "", {
+        molecularFormula: pubchemData?.data?.molecularFormula,
+        synonyms: pubchemData?.data?.synonyms,
+      });
+      result.ai_status = aiData.status;
+    } catch (err) {
+      result.ai_status = "failed";
+      result.error = `ai: ${err instanceof Error ? err.message : "Unbekannter Fehler"}`;
+    }
   }
 
   // ── Step 4: Confidence score ──
@@ -222,18 +251,46 @@ async function processItem(
     // Normalise value types so {} / [] / "N/A" never hit numeric columns
     const sanitisedRow = sanitizeSubstanceValues(row);
 
-    // Check existing by slug
-    const { data: existing } = await supabase
-      .from("substances")
-      .select("id")
-      .eq("slug", slug)
-      .maybeSingle();
+    // Dedupe: check existing by wikidata_qid > pubchem_cid > slug
+    let existing: { id: string } | null = null;
+
+    // 1. Check by wikidata_qid (strongest dedupe key)
+    if (item.qid) {
+      const { data } = await supabase
+        .from("substances")
+        .select("id")
+        .eq("wikidata_qid", item.qid)
+        .maybeSingle();
+      if (data) existing = data;
+    }
+
+    // 2. Check by pubchem_cid
+    if (!existing && item.pubchem_cid) {
+      const { data } = await supabase
+        .from("substances")
+        .select("id")
+        .eq("pubchem_cid", item.pubchem_cid)
+        .maybeSingle();
+      if (data) existing = data;
+    }
+
+    // 3. Check by slug (weakest)
+    if (!existing) {
+      const { data } = await supabase
+        .from("substances")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (data) existing = data;
+    }
 
     if (existing) {
-      // Update
+      // Update: merge enrichment and identifiers, keep existing data
       const { error: updateError } = await supabase
         .from("substances")
         .update({
+          wikidata_qid: item.qid || undefined,
+          pubchem_cid: item.pubchem_cid || undefined,
           external_ids: identifiers,
           enrichment,
           meta: sanitisedRow.meta,
@@ -242,12 +299,15 @@ async function processItem(
 
       if (updateError) {
         result.db_status = "failed";
-        result.error = updateError.message;
+        result.error = `db: ${updateError.message}`;
       } else {
         result.db_status = "updated";
       }
     } else {
-      // Insert
+      // Insert new substance with top-level dedupe columns
+      sanitisedRow.wikidata_qid = item.qid || null;
+      sanitisedRow.pubchem_cid = toNullableNumber(item.pubchem_cid);
+
       const { data: inserted, error: insertError } = await supabase
         .from("substances")
         .insert(sanitisedRow)
@@ -256,7 +316,7 @@ async function processItem(
 
       if (insertError) {
         result.db_status = "failed";
-        result.error = insertError.message;
+        result.error = `db: ${insertError.message}`;
       } else {
         result.db_status = "inserted";
 
@@ -277,7 +337,7 @@ async function processItem(
     }
   } catch (err) {
     result.db_status = "failed";
-    result.error = err instanceof Error ? err.message : "Unknown DB error";
+    result.error = `db: ${err instanceof Error ? err.message : "Unknown DB error"}`;
   }
 
   return result;
@@ -296,7 +356,28 @@ export async function runImport(
   const runId = options.runId ?? crypto.randomUUID();
   const opts = { ...options, runId };
 
-  const supabase = options.dryRun ? null : createAdminClient();
+  let supabase: ReturnType<typeof createAdminClient> | null = null;
+  if (!options.dryRun) {
+    try {
+      supabase = createAdminClient();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unbekannter Fehler";
+      return {
+        runId,
+        summary: { total: 0, inserted: 0, updated: 0, skipped: 0, failed: items.length, pubchem_not_found: 0, avg_confidence: 0 },
+        items: items.slice(0, options.limit).map((i) => ({
+          label: i.label,
+          qid: i.qid,
+          wikidata_status: "ok" as const,
+          pubchem_status: "skipped" as const,
+          ai_status: "skipped" as const,
+          db_status: "failed" as const,
+          confidence_score: 0,
+          error: `db: Supabase-Client konnte nicht erstellt werden: ${message}`,
+        })),
+      };
+    }
+  }
   const results: ImportItemResult[] = [];
 
   const limited = items.slice(0, options.limit);
@@ -306,8 +387,10 @@ export async function runImport(
     const itemResult = await processItem(
       item,
       opts,
-      // Pass a dummy client for dry runs (DB step is skipped)
-      supabase ?? createAdminClient(),
+      // For dry runs the DB step is skipped so the client is unused;
+      // pass supabase as-is (null for dryRun) to avoid creating a client
+      // that may fail when Supabase is not configured.
+      supabase as ReturnType<typeof createAdminClient>,
     );
     const itemElapsed = Date.now() - itemStart;
     console.log(

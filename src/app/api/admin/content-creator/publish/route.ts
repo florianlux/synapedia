@@ -9,6 +9,7 @@ import { isAdminAuthenticated } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { filterContent } from "@/lib/generator/content-filter";
 import { logAudit } from "@/lib/generator/audit";
+import { mdxToHtml } from "@/lib/mdx-to-html";
 
 function slugify(name: string): string {
   return name
@@ -110,6 +111,9 @@ export async function POST(request: NextRequest) {
     const status = publish ? "published" : "draft";
     const now = new Date().toISOString();
 
+    // Pre-render MDX to HTML (fallback to null on failure)
+    const contentHtml = await mdxToHtml(contentMdx);
+
     const sourcesJsonb = (citations ?? []).map((c) => ({
       source: c.source,
       url: c.url,
@@ -121,50 +125,83 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       // Update existing article
-      const { data, error } = await supabase
+      const updateData: Record<string, unknown> = {
+        title: substanceName,
+        content_mdx: contentMdx,
+        content_html: contentHtml ?? "",
+        status,
+        risk_level: riskLevel,
+        category,
+        sources: sourcesJsonb,
+        substance_slug: slug,
+        substance_id: substanceId ?? null,
+        updated_at: now,
+        ...(publish ? { published_at: now } : {}),
+      };
+
+      let { data, error } = await supabase
         .from("articles")
-        .update({
-          title: substanceName,
-          content_mdx: contentMdx,
-          status,
-          risk_level: riskLevel,
-          category,
-          sources: sourcesJsonb,
-          substance_slug: slug,
-          substance_id: substanceId ?? null,
-          updated_at: now,
-          ...(publish ? { published_at: now } : {}),
-        })
+        .update(updateData)
         .eq("id", existing.id)
         .select("id")
         .single();
 
+      // Retry without risk_level if the column is missing from the schema cache
+      if (error?.message?.includes("schema cache")) {
+        delete updateData.risk_level;
+        ({ data, error } = await supabase
+          .from("articles")
+          .update(updateData)
+          .eq("id", existing.id)
+          .select("id")
+          .single());
+      }
+
       if (error) {
         return Response.json({ ok: false, error: error.message }, { status: 500 });
+      }
+      if (!data) {
+        return Response.json({ ok: false, error: "Artikel konnte nicht aktualisiert werden." }, { status: 500 });
       }
       articleId = data.id;
     } else {
       // Create new article
-      const { data, error } = await supabase
+      const insertData: Record<string, unknown> = {
+        title: substanceName,
+        slug,
+        substance_slug: slug,
+        summary: `Wissenschaftlicher Artikel über ${substanceName}`,
+        content_mdx: contentMdx,
+        content_html: contentHtml ?? "",
+        status,
+        risk_level: riskLevel,
+        category,
+        sources: sourcesJsonb,
+        substance_id: substanceId ?? null,
+        ...(publish ? { published_at: now } : {}),
+      };
+
+      let { data, error } = await supabase
         .from("articles")
-        .insert({
-          title: substanceName,
-          slug,
-          substance_slug: slug,
-          summary: `Wissenschaftlicher Artikel über ${substanceName}`,
-          content_mdx: contentMdx,
-          status,
-          risk_level: riskLevel,
-          category,
-          sources: sourcesJsonb,
-          substance_id: substanceId ?? null,
-          ...(publish ? { published_at: now } : {}),
-        })
+        .insert(insertData)
         .select("id")
         .single();
 
+      // Retry without risk_level if the column is missing from the schema cache
+      if (error?.message?.includes("schema cache")) {
+        delete insertData.risk_level;
+        ({ data, error } = await supabase
+          .from("articles")
+          .insert(insertData)
+          .select("id")
+          .single());
+      }
+
       if (error) {
         return Response.json({ ok: false, error: error.message }, { status: 500 });
+      }
+      if (!data) {
+        return Response.json({ ok: false, error: "Artikel konnte nicht erstellt werden." }, { status: 500 });
       }
       articleId = data.id;
     }

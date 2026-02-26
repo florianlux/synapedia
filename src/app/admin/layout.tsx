@@ -13,9 +13,11 @@ const navItems = [
   { href: "/admin/templates", label: "Templates", icon: Boxes },
   { href: "/admin/sources", label: "Quellen", icon: BookOpen },
   { href: "/admin/media", label: "Medien", icon: Image },
+  { href: "/admin/chat-sessions", label: "Chat Sessions", icon: MessageSquare },
   { href: "/admin/audit", label: "Audit-Log", icon: ScrollText },
-  { href: "/admin/secrets", label: "Secrets Register", icon: KeyRound },
-  { href: "/admin/dev-activity", label: "Dev Activity", icon: Activity },
+  { href: "/admin/secrets", label: "Secrets", icon: KeyRound },
+  { href: "/admin/experience-search", label: "Experience Search", icon: Search },
+  { href: "/admin/dev-activity", label: "Dev Activity", icon: GitBranch },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

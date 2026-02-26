@@ -204,6 +204,14 @@ export default async function ArticlePage({
           <SourceBox sources={sources} />
         </article>
       </div>
+
+      {/* Pharmacology modules (only rendered when substance_id is set and Supabase is available) */}
+      {article.substance_id && (
+        <SubstancePharmacologySection
+          substanceId={article.substance_id}
+          substanceName={article.title}
+        />
+      )}
     </div>
   );
 }

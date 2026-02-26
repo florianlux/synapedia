@@ -69,6 +69,7 @@ Die Evidenzlage zu Psilocybin ist vergleichsweise stark. Mehrere randomisierte k
     category: "Tryptamine",
     receptor: "5-HT2A-Rezeptor",
     legal_status: "BtMG Anlage I",
+    substance_id: null,
     created_at: "2024-01-15T00:00:00Z",
     updated_at: "2024-06-01T00:00:00Z",
     published_at: "2024-01-20T00:00:00Z",
@@ -143,6 +144,7 @@ Die Evidenzlage ist stark, insbesondere durch Phase-III-Studien der MAPS Organis
     category: "Empathogen",
     receptor: "SERT / Monoamin-Transporter",
     legal_status: "BtMG Anlage I",
+    substance_id: null,
     created_at: "2024-02-01T00:00:00Z",
     updated_at: "2024-06-15T00:00:00Z",
     published_at: "2024-02-10T00:00:00Z",
@@ -216,9 +218,94 @@ Die Evidenzlage ist stark. Zahlreiche RCTs und Metaanalysen belegen die rapid-an
     category: "Dissoziativum",
     receptor: "NMDA-Rezeptor",
     legal_status: "BtMG Anlage III",
+    substance_id: null,
     created_at: "2024-03-01T00:00:00Z",
     updated_at: "2024-07-01T00:00:00Z",
     published_at: "2024-03-15T00:00:00Z",
+  },
+  {
+    id: "4",
+    slug: "lsd",
+    title: "LSD",
+    subtitle: "Lysergsäurediethylamid",
+    summary:
+      "LSD gehört zu den potentesten bekannten psychoaktiven Substanzen — wirksam bereits im Mikrogramm-Bereich. Die 2017 erstmals aufgeklärte Kristallstruktur des LSD-5-HT2A-Komplexes erklärte ein jahrzehntealtes Rätsel der Pharmakologie: warum die Wirkung bis zu zwölf Stunden anhält.",
+    content_mdx: `## Kurzfazit
+
+LSD ist das vielleicht am meisten polarisierende Molekül der modernen Neuropharmakologie. Seit seiner zufälligen Entdeckung im Jahr 1943 hat es die Grenzen der Bewusstseinsforschung verschoben, wurde als therapeutisches Werkzeug gefeiert, politisch instrumentalisiert und schließlich für Jahrzehnte aus der Forschung verbannt. Heute erlebt die Wissenschaft eine Renaissance: Neue klinische Studien und bahnbrechende Erkenntnisse zur Rezeptorbindung eröffnen ein differenzierteres Bild dieser außergewöhnlichen Substanz.
+
+## Was ist LSD?
+
+Lysergsäurediethylamid (LSD-25) ist ein halbsynthetisches Ergolinderivat, das 1938 von Albert Hofmann bei Sandoz erstmals synthetisiert wurde. Die psychoaktive Wirkung blieb zunächst unentdeckt — erst am 16. April 1943 bemerkte Hofmann bei einer erneuten Synthese zufällig ungewöhnliche Empfindungen. Drei Tage später, am 19. April 1943, unternahm er den ersten dokumentierten Selbstversuch mit 250 Mikrogramm. Dieser Tag ging als "Bicycle Day" in die Geschichte ein, da Hofmann die intensiven Effekte auf der Fahrradfahrt nach Hause erlebte.
+
+LSD ist eine der potentesten psychoaktiven Substanzen überhaupt: Bereits Mengen von 20–30 Mikrogramm können messbare zentralnervöse Effekte hervorrufen. Zum Vergleich — die meisten pharmakologisch aktiven Substanzen werden im Milligramm-Bereich dosiert, also in tausendfach höheren Mengen.
+
+## Chemische Struktur / Klasse
+
+LSD gehört zur Klasse der Lysergamide und leitet sich strukturell von der Lysergsäure ab, einem Alkaloid des Mutterkornpilzes (*Claviceps purpurea*). Die Molekülformel lautet C₂₀H₂₅N₃O. Das Molekül besitzt ein tetrazyklisches Indol-Grundgerüst und zwei stereogene Zentren. Nur das (5R,8R)-Stereoisomer zeigt die volle psychoaktive Wirkung — die anderen drei Diastereomere sind pharmakologisch nahezu inaktiv. Diese ausgeprägte Stereoselektivität unterstreicht die Präzision der Rezeptorinteraktion.
+
+## Wirkmechanismus
+
+LSD entfaltet seine Wirkung primär über eine agonistische Bindung am serotonergen 5-HT2A-Rezeptor. Eine 2017 in *Cell* publizierte Kristallstrukturanalyse enthüllte einen bemerkenswerten Mechanismus: Nach der Bindung an den Rezeptor klappt eine extrazelluläre Schleife (ECL2) wie ein "Deckel" über das LSD-Molekül und schließt es in der Bindungstasche ein. Diese konformationelle Veränderung erklärt die ungewöhnlich lange Wirkdauer von 8–12 Stunden, da das Molekül den Rezeptor nur sehr langsam wieder verlässt.
+
+Darüber hinaus zeigt LSD eine ausgeprägte funktionelle Selektivität (biased agonism): Am 5-HT2A-Rezeptor aktiviert es bevorzugt den β-Arrestin-2-Signalweg gegenüber dem klassischen Gq-Protein-Weg. Neuroimaging-Studien mittels fMRT demonstrieren eine erhöhte globale funktionelle Konnektivität, eine Desintegration des Default Mode Network (DMN) und eine verstärkte Entropie der kortikalen Aktivität.
+
+## Rezeptorprofil
+
+- **5-HT2A**: Sehr hohe Affinität (Ki ≈ 1–3 nM, primärer Wirkort)
+- **5-HT2C**: Hohe Affinität (Ki ≈ 4–9 nM)
+- **5-HT1A**: Moderate Affinität (partieller Agonist)
+- **5-HT2B**: Moderate Affinität
+- **D1-Rezeptor**: Moderate Affinität
+- **D2-Rezeptor**: Moderate Affinität (partieller Agonist)
+- **Alpha-2-Adrenorezeptoren**: Geringe bis moderate Affinität
+- Bemerkenswert ist das breite Rezeptorprofil: LSD interagiert mit mehr als einem Dutzend verschiedener Rezeptortypen, was zur Komplexität seines Wirkprofils beiträgt.
+
+## Wirkprofil
+
+Die subjektiven Effekte von LSD umfassen tiefgreifende Veränderungen der visuellen Wahrnehmung (geometrische Muster, verstärkte Farben, Synästhesien), eine veränderte Zeitwahrnehmung, intensivierte emotionale Reaktionen und eine erhöhte introspektive Tiefe. Charakteristisch ist die sehr lange Wirkdauer von 8–12 Stunden, die sich deutlich von den meisten anderen serotonergen Psychedelika unterscheidet.
+
+In kontrollierten klinischen Studien berichten Probanden häufig von mystischen oder bedeutsamen Erfahrungen, die auch Monate nach der Sitzung als persönlich relevant bewertet werden. Eine Besonderheit: Die subjektive Intensität korreliert in Studien signifikant mit der 5-HT2A-Rezeptorbesetzung, wie mittels PET-Bildgebung gezeigt wurde.
+
+## Risiken & Nebenwirkungen
+
+- Akute Angst- und Panikzustände ("challenging experiences"), insbesondere bei unkontrolliertem Setting
+- Vorübergehende Erhöhung von Herzfrequenz und Blutdruck
+- Mydriasis (Pupillenerweiterung) und Thermogenese
+- Risiko der Exazerbation latenter psychotischer Störungen bei genetisch prädisponierten Personen
+- HPPD (Hallucinogen Persisting Perception Disorder) in seltenen Fällen
+- Keine bekannte letale Dosis beim Menschen; keine Organschädigung bei akuter Anwendung nachgewiesen
+- Kein physisches Abhängigkeitspotenzial; rapide Toleranzentwicklung wirkt einer regelmäßigen Einnahme entgegen
+
+## Interaktionen
+
+- **SSRIs/SNRIs**: Können die Wirkung deutlich abschwächen durch kompetitive 5-HT2A-Besetzung
+- **MAO-Hemmer**: Potenziell starke Wirkverstärkung, erhöhtes Risiko unvorhersehbarer Effekte
+- **Lithium**: Kontraindiziert — Fallberichte über Krampfanfälle und katatone Zustände
+- **Cannabis**: Synergistische Intensivierung, deutlich erhöhte Unvorhersagbarkeit des Verlaufs
+- **Tramadol**: Erhöhtes Krampfrisiko in Kombination
+
+## Kreuztoleranz
+
+Es besteht eine ausgeprägte und schnell einsetzende Kreuztoleranz mit anderen 5-HT2A-Agonisten, insbesondere Psilocybin und Meskalin. Die Toleranz erreicht bereits nach einer einmaligen Anwendung ein signifikantes Niveau und bildet sich typischerweise innerhalb von 5–7 Tagen vollständig zurück. Dieser Mechanismus beruht vermutlich auf einer Internalisierung und Downregulation der 5-HT2A-Rezeptoren.
+
+## Rechtsstatus
+
+LSD ist in den meisten Ländern als kontrollierte Substanz eingestuft. In Deutschland fällt es unter das BtMG (Anlage I) — es ist weder verkehrs- noch verschreibungsfähig. International nimmt die Zahl der genehmigten klinischen Studien zu, insbesondere in der Schweiz, wo LSD-unterstützte Psychotherapie unter strengen Auflagen erforscht wird. *Dieser Abschnitt dient nur der Information und stellt keine Rechtsberatung dar.*
+
+## Quellenlage
+
+Die Evidenzlage zu LSD hat sich seit 2014 erheblich verbessert. Moderne placebokontrollierte Studien in Fachzeitschriften wie *PNAS*, *Cell*, *Neuropsychopharmacology* und *Biological Psychiatry* haben entscheidend zum Verständnis der Pharmakologie beigetragen. Die Studienlage zur therapeutischen Anwendung bei Angststörungen im Kontext lebensbedrohlicher Erkrankungen und zur Behandlung von Alkoholabhängigkeit wächst stetig.`,
+    status: "published",
+    risk_level: "moderate",
+    evidence_strength: "strong",
+    category: "Lysergamid",
+    receptor: "5-HT2A-Rezeptor",
+    legal_status: "BtMG Anlage I",
+    substance_id: null,
+    created_at: "2024-04-01T00:00:00Z",
+    updated_at: "2024-08-01T00:00:00Z",
+    published_at: "2024-04-15T00:00:00Z",
   },
 ];
 
@@ -232,12 +319,14 @@ export const demoTags: Tag[] = [
   { id: "t7", name: "NMDA-Antagonist", slug: "nmda-antagonist" },
   { id: "t8", name: "Analgetikum", slug: "analgetikum" },
   { id: "t9", name: "Forschungschemikalie", slug: "forschungschemikalie" },
+  { id: "t10", name: "Lysergamid", slug: "lysergamid" },
 ];
 
 export const demoArticleTags: Record<string, string[]> = {
   "1": ["t1", "t2", "t3"],
   "2": ["t4", "t5", "t2"],
   "3": ["t6", "t7", "t8"],
+  "4": ["t10", "t2", "t3"],
 };
 
 export const demoSources: Record<string, Source[]> = {
@@ -307,6 +396,30 @@ export const demoSources: Record<string, Source[]> = {
       journal: "Pharmacological Reviews",
       year: 2018,
       doi: "10.1124/pr.117.015198",
+      url: null,
+      source_type: "journal",
+    },
+  ],
+  "4": [
+    {
+      id: "s7",
+      title:
+        "Crystal structure of an LSD-bound human serotonin receptor",
+      authors: "Wacker D et al.",
+      journal: "Cell",
+      year: 2017,
+      doi: "10.1016/j.cell.2016.12.033",
+      url: null,
+      source_type: "journal",
+    },
+    {
+      id: "s8",
+      title:
+        "Neural correlates of the LSD experience revealed by multimodal neuroimaging",
+      authors: "Carhart-Harris RL et al.",
+      journal: "Proceedings of the National Academy of Sciences",
+      year: 2016,
+      doi: "10.1073/pnas.1518377113",
       url: null,
       source_type: "journal",
     },

@@ -12,6 +12,10 @@ import {
 import { SearchBar } from "@/components/search-bar";
 import { demoArticles, demoTags, demoArticleTags } from "@/lib/demo-data";
 import { riskLabels, evidenceLabels } from "@/lib/types";
+import { PublicExperienceSearch } from "@/components/admin/experience-search/PublicExperienceSearch";
+
+const showPublicSearch =
+  process.env.NEXT_PUBLIC_ENABLE_PUBLIC_EXPERIENCE_SEARCH === "true";
 
 export default function Home() {
   const articles = demoArticles.filter((a) => a.status === "published");
@@ -42,6 +46,13 @@ export default function Home() {
           gesundheitlichen Fragen wenden Sie sich an medizinisches Fachpersonal.
         </p>
       </div>
+
+      {/* Public Experience Search (feature-flagged) */}
+      {showPublicSearch && (
+        <section className="mb-10">
+          <PublicExperienceSearch />
+        </section>
+      )}
 
       {/* Article Grid */}
       <section>

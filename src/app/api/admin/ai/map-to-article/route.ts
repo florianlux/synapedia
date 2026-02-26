@@ -71,24 +71,36 @@ export async function POST(request: NextRequest) {
       : null;
 
     // 3. Create article in draft status
-    const { data: article, error: articleError } = await supabase
+    const insertData: Record<string, unknown> = {
+      title,
+      slug,
+      summary: `AI-generierter Artikel über ${substance.name}.`,
+      content_mdx: generated.content_mdx,
+      status: "draft",
+      risk_level: "unknown",
+      evidence_strength: "moderate",
+      category,
+    };
+
+    let { data: article, error: articleError } = await supabase
       .from("articles")
-      .insert({
-        title,
-        slug,
-        summary: `AI-generierter Artikel über ${substance.name}.`,
-        content_mdx: generated.content_mdx,
-        status: "draft",
-        risk_level: "unknown",
-        evidence_strength: "moderate",
-        category,
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (articleError) {
+    // Retry without risk_level if the column is missing from the schema cache
+    if (articleError?.message?.includes("schema cache")) {
+      delete insertData.risk_level;
+      ({ data: article, error: articleError } = await supabase
+        .from("articles")
+        .insert(insertData)
+        .select()
+        .single());
+    }
+
+    if (articleError || !article) {
       return NextResponse.json(
-        { error: "Artikel konnte nicht erstellt werden: " + articleError.message },
+        { error: "Artikel konnte nicht erstellt werden: " + (articleError?.message ?? "Unbekannter Fehler") },
         { status: 500 }
       );
     }
