@@ -44,7 +44,10 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (profile && !profile.username) {
-        return NextResponse.redirect(`${origin}/onboarding`);
+        // Reuse the existing response so that auth cookies set by
+        // exchangeCodeForSession are preserved during onboarding redirect.
+        response.headers.set("Location", `${origin}/onboarding`);
+        return response;
       }
     }
 
