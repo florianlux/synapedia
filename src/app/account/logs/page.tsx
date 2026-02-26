@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, ClipboardList } from "lucide-react";
+import { Plus, ClipboardList, Shield } from "lucide-react";
 import { createClientSafe } from "@/lib/supabase/client";
 import type { UserLog, LogEntryType } from "@/lib/types";
 
@@ -120,19 +120,34 @@ export default function LogsPage() {
         <span className="border-b-2 border-cyan-500 pb-3 text-sm font-medium text-cyan-600 dark:text-cyan-400">
           Protokoll
         </span>
+        <Link
+          href="/account/risk"
+          className="pb-3 text-sm text-neutral-500 transition-colors hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+        >
+          Risiko-Overlay
+        </Link>
       </nav>
 
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
           Privates Einnahmeprotokoll – nur für dich sichtbar.
         </p>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-cyan-700"
-        >
-          <Plus className="h-4 w-4" />
-          Eintrag
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/account/risk"
+            className="flex items-center gap-1.5 rounded-md border border-cyan-600 px-3 py-1.5 text-sm font-medium text-cyan-600 transition-colors hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-950"
+          >
+            <Shield className="h-4 w-4" />
+            Risiko-Overlay
+          </Link>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-cyan-700"
+          >
+            <Plus className="h-4 w-4" />
+            Eintrag
+          </button>
+        </div>
       </div>
 
       {showForm && (
