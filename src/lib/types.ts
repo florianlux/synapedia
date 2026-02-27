@@ -669,3 +669,118 @@ export interface StackBuilderOutput {
   warnings: string[];
   affiliate_links: AffiliateLinkWithProvider[];
 }
+
+// ============================================================
+// NEUROCODEX USER LAYER TYPES
+// ============================================================
+
+export type BehaviorEventType =
+  | "search"
+  | "click"
+  | "page_view"
+  | "reading_time"
+  | "graph_interact"
+  | "comparison"
+  | "interaction_check";
+
+export interface NcUserPreferences {
+  id: string;
+  user_id: string;
+  sensitivity_flags: string[];
+  display_settings: Record<string, unknown>;
+  harm_reduction_alerts: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NcRiskSnapshot {
+  id: string;
+  user_id: string;
+  snapshot_date: string;
+  risk_score: number | null;
+  factors: Record<string, unknown>;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface NcBehaviorEvent {
+  id: string;
+  session_id: string | null;
+  user_id: string | null;
+  event_type: BehaviorEventType;
+  event_data: Record<string, unknown>;
+  page_url: string | null;
+  created_at: string;
+}
+
+export interface NcSyncConsumer {
+  id: string;
+  consumer_name: string;
+  last_cursor: string | null;
+  last_sync_at: string | null;
+  entity_type: string;
+  config: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export type NcSyncStatus = "running" | "success" | "failed";
+
+export interface NcSyncEvent {
+  id: string;
+  consumer_id: string;
+  started_at: string;
+  finished_at: string | null;
+  status: NcSyncStatus;
+  records_processed: number;
+  cursor_before: string | null;
+  cursor_after: string | null;
+  details: Record<string, unknown>;
+}
+
+export interface NcSyncError {
+  id: string;
+  sync_event_id: string;
+  entity_id: string | null;
+  error_message: string;
+  error_context: Record<string, unknown>;
+  created_at: string;
+}
+
+// ============================================================
+// NEUROCODEX BRAIN GRAPH TYPES
+// ============================================================
+
+export type BrainGraphNodeType =
+  | "substance"
+  | "receptor"
+  | "neurotransmitter"
+  | "effect"
+  | "risk";
+
+export interface BrainGraphNode {
+  id: string;
+  label: string;
+  type: BrainGraphNodeType;
+  meta: Record<string, unknown>;
+}
+
+export interface BrainGraphEdge {
+  source: string;
+  target: string;
+  relation: string;
+  weight: number;
+}
+
+export interface BrainGraph {
+  nodes: BrainGraphNode[];
+  edges: BrainGraphEdge[];
+}
+
+export interface NcDashboardStats {
+  total_events: number;
+  events_by_type: Record<BehaviorEventType, number>;
+  recent_searches: string[];
+  top_substances: { name: string; count: number }[];
+  risk_trend: { date: string; score: number }[];
+}
