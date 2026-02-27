@@ -11,16 +11,20 @@
 | 3 | `src/lib/monetization/entity-dictionary.ts` | In-memory TTL-cached entity dictionary (name/synonym → entity lookup) |
 | 4 | `src/lib/monetization/autolink-engine.ts` | Deterministic MDX autolink: first-occurrence linking, heading/code/anchor skip, evidence threshold, high-risk gate |
 | 5 | `src/lib/monetization/affiliate-routing.ts` | `getBestAffiliateLinks()` – ranked provider selection with composite scoring |
-| 6 | `src/lib/monetization/index.ts` | Barrel re-export for the monetization module |
-| 7 | `src/components/no-autolink.tsx` | `<NoAutoLink>` MDX escape hatch (pass-through wrapper) |
-| 8 | `src/components/verified-sources.tsx` | "Verifizierte Bezugsquellen" UI module (emerald, scientific, non-spammy) |
-| 9 | `src/lib/monetization/__tests__/autolink-engine.test.ts` | 17 unit tests for the autolink engine |
-| 10 | `src/lib/monetization/__tests__/affiliate-routing.test.ts` | 12 unit tests for the affiliate routing algorithm |
-| 11 | `src/lib/monetization/__tests__/entity-dictionary.test.ts` | 10 unit tests for entity dictionary + caching |
+| 6 | `src/lib/monetization/feature-flags.ts` | Feature flag utilities: `isMonetizationEnabled()`, `isAutolinkEnabled()`, `getAutolinkConfig()` |
+| 7 | `src/lib/monetization/index.ts` | Barrel re-export for the monetization module |
+| 8 | `src/components/no-autolink.tsx` | `<NoAutoLink>` MDX escape hatch (pass-through wrapper) |
+| 9 | `src/components/verified-sources.tsx` | "Verifizierte Bezugsquellen" UI module (emerald, scientific, non-spammy) |
+| 10 | `src/lib/monetization/__tests__/autolink-engine.test.ts` | 17 unit tests for the autolink engine |
+| 11 | `src/lib/monetization/__tests__/affiliate-routing.test.ts` | 12 unit tests for the affiliate routing algorithm |
+| 12 | `src/lib/monetization/__tests__/entity-dictionary.test.ts` | 10 unit tests for entity dictionary + caching |
+| 13 | `docs/phase2-commit-plan.md` | This commit plan document |
 
 ### Modified Files
 
-_None._ Phase 2 is fully additive — no existing files were modified.
+| # | File | Change |
+|---|------|--------|
+| 1 | `.env.example` | Added 4 monetization feature flag env vars (all default disabled) |
 
 ---
 
