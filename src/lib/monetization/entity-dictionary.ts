@@ -45,10 +45,11 @@ export function buildEntityDictionary(
   // (but we actually want longest-match-first during *scanning*, so the map
   //  just serves as a fast lookup; ordering is handled by the linking engine)
   for (const entity of entities) {
-    const keys = [entity.name, ...entity.slug ? [entity.slug] : []];
+    const keys = [entity.name, entity.slug];
 
-    // Add synonyms
-    for (const syn of (entity as EntityDictionaryEntry & { synonyms?: string[] }).synonyms ?? []) {
+    // Add synonyms (may be present on input data)
+    const synonyms = (entity as EntityDictionaryEntry & { synonyms?: string[] }).synonyms ?? [];
+    for (const syn of synonyms) {
       if (syn.trim()) keys.push(syn.trim());
     }
 

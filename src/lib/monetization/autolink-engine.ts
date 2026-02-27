@@ -39,7 +39,7 @@ export interface AutolinkResult {
  * Process MDX source and auto-link entity mentions.
  *
  * @param mdxSource     - Raw MDX/Markdown content
- * @param dictionary    - Map of lowercase name/synonym → entity entry
+ * @param dictionary    - Map of lowercase name/synonym → entity entry (keys must be lowercased)
  * @param config        - Autolink thresholds and rules
  * @returns Transformed MDX and list of linked entity IDs
  */
@@ -243,7 +243,7 @@ function findEntityMention(text: string, term: string): number {
 
 /** Characters that count as word boundaries */
 function isWordBoundary(ch: string): boolean {
-  return /[\s,.:;!?()\[\]{}"'\/\-—–]/.test(ch) || ch === " ";
+  return /[\s,.:;!?()\[\]{}"'\/\-—–]/.test(ch);
 }
 
 /**

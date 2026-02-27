@@ -40,7 +40,7 @@ export function VerifiedSources({
             <a
               href={link.affiliate_url}
               target="_blank"
-              rel="noopener noreferrer sponsored"
+              rel="noopener noreferrer nofollow sponsored"
               className="group flex items-center justify-between rounded-md border border-emerald-200 bg-white px-4 py-3 transition-colors hover:border-emerald-400 hover:bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/40"
             >
               <div className="flex items-center gap-3">

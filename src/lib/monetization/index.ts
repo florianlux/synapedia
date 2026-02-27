@@ -28,3 +28,10 @@ export type { AutolinkResult } from "./autolink-engine";
 
 // Affiliate routing
 export { getBestAffiliateLinks } from "./affiliate-routing";
+
+// Feature flags
+export {
+  isMonetizationEnabled,
+  isAutolinkEnabled,
+  getAutolinkConfig,
+} from "./feature-flags";
