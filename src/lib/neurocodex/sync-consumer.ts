@@ -140,7 +140,14 @@ export async function runSync(
     });
 
     // 6. Complete sync event
-    const status = errorCount === 0 ? "success" : (errorCount < recordsProcessed ? "success" : "failed");
+    let status: "success" | "failed";
+    if (errorCount === 0) {
+      status = "success";
+    } else if (errorCount < recordsProcessed) {
+      status = "success"; // partial success – some records processed
+    } else {
+      status = "failed";
+    }
     await completeSyncEvent(syncEvent.id, {
       status,
       records_processed: recordsProcessed,
@@ -196,18 +203,22 @@ async function upsertSyncedEntity(
 ): Promise<void> {
   const supabase = createClient();
 
-  // Version check: skip if local version is newer
+  // Version check: skip if local version is newer or equal
   const { data: existing } = await supabase
     .from(entityType)
     .select("updated_at")
     .eq("slug", entity.slug)
     .maybeSingle();
 
-  if (existing && existing.updated_at >= entity.updated_at) {
-    console.log(
-      `[Sync] Skipping ${entity.slug}: local version is up-to-date`,
-    );
-    return;
+  if (existing) {
+    const localTime = new Date(existing.updated_at).getTime();
+    const remoteTime = new Date(entity.updated_at).getTime();
+    if (localTime >= remoteTime) {
+      console.log(
+        `[Sync] Skipping ${entity.slug}: local version is up-to-date`,
+      );
+      return;
+    }
   }
 
   const { error } = await supabase

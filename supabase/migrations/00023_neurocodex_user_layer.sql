@@ -146,7 +146,9 @@ CREATE POLICY nc_behavior_events_insert ON nc_behavior_events
 CREATE POLICY nc_behavior_events_select ON nc_behavior_events
     FOR SELECT USING (auth.uid() = user_id);
 
--- Sync tables: admin-only (all access for authenticated)
+-- Sync tables: admin-only access
+-- NOTE: Uses USING (true) consistent with existing codebase (see 00020_neurocodex_entities.sql).
+-- Tighten with role checks (e.g. auth.jwt()->>'role' = 'admin') when auth roles are implemented.
 CREATE POLICY nc_sync_consumers_all ON nc_sync_consumers
     FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY nc_sync_events_all ON nc_sync_events
@@ -154,7 +156,7 @@ CREATE POLICY nc_sync_events_all ON nc_sync_events
 CREATE POLICY nc_sync_errors_all ON nc_sync_errors
     FOR ALL USING (true) WITH CHECK (true);
 
--- Admin override policies
+-- Admin override policies (same pattern as existing codebase)
 CREATE POLICY nc_user_preferences_admin ON nc_user_preferences
     FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY nc_risk_snapshots_admin ON nc_risk_snapshots
