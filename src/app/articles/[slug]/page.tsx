@@ -13,10 +13,12 @@ import {
   demoTags,
   allArticleTags,
   allSources,
+  getArticleBySlugWithFallback,
 } from "@/lib/articles";
 import { riskLabels, evidenceLabels } from "@/lib/types";
 import { SubstancePharmacologySection } from "@/components/substance-pharmacology";
 import { getSeoDocument } from "@/lib/db/seo";
+import { AlertTriangle } from "lucide-react";
 
 function slugify(text: string): string {
   return text
@@ -76,7 +78,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = allArticles.find((a) => a.slug === slug);
+  const article = await getArticleBySlugWithFallback(slug);
   if (!article) return {};
 
   // Try to load SEO override from seo_documents
@@ -116,23 +118,33 @@ export default async function ArticlePage({
 }) {
   const { slug } = await params;
   const publishedArticles = allArticles.filter((a) => a.status === "published");
-  const article = allArticles.find((a) => a.slug === slug);
+  const article = await getArticleBySlugWithFallback(slug);
   if (!article) notFound();
 
-  const headings = extractHeadings(article.content_mdx);
+  const hasContent = !!(article.content_mdx && article.content_mdx.trim().length > 0);
+  const headings = hasContent ? extractHeadings(article.content_mdx) : [];
   const tagIds = allArticleTags[article.id] ?? [];
   const tags = demoTags.filter((t) => tagIds.includes(t.id));
   const sources = allSources[article.id] ?? [];
 
-  // Determine next/previous articles for navigation
+  // Determine next/previous articles for navigation (only articles with content)
   const currentIndex = publishedArticles.findIndex((a) => a.slug === slug);
   const prevArticle = currentIndex > 0 ? publishedArticles[currentIndex - 1] : null;
   const nextArticle = currentIndex < publishedArticles.length - 1 ? publishedArticles[currentIndex + 1] : null;
 
-  const { content } = await compileMDX({
-    source: article.content_mdx,
-    components: mdxComponents,
-  });
+  let content: React.ReactNode = null;
+  if (hasContent) {
+    try {
+      const compiled = await compileMDX({
+        source: article.content_mdx,
+        components: mdxComponents,
+      });
+      content = compiled.content;
+    } catch {
+      // MDX compilation failed — treat as missing content
+      content = null;
+    }
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -207,7 +219,24 @@ export default async function ArticlePage({
 
         {/* Article content */}
         <article className="mdx-content min-w-0 flex-1">
-          {content}
+          {content ? (
+            content
+          ) : (
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-6 dark:border-yellow-900 dark:bg-yellow-950">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600 dark:text-yellow-400" />
+                <div>
+                  <h2 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
+                    Inhalt noch nicht verfügbar
+                  </h2>
+                  <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                    Der Artikelinhalt für <strong>{article.title}</strong> wurde noch nicht generiert.
+                    Administratoren können den Inhalt über das Admin-Panel erstellen.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <SourceBox sources={sources} />
         </article>
       </div>

@@ -20,6 +20,7 @@ import {
   generateSubstanceContentMdx,
   type SubstanceData,
 } from "@/lib/generator/substance-content";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 // Re-export demo helpers for consumers that still need them directly
 export { demoTags, demoArticleTags, demoSources };
@@ -92,3 +93,37 @@ for (const article of generatedArticles) {
  */
 export const allArticleTags: Record<string, string[]> = { ...demoArticleTags };
 // Generated articles don't have curated tags, so their entries stay empty
+
+/**
+ * Retrieve a single article by slug.
+ *
+ * In live mode (Supabase configured) the function tries the database first
+ * so that Supabase-stored articles with content_mdx are returned.
+ * Falls back to the static allArticles array when Supabase is not available
+ * or the article is not found in the database.
+ */
+export async function getArticleBySlugWithFallback(
+  slug: string,
+): Promise<Article | undefined> {
+  // Try Supabase first when configured
+  if (isSupabaseConfigured()) {
+    try {
+      const { getArticleBySlug } = await import("@/lib/db/articles");
+      const dbArticle = await getArticleBySlug(slug);
+      if (dbArticle) {
+        // If the DB article has no content, try to fill from static data
+        if (!dbArticle.content_mdx || dbArticle.content_mdx.trim().length === 0) {
+          const staticArticle = allArticles.find((a) => a.slug === slug);
+          if (staticArticle?.content_mdx) {
+            dbArticle.content_mdx = staticArticle.content_mdx;
+          }
+        }
+        return dbArticle;
+      }
+    } catch {
+      // Supabase query failed — fall through to static data
+    }
+  }
+
+  return allArticles.find((a) => a.slug === slug);
+}

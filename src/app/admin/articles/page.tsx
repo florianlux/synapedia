@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/select";
-import { Plus, Search, Sparkles } from "lucide-react";
+import { Plus, Search, Sparkles, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import type { Article, ArticleStatus } from "@/lib/types";
 
@@ -17,6 +17,7 @@ export default function AdminArticles() {
   const [statusFilter, setStatusFilter] = useState<ArticleStatus | "">("");
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generatingSlug, setGeneratingSlug] = useState<string | null>(null);
   const [generateMsg, setGenerateMsg] = useState("");
 
   useEffect(() => {
@@ -47,6 +48,28 @@ export default function AdminArticles() {
       setGenerateMsg("❌ Netzwerkfehler beim Generieren.");
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handleGenerateSingle(slug: string) {
+    setGeneratingSlug(slug);
+    setGenerateMsg("");
+    try {
+      const res = await fetch("/api/admin/generate-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "substance", slug }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGenerateMsg(`✅ Inhalt für „${data.title}" generiert.`);
+      } else {
+        setGenerateMsg(`❌ Fehler: ${data.error}`);
+      }
+    } catch {
+      setGenerateMsg("❌ Netzwerkfehler beim Generieren.");
+    } finally {
+      setGeneratingSlug(null);
     }
   }
 
@@ -124,6 +147,7 @@ export default function AdminArticles() {
                   <th className="pb-3 pr-4 font-medium text-neutral-500 dark:text-neutral-400">Status</th>
                   <th className="pb-3 pr-4 font-medium text-neutral-500 dark:text-neutral-400">Risiko</th>
                   <th className="pb-3 pr-4 font-medium text-neutral-500 dark:text-neutral-400">Kategorie</th>
+                  <th className="pb-3 pr-4 font-medium text-neutral-500 dark:text-neutral-400">Inhalt</th>
                   <th className="pb-3 font-medium text-neutral-500 dark:text-neutral-400">Aktualisiert</th>
                 </tr>
               </thead>
@@ -152,6 +176,27 @@ export default function AdminArticles() {
                     </td>
                     <td className="py-3 pr-4 text-neutral-600 dark:text-neutral-400">
                       {article.category ?? "–"}
+                    </td>
+                    <td className="py-3 pr-4">
+                      {article.content_mdx && article.content_mdx.length > 200 ? (
+                        <Badge variant="default" className="text-xs">Vollständig</Badge>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="secondary" className="text-xs">Fehlt</Badge>
+                          <button
+                            onClick={() => handleGenerateSingle(article.slug)}
+                            disabled={generatingSlug === article.slug}
+                            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-cyan-600 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:bg-cyan-950 disabled:opacity-50"
+                            title="Inhalt generieren"
+                          >
+                            {generatingSlug === article.slug ? (
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3 w-3" />
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 text-neutral-600 dark:text-neutral-400">
                       {new Date(article.updated_at).toLocaleDateString("de-DE")}
