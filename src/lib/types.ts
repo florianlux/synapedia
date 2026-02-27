@@ -450,3 +450,222 @@ export interface ChatMessage {
   content: Record<string, unknown>;
   risk_level: string | null;
 }
+
+// ============================================================
+// NEUROCODEX ENTITY-BASED ARCHITECTURE TYPES
+// ============================================================
+
+export type EntityType = "compound" | "nootropic" | "neurotransmitter" | "pathway";
+export type EvidenceGrade = "A+" | "A" | "B" | "C" | "N/A";
+export type StudyType = "meta" | "rct" | "animal" | "in-vitro" | "anecdotal";
+export type StackGoal = "focus" | "sleep" | "stress" | "neuroprotection" | "memory" | "mood" | "energy" | "general";
+export type SensitivityLevel = "low" | "medium" | "high";
+export type AffiliateEventType = "click" | "view" | "conversion";
+
+export const evidenceGradeLabels: Record<EvidenceGrade, string> = {
+  "A+": "Multiple RCTs + Meta-Analysis",
+  "A": "RCT",
+  "B": "Mechanistic + Animal",
+  "C": "Anecdotal",
+  "N/A": "Nicht bewertet",
+};
+
+export const studyTypeLabels: Record<StudyType, string> = {
+  meta: "Meta-Analyse",
+  rct: "Randomized Controlled Trial",
+  animal: "Tierstudie",
+  "in-vitro": "In-vitro Studie",
+  anecdotal: "Anekdotisch",
+};
+
+export const stackGoalLabels: Record<StackGoal, string> = {
+  focus: "Fokus & Konzentration",
+  sleep: "Schlaf & Erholung",
+  stress: "Stressreduktion",
+  neuroprotection: "Neuroprotektion",
+  memory: "Gedächtnis & Lernen",
+  mood: "Stimmung & Wohlbefinden",
+  energy: "Energie & Vitalität",
+  general: "Allgemein",
+};
+
+// Entity (Core)
+export interface Entity {
+  id: string;
+  name: string;
+  slug: string;
+  entity_type: EntityType;
+  description: string | null;
+  scientific_level: string | null;
+  risk_level: RiskLevel | null;
+  evidence_score: number | null;
+  evidence_grade: EvidenceGrade | null;
+  meta_data: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+// Mechanism of action
+export interface Mechanism {
+  id: string;
+  entity_id: string;
+  neurotransmitter: string;
+  action_type: string;
+  strength: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Evidence source
+export interface EvidenceSource {
+  id: string;
+  entity_id: string;
+  study_type: StudyType;
+  sample_size: number | null;
+  summary: string | null;
+  pubmed_id: string | null;
+  doi: string | null;
+  url: string | null;
+  quality_score: number | null;
+  confidence_level: "high" | "medium" | "low" | null;
+  year: number | null;
+  authors: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Affiliate provider
+export interface AffiliateProvider {
+  id: string;
+  name: string;
+  website: string;
+  region: string;
+  verified: boolean;
+  lab_tested: boolean;
+  quality_rating: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Affiliate link
+export interface AffiliateLink {
+  id: string;
+  entity_id: string;
+  provider_id: string;
+  affiliate_url: string;
+  price_range: string | null;
+  quality_score: number | null;
+  active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Stack
+export interface Stack {
+  id: string;
+  name: string;
+  slug: string;
+  goal: StackGoal;
+  description: string | null;
+  evidence_score: number | null;
+  evidence_grade: EvidenceGrade | null;
+  target_budget_range: string | null;
+  sensitivity_level: SensitivityLevel | null;
+  status: ArticleStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+// Stack component
+export interface StackComponent {
+  id: string;
+  stack_id: string;
+  entity_id: string;
+  dose_range: string | null;
+  timing: string | null;
+  priority: number;
+  notes: string | null;
+  created_at: string;
+}
+
+// Admin configuration
+export interface AdminConfig {
+  id: string;
+  config_key: string;
+  config_value: unknown;
+  description: string | null;
+  updated_at: string;
+}
+
+// Affiliate analytics
+export interface AffiliateAnalytics {
+  id: string;
+  entity_id: string | null;
+  provider_id: string | null;
+  affiliate_link_id: string | null;
+  event_type: AffiliateEventType;
+  page_url: string | null;
+  user_agent: string | null;
+  ip_hash: string | null;
+  referrer: string | null;
+  region: string | null;
+  created_at: string;
+}
+
+// Extended entity with relations
+export interface EntityWithRelations extends Entity {
+  mechanisms?: Mechanism[];
+  evidence_sources?: EvidenceSource[];
+  affiliate_links?: AffiliateLink[];
+}
+
+// Stack with components
+export interface StackWithComponents extends Stack {
+  components?: StackComponentWithEntity[];
+}
+
+// Stack component with entity details
+export interface StackComponentWithEntity extends StackComponent {
+  entity?: Entity;
+}
+
+// Affiliate link with provider details
+export interface AffiliateLinkWithProvider extends AffiliateLink {
+  provider?: AffiliateProvider;
+}
+
+// Evidence calculation input
+export interface EvidenceCalculationInput {
+  study_type: StudyType;
+  sample_size: number | null;
+  quality_score: number | null;
+}
+
+// Smart linking configuration
+export interface SmartLinkingConfig {
+  global_threshold: number;
+  category_thresholds: Record<EntityType, number>;
+  entity_overrides: Record<string, number>;
+  enabled: boolean;
+}
+
+// Stack builder input
+export interface StackBuilderInput {
+  goal: StackGoal;
+  budget_range?: string;
+  sensitivity?: SensitivityLevel;
+  region?: string;
+  exclude_entities?: string[];
+}
+
+// Stack builder output
+export interface StackBuilderOutput {
+  stack: Stack;
+  components: StackComponentWithEntity[];
+  total_evidence_score: number;
+  warnings: string[];
+  affiliate_links: AffiliateLinkWithProvider[];
+}
