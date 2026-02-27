@@ -140,9 +140,17 @@ export default async function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {incomplete > 0 ? (
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                <span className="font-bold text-yellow-500">{incomplete}</span> Artikel brauchen mehr Inhalt
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                  <span className="font-bold text-yellow-500">{incomplete}</span> Artikel brauchen mehr Inhalt
+                </p>
+                <Link
+                  href="/admin/articles"
+                  className="inline-block text-xs text-cyan-600 hover:underline dark:text-cyan-400"
+                >
+                  Fehlende Inhalte generieren →
+                </Link>
+              </div>
             ) : (
               <p className="text-sm text-green-500">Alle Artikel vollständig!</p>
             )}
