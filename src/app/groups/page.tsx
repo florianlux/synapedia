@@ -1,0 +1,63 @@
+import Link from "next/link";
+import type { Metadata } from "next";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { fetchGroups } from "@/lib/db/groups";
+
+export const metadata: Metadata = {
+  title: "Substanzgruppen | Synapedia",
+  description:
+    "Übersicht aller pharmakologischen Substanzgruppen – von Stimulanzien über Psychedelika bis zu Nootropika.",
+};
+
+export default async function GroupsIndexPage() {
+  const groups = await fetchGroups();
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-12">
+      <h1 className="mb-2 text-3xl font-bold tracking-tight">
+        Substanzgruppen
+      </h1>
+      <p className="mb-8 text-neutral-600 dark:text-neutral-400">
+        Entdecke psychoaktive Substanzen nach ihrer pharmakologischen
+        Klassifikation.
+      </p>
+
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        {groups.map((group) => (
+          <Link key={group.id} href={`/groups/${group.slug}`}>
+            <Card className="h-full transition-shadow hover:shadow-md">
+              <CardHeader className="pb-2">
+                {group.icon && (
+                  <span className="mb-1 text-2xl" aria-hidden="true">
+                    {group.icon}
+                  </span>
+                )}
+                <CardTitle className="text-base">{group.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {group.description && (
+                  <CardDescription className="line-clamp-2">
+                    {group.description}
+                  </CardDescription>
+                )}
+                {group.substance_count > 0 && (
+                  <Badge variant="secondary" className="mt-2">
+                    {group.substance_count}{" "}
+                    {group.substance_count === 1 ? "Substanz" : "Substanzen"}
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}

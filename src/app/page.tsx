@@ -13,6 +13,7 @@ import { SearchBar } from "@/components/search-bar";
 import { demoArticles, demoTags, demoArticleTags } from "@/lib/demo-data";
 import { riskLabels, evidenceLabels } from "@/lib/types";
 import { PublicExperienceSearch } from "@/components/admin/experience-search/PublicExperienceSearch";
+import { SubstanceGroupsSection } from "@/components/home/SubstanceGroupsSection";
 
 const showPublicSearch =
   process.env.NEXT_PUBLIC_ENABLE_PUBLIC_EXPERIENCE_SEARCH === "true";
@@ -53,6 +54,9 @@ export default function Home() {
           <PublicExperienceSearch />
         </section>
       )}
+
+      {/* Substance Groups */}
+      <SubstanceGroupsSection />
 
       {/* Article Grid */}
       <section>
