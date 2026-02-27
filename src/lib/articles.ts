@@ -115,7 +115,7 @@ export async function getArticleBySlugWithFallback(
         if (!dbArticle.content_mdx || dbArticle.content_mdx.trim().length === 0) {
           const staticArticle = allArticles.find((a) => a.slug === slug);
           if (staticArticle?.content_mdx) {
-            dbArticle.content_mdx = staticArticle.content_mdx;
+            return { ...dbArticle, content_mdx: staticArticle.content_mdx };
           }
         }
         return dbArticle;

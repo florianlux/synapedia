@@ -58,7 +58,7 @@ export default function AdminArticles() {
       const res = await fetch("/api/admin/generate-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "substance", slug }),
+        body: JSON.stringify({ type: "article", slug }),
       });
       const data = await res.json();
       if (res.ok) {
