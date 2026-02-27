@@ -202,12 +202,46 @@ export default function ImportSubstancesPage() {
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef(false);
 
+  // Seed list state
+  const [seedLoading, setSeedLoading] = useState(false);
+
   // Preview filter
   const [previewFilter, setPreviewFilter] = useState<PreviewFilter>("all");
 
   const addLog = useCallback((msg: string) => {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
   }, []);
+
+  // Load seed list from /api/admin/import-substances/seed
+  const handleLoadSeed = useCallback(async () => {
+    setSeedLoading(true);
+    setError(null);
+    addLog("Lade Substanz-Seed-Liste…");
+    try {
+      const res = await fetch("/api/admin/import-substances/seed", { method: "POST" });
+      const data = await res.json() as { ok: boolean; items?: WikidataItem[]; count?: number; error?: string };
+      if (!data.ok) throw new Error(data.error ?? "Unbekannter Fehler");
+      const seedItems: WikidataItem[] = (data.items ?? []).map(
+        (item: unknown) => {
+          const s = item as { name?: string; wikidataQid?: string };
+          return {
+            qid: s.wikidataQid ?? "",
+            label: s.name ?? "",
+            description: "",
+          };
+        },
+      );
+      setWikidataItems(seedItems);
+      addLog(`✓ ${seedItems.length} Substanzen aus Seed-Liste geladen.`);
+      setActiveTab("vorschau");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+      addLog(`✗ Seed laden fehlgeschlagen: ${msg}`);
+    } finally {
+      setSeedLoading(false);
+    }
+  }, [addLog]);
 
   const updateFilter = useCallback(<K extends keyof ImportFilters>(key: K, value: ImportFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -672,10 +706,19 @@ export default function ImportSubstancesPage() {
             )}
 
             {/* Fetch button */}
-            <div>
+            <div className="flex flex-wrap gap-2">
               <Button onClick={handleFetchWikidata} disabled={isRunning} size="sm">
                 {step === "wikidata" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 Wikidata laden
+              </Button>
+              <Button
+                onClick={handleLoadSeed}
+                disabled={isRunning || seedLoading}
+                size="sm"
+                variant="outline"
+              >
+                {seedLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                Seed laden
               </Button>
             </div>
           </CardContent>
