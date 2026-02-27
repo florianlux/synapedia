@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertTriangle } from "lucide-react";
 import { compileMDX } from "next-mdx-remote/rsc";
 import { Badge } from "@/components/ui/badge";
 import { RiskBanner } from "@/components/risk-banner";
@@ -18,7 +18,6 @@ import {
 import { riskLabels, evidenceLabels } from "@/lib/types";
 import { SubstancePharmacologySection } from "@/components/substance-pharmacology";
 import { getSeoDocument } from "@/lib/db/seo";
-import { AlertTriangle } from "lucide-react";
 
 function slugify(text: string): string {
   return text
