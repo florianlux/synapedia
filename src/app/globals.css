@@ -86,11 +86,12 @@
 /* Hero subtle radial glow */
 .brand-hero-glow {
   position: relative;
+  overflow: hidden;
 }
 .brand-hero-glow::before {
   content: "";
   position: absolute;
-  inset: -20% -10% 40% -10%;
+  inset: -20% 0 40% 0;
   background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(6, 182, 212, var(--brand-hero-glow-opacity)), transparent 70%);
   pointer-events: none;
   z-index: 0;
