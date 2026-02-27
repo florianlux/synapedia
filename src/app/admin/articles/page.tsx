@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/select";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { Article, ArticleStatus } from "@/lib/types";
 
@@ -16,6 +16,8 @@ export default function AdminArticles() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ArticleStatus | "">("");
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [generateMsg, setGenerateMsg] = useState("");
 
   useEffect(() => {
     // Try loading from DB, fallback to demo
@@ -25,6 +27,28 @@ export default function AdminArticles() {
       .catch(() => setArticles(allArticles))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleBulkGenerate() {
+    setGenerating(true);
+    setGenerateMsg("");
+    try {
+      const res = await fetch("/api/admin/generate-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "substance", bulk: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGenerateMsg(`✅ ${data.generated} Artikel-Inhalte generiert.`);
+      } else {
+        setGenerateMsg(`❌ Fehler: ${data.error}`);
+      }
+    } catch {
+      setGenerateMsg("❌ Netzwerkfehler beim Generieren.");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   const filtered = articles.filter((a) => {
     if (search && !a.title.toLowerCase().includes(search.toLowerCase()) && !a.slug.includes(search.toLowerCase())) {
@@ -41,13 +65,26 @@ export default function AdminArticles() {
           <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">Artikel</h1>
           <p className="mt-1 text-neutral-500 dark:text-neutral-400">Alle Artikel verwalten und bearbeiten.</p>
         </div>
-        <Link href="/admin/articles/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Neuer Artikel
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleBulkGenerate} disabled={generating}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            {generating ? "Generiere…" : "Fehlende Inhalte generieren"}
           </Button>
-        </Link>
+          <Link href="/admin/articles/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Neuer Artikel
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      {/* Generation status */}
+      {generateMsg && (
+        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm dark:border-neutral-800 dark:bg-neutral-900">
+          {generateMsg}
+        </div>
+      )}
 
       {/* Search & Filter */}
       <div className="flex flex-wrap gap-3">
