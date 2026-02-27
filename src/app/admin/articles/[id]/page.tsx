@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Save, Sparkles, GitBranch, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { demoArticles } from "@/lib/demo-data";
+import { allArticles } from "@/lib/articles";
 import type { Article, ArticleStatus, RiskLevel, EvidenceStrength } from "@/lib/types";
 
 export default function ArticleEditorPage() {
@@ -35,7 +35,7 @@ export default function ArticleEditorPage() {
 
   useEffect(() => {
     function loadFromDemo() {
-      const demo = demoArticles.find((a) => a.id === articleId);
+      const demo = allArticles.find((a) => a.id === articleId);
       if (demo) loadArticleData(demo);
     }
 

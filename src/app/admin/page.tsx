@@ -1,4 +1,4 @@
-import { demoArticles } from "@/lib/demo-data";
+import { allArticles } from "@/lib/articles";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isAiEnabled } from "@/lib/ai/provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ async function getArticlesData(): Promise<Article[]> {
       // Fallback to demo
     }
   }
-  return demoArticles;
+  return allArticles;
 }
 
 export default async function AdminDashboard() {

@@ -1,0 +1,95 @@
+import { NextRequest, NextResponse } from "next/server";
+import { isAdminAuthenticated } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
+import substancesJson from "@/../data/substances.json";
+import {
+  generateSubstanceContentMdx,
+  type SubstanceData,
+} from "@/lib/generator/substance-content";
+
+const substances = substancesJson as SubstanceData[];
+
+/**
+ * POST /api/admin/generate-content
+ *
+ * Generates deterministic scientific MDX content for a single substance or
+ * for all substances that lack content.
+ *
+ * Body:
+ *   { type: "substance", slug: string }    – generate for one substance
+ *   { type: "substance", bulk: true }       – generate for all substances
+ */
+export async function POST(request: NextRequest) {
+  const authenticated = await isAdminAuthenticated(request);
+  if (!authenticated) {
+    return NextResponse.json(
+      { error: "Nicht autorisiert." },
+      { status: 401 }
+    );
+  }
+
+  let body: { type?: string; slug?: string; bulk?: boolean };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Ungültiger Request-Body." },
+      { status: 400 }
+    );
+  }
+
+  const { type, slug, bulk } = body;
+
+  if (type !== "substance") {
+    return NextResponse.json(
+      { error: "Nur type 'substance' wird unterstützt." },
+      { status: 400 }
+    );
+  }
+
+  if (bulk) {
+    const results = substances.map((s) => ({
+      slug: s.slug,
+      title: s.title,
+      content_mdx: generateSubstanceContentMdx(s),
+    }));
+
+    // Revalidate all article routes
+    for (const r of results) {
+      revalidatePath(`/articles/${r.slug}`);
+    }
+    revalidatePath("/articles");
+
+    return NextResponse.json({
+      success: true,
+      generated: results.length,
+      slugs: results.map((r) => r.slug),
+    });
+  }
+
+  if (!slug) {
+    return NextResponse.json(
+      { error: "slug ist erforderlich (oder bulk: true setzen)." },
+      { status: 400 }
+    );
+  }
+
+  const substance = substances.find((s) => s.slug === slug);
+  if (!substance) {
+    return NextResponse.json(
+      { error: `Substanz mit slug '${slug}' nicht gefunden.` },
+      { status: 404 }
+    );
+  }
+
+  const contentMdx = generateSubstanceContentMdx(substance);
+
+  revalidatePath(`/articles/${slug}`);
+
+  return NextResponse.json({
+    success: true,
+    slug: substance.slug,
+    title: substance.title,
+    content_mdx: contentMdx,
+  });
+}

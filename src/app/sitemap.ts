@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { demoArticles } from "@/lib/demo-data";
+import { allArticles } from "@/lib/articles";
 import glossaryData from "@/../data/glossary.json";
 import { substances as substancesData } from "@/../data/substances";
 
@@ -17,7 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   const articleSlugs = new Set(
-    demoArticles
+    allArticles
       .filter((a) => a.status === "published")
       .map((a) => a.slug)
   );

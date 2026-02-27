@@ -10,7 +10,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { SearchBar } from "@/components/search-bar";
-import { demoArticles, demoTags, demoArticleTags } from "@/lib/demo-data";
+import { allArticles, demoTags, allArticleTags } from "@/lib/articles";
 import { riskLabels, evidenceLabels } from "@/lib/types";
 import { PublicExperienceSearch } from "@/components/admin/experience-search/PublicExperienceSearch";
 import { SubstanceGroupsSection } from "@/components/home/SubstanceGroupsSection";
@@ -19,7 +19,7 @@ const showPublicSearch =
   process.env.NEXT_PUBLIC_ENABLE_PUBLIC_EXPERIENCE_SEARCH === "true";
 
 export default function Home() {
-  const articles = demoArticles.filter((a) => a.status === "published");
+  const articles = allArticles.filter((a) => a.status === "published");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -63,7 +63,7 @@ export default function Home() {
         <h2 className="mb-6 text-2xl font-semibold">Substanzen</h2>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {articles.map((article) => {
-            const tagIds = demoArticleTags[article.id] ?? [];
+            const tagIds = allArticleTags[article.id] ?? [];
             const tags = demoTags.filter((t) => tagIds.includes(t.id));
 
             return (

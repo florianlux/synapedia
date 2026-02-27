@@ -6,10 +6,10 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
-import { demoArticles } from "@/lib/demo-data";
+import { allArticles } from "@/lib/articles";
 
 export default function CategoriesPage() {
-  const published = demoArticles.filter((a) => a.status === "published");
+  const published = allArticles.filter((a) => a.status === "published");
 
   const categoryMap = new Map<string, number>();
   for (const article of published) {
