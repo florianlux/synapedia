@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { demoArticles } from "@/lib/demo-data";
+import { allArticles } from "@/lib/articles";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([]);
   }
 
-  const results = demoArticles
+  const results = allArticles
     .filter(
       (a) =>
         a.status === "published" &&

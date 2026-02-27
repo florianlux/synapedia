@@ -1,6 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { ArticleBrowser } from "@/components/article-browser";
-import { demoArticles, demoTags, demoArticleTags } from "@/lib/demo-data";
+import { allArticles, demoTags, allArticleTags } from "@/lib/articles";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function ArticlesPage() {
-  const articles = demoArticles.filter((a) => a.status === "published");
+  const articles = allArticles.filter((a) => a.status === "published");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -42,7 +42,7 @@ export default function ArticlesPage() {
       <ArticleBrowser
         articles={articles}
         tags={demoTags}
-        articleTags={demoArticleTags}
+        articleTags={allArticleTags}
       />
     </div>
   );

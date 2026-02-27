@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { compileMDX } from "next-mdx-remote/rsc";
 import { Badge } from "@/components/ui/badge";
 import { RiskBanner } from "@/components/risk-banner";
@@ -9,11 +9,11 @@ import { SourceBox } from "@/components/source-box";
 import { TableOfContents, type TocHeading } from "@/components/table-of-contents";
 import { JsonLd } from "@/components/json-ld";
 import {
-  demoArticles,
+  allArticles,
   demoTags,
-  demoArticleTags,
-  demoSources,
-} from "@/lib/demo-data";
+  allArticleTags,
+  allSources,
+} from "@/lib/articles";
 import { riskLabels, evidenceLabels } from "@/lib/types";
 import { SubstancePharmacologySection } from "@/components/substance-pharmacology";
 import { getSeoDocument } from "@/lib/db/seo";
@@ -76,7 +76,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = demoArticles.find((a) => a.slug === slug);
+  const article = allArticles.find((a) => a.slug === slug);
   if (!article) return {};
 
   // Try to load SEO override from seo_documents
@@ -115,13 +115,19 @@ export default async function ArticlePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const article = demoArticles.find((a) => a.slug === slug);
+  const publishedArticles = allArticles.filter((a) => a.status === "published");
+  const article = allArticles.find((a) => a.slug === slug);
   if (!article) notFound();
 
   const headings = extractHeadings(article.content_mdx);
-  const tagIds = demoArticleTags[article.id] ?? [];
+  const tagIds = allArticleTags[article.id] ?? [];
   const tags = demoTags.filter((t) => tagIds.includes(t.id));
-  const sources = demoSources[article.id] ?? [];
+  const sources = allSources[article.id] ?? [];
+
+  // Determine next/previous articles for navigation
+  const currentIndex = publishedArticles.findIndex((a) => a.slug === slug);
+  const prevArticle = currentIndex > 0 ? publishedArticles[currentIndex - 1] : null;
+  const nextArticle = currentIndex < publishedArticles.length - 1 ? publishedArticles[currentIndex + 1] : null;
 
   const { content } = await compileMDX({
     source: article.content_mdx,
@@ -212,6 +218,40 @@ export default async function ArticlePage({
           substanceId={article.substance_id}
           substanceName={article.title}
         />
+      )}
+
+      {/* Next / Previous article navigation */}
+      {(prevArticle || nextArticle) && (
+        <nav className="mt-12 flex items-stretch gap-4 border-t border-neutral-200 pt-8 dark:border-neutral-800">
+          {prevArticle ? (
+            <Link
+              href={`/articles/${prevArticle.slug}`}
+              className="flex flex-1 items-center gap-2 rounded-lg border border-neutral-200 p-4 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900"
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0 text-neutral-400" />
+              <div className="min-w-0">
+                <p className="text-xs text-neutral-500">Vorheriger Artikel</p>
+                <p className="truncate font-medium">{prevArticle.title}</p>
+              </div>
+            </Link>
+          ) : (
+            <div className="flex-1" />
+          )}
+          {nextArticle ? (
+            <Link
+              href={`/articles/${nextArticle.slug}`}
+              className="flex flex-1 items-center justify-end gap-2 rounded-lg border border-neutral-200 p-4 text-right transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900"
+            >
+              <div className="min-w-0">
+                <p className="text-xs text-neutral-500">Nächster Artikel</p>
+                <p className="truncate font-medium">{nextArticle.title}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-neutral-400" />
+            </Link>
+          ) : (
+            <div className="flex-1" />
+          )}
+        </nav>
       )}
     </div>
   );

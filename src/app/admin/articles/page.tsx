@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { demoArticles } from "@/lib/demo-data";
+import { allArticles } from "@/lib/articles";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import Link from "next/link";
 import type { Article, ArticleStatus } from "@/lib/types";
 
 export default function AdminArticles() {
-  const [articles, setArticles] = useState<Article[]>(demoArticles);
+  const [articles, setArticles] = useState<Article[]>(allArticles);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ArticleStatus | "">("");
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export default function AdminArticles() {
     import("@/lib/db/articles")
       .then(({ getArticles }) => getArticles())
       .then(setArticles)
-      .catch(() => setArticles(demoArticles))
+      .catch(() => setArticles(allArticles))
       .finally(() => setLoading(false));
   }, []);
 
