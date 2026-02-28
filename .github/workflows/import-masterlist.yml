@@ -41,10 +41,10 @@ jobs:
       - name: Generate masterlist
         run: npx tsx scripts/gen-masterlist.ts --limit "${{ inputs.limit }}"
 
-      - name: Import masterlist
+      - name: Import into substances
         run: |
           ARGS=(--status "${{ inputs.status }}")
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             ARGS+=(--dry-run)
           fi
-          npx tsx scripts/import-masterlist.ts "${ARGS[@]}"
+          npx tsx scripts/import-substances-masterlist.ts "${ARGS[@]}"
