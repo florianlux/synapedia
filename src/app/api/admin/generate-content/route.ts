@@ -7,7 +7,7 @@ import {
   type SubstanceData,
 } from "@/lib/generator/substance-content";
 import { generateArticleContentMdx } from "@/lib/generator/article-content";
-import { allArticles } from "@/lib/articles";
+import { getAllArticlesAsync } from "@/lib/articles";
 
 const substances = substancesJson as SubstanceData[];
 
@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
 
   // --- Article content generation ---
   if (type === "article") {
+    const allArticles = await getAllArticlesAsync();
     if (bulk) {
       const articlesWithMissingContent = allArticles.filter(
         (a) => !a.content_mdx || a.content_mdx.trim().length === 0

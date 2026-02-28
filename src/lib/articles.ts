@@ -95,6 +95,33 @@ export const allArticleTags: Record<string, string[]> = { ...demoArticleTags };
 // Generated articles don't have curated tags, so their entries stay empty
 
 /**
+ * Fetch all articles, preferring Supabase when configured.
+ *
+ * In live mode the function queries `public.articles` and merges the result
+ * with the static dataset so that every substance from substances.json still
+ * has a renderable page even if it is not yet in the database.
+ *
+ * Falls back to the static `allArticles` when Supabase is unavailable.
+ */
+export async function getAllArticlesAsync(): Promise<Article[]> {
+  if (isSupabaseConfigured()) {
+    try {
+      const { getArticles } = await import("@/lib/db/articles");
+      const dbArticles = await getArticles();
+      if (dbArticles && dbArticles.length > 0) {
+        // DB articles take precedence; fill gaps with static data
+        const dbSlugs = new Set(dbArticles.map((a) => a.slug));
+        const missing = allArticles.filter((a) => !dbSlugs.has(a.slug));
+        return [...dbArticles, ...missing];
+      }
+    } catch {
+      // Supabase query failed — fall through to static data
+    }
+  }
+  return allArticles;
+}
+
+/**
  * Retrieve a single article by slug.
  *
  * In live mode (Supabase configured) the function tries the database first

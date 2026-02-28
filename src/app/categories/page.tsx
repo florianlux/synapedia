@@ -6,9 +6,12 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
-import { allArticles } from "@/lib/articles";
+import { getAllArticlesAsync } from "@/lib/articles";
 
-export default function CategoriesPage() {
+export const revalidate = 60;
+
+export default async function CategoriesPage() {
+  const allArticles = await getAllArticlesAsync();
   const published = allArticles.filter((a) => a.status === "published");
 
   const categoryMap = new Map<string, number>();

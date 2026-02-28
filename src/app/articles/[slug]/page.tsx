@@ -9,7 +9,7 @@ import { SourceBox } from "@/components/source-box";
 import { TableOfContents, type TocHeading } from "@/components/table-of-contents";
 import { JsonLd } from "@/components/json-ld";
 import {
-  allArticles,
+  getAllArticlesAsync,
   demoTags,
   allArticleTags,
   allSources,
@@ -116,7 +116,8 @@ export default async function ArticlePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const publishedArticles = allArticles.filter((a) => a.status === "published");
+  const allArticlesResolved = await getAllArticlesAsync();
+  const publishedArticles = allArticlesResolved.filter((a) => a.status === "published");
   const article = await getArticleBySlugWithFallback(slug);
   if (!article) notFound();
 

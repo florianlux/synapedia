@@ -1,7 +1,9 @@
 import { AlertTriangle } from "lucide-react";
 import { ArticleBrowser } from "@/components/article-browser";
-import { allArticles, demoTags, allArticleTags } from "@/lib/articles";
+import { getAllArticlesAsync, demoTags, allArticleTags } from "@/lib/articles";
 import type { Metadata } from "next";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Artikel – Synapedia",
@@ -9,7 +11,8 @@ export const metadata: Metadata = {
     "Durchsuche die wissenschaftliche Substanzdatenbank. Filtere nach Substanzklasse, Rezeptor-Typ und Legalstatus.",
 };
 
-export default function ArticlesPage() {
+export default async function ArticlesPage() {
+  const allArticles = await getAllArticlesAsync();
   const articles = allArticles.filter((a) => a.status === "published");
 
   return (

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { allArticles } from "@/lib/articles";
+import { getAllArticlesAsync } from "@/lib/articles";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([]);
   }
 
+  const allArticles = await getAllArticlesAsync();
   const results = allArticles
     .filter(
       (a) =>
