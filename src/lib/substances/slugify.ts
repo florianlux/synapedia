@@ -5,6 +5,7 @@
  *  - lowercase, trim
  *  - spaces / underscores → hyphen
  *  - German umlauts: ä→ae, ö→oe, ü→ue, ß→ss
+ *  - Greek alpha: α/Α→alpha
  *  - remove parenthetical content
  *  - remove all chars outside [a-z0-9-]
  *  - collapse multiple hyphens
@@ -19,6 +20,7 @@ export function slugify(name: string): string {
     .replace(/[öÖ]/g, "oe")
     .replace(/[üÜ]/g, "ue")
     .replace(/ß/g, "ss")
+    .replace(/[αΑ]/g, "alpha")
     .replace(/[\s_]+/g, "-")
     .replace(/[^a-z0-9-]+/g, "")
     .replace(/-{2,}/g, "-")

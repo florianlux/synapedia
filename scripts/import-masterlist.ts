@@ -126,7 +126,7 @@ function parseArgs(argv: string[]): ImportOptions {
     dryRun: false,
     limit: Infinity,
     only: [],
-    status: "draft",
+    status: "Entwurf",
     verbose: false,
   };
 
@@ -193,6 +193,41 @@ function sleep(ms: number): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Sanity check — verify required columns exist in public.articles
+// ---------------------------------------------------------------------------
+
+const REQUIRED_COLUMNS = ["slug", "title", "mdx", "risk", "evidence", "aliases", "tags", "status"];
+
+async function verifySchemaSanity(supabase: SupabaseClient): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("articles")
+      .select("slug, title, mdx, risk, evidence, aliases, tags, status")
+      .limit(0);
+
+    if (error) {
+      const msg = error.message ?? "";
+      // Detect "column does not exist" errors
+      if (msg.includes("column") && msg.includes("does not exist")) {
+        console.error(
+          `[import-masterlist] ❌ Schema mismatch — one or more required columns missing in public.articles.\n` +
+          `  Expected columns: ${REQUIRED_COLUMNS.join(", ")}\n` +
+          `  Supabase error: ${msg}\n` +
+          `  Please verify the DB schema matches the expected layout.`
+        );
+        return false;
+      }
+      console.warn(`[import-masterlist] ⚠ Schema check returned an error: ${msg} (proceeding anyway)`);
+    }
+    return true;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[import-masterlist] ⚠ Schema check failed: ${msg} (proceeding anyway)`);
+    return true;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -245,6 +280,13 @@ export async function importMasterlist(opts: ImportOptions): Promise<void> {
   } else {
     const supabase = createSupabaseAdmin();
 
+    // Sanity check: verify DB schema has expected columns
+    const schemaOk = await verifySchemaSanity(supabase);
+    if (!schemaOk) {
+      console.error("[import-masterlist] Aborting due to schema mismatch.");
+      process.exit(1);
+    }
+
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
       const mdx = generateMdxStub(entry);
@@ -254,12 +296,12 @@ export async function importMasterlist(opts: ImportOptions): Promise<void> {
         title: entry.name,
         subtitle: entry.aliases.length > 0 ? entry.aliases.slice(0, 3).join(", ") : null,
         summary: `Wissenschaftlicher Entwurf zu ${entry.name}.`,
-        content_mdx: mdx,
+        mdx,
         status: opts.status,
-        risk_level: "unknown",
-        evidence_strength: "weak",
-        category: entry.tags[0] ?? null,
-        tags: entry.tags,
+        risk: "Unbekannt",
+        evidence: "Unbekannt",
+        aliases: entry.aliases ?? [],
+        tags: entry.tags.length > 0 ? entry.tags : [],
         updated_at: now,
       };
 
@@ -269,7 +311,13 @@ export async function importMasterlist(opts: ImportOptions): Promise<void> {
 
       if (error) {
         errors++;
-        console.error(`  [error] ${entry.slug}: ${error.message}`);
+        const msg = error.message ?? "";
+        console.error(`  [error] ${entry.slug}: ${msg}`);
+        // Abort early on schema-level errors (missing column = all future rows will fail too)
+        if (msg.includes("column") && msg.includes("does not exist")) {
+          console.error("[import-masterlist] ❌ Detected missing column — aborting to avoid repeated failures.");
+          break;
+        }
       } else {
         upserted++;
         if (opts.verbose) {

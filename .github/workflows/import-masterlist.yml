@@ -8,9 +8,9 @@ on:
         required: false
         default: "1000"
       status:
-        description: "Article status (draft, review)"
+        description: "Article status (Entwurf, review)"
         required: false
-        default: "draft"
+        default: "Entwurf"
       dry_run:
         description: "Dry run (true/false) — skip DB writes"
         required: false
