@@ -136,3 +136,60 @@ Generiert einen Artikel-Entwurf.
 | `risk_interactions_v1` | Risiko & Wechselwirkungen | Risikoprofil und Interaktionen |
 | `legal_status_v1` | Recht & Einordnung | Rechtliche Einordnung (neutral) |
 | `myths_facts_v1` | Mythen & Fakten | Aufklärung über Mythen |
+
+---
+
+## Masterlist-Pipeline (Bulk-Artikel-Stubs)
+
+Generiert ~1000 Substanz-Artikel als sichere MDX-Stubs (kein Dosing, keine
+Konsumanleitungen, keine Synthese) und importiert sie in `public.articles`.
+
+### Benötigte Secrets / Umgebungsvariablen
+
+| Variable | Beschreibung |
+|---|---|
+| `SUPABASE_URL` | Supabase-Projekt-URL (z. B. `https://xyz.supabase.co`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service-Role-Key (nur server-seitig, **geheim halten**) |
+
+Für GitHub Actions: Settings → Secrets and variables → Actions → **New repository secret**.
+
+### Lokale Ausführung
+
+```bash
+# 1. Masterlist generieren (Wikidata SPARQL)
+npm run gen:masterlist
+
+# 2. Import in Supabase (Dry-Run — keine DB-Schreibvorgänge)
+npm run import:masterlist:dry
+
+# 3. Import in Supabase (Live)
+SUPABASE_URL=https://… SUPABASE_SERVICE_ROLE_KEY=… npm run import:masterlist
+```
+
+Weitere CLI-Optionen für den Import:
+
+| Flag | Beschreibung |
+|---|---|
+| `--dry-run` | Kein DB-Zugriff, nur Simulation |
+| `--limit N` | Nur die ersten N Einträge importieren |
+| `--only slug1,slug2` | Nur bestimmte Slugs importieren |
+| `--status "Entwurf"` | Artikel-Status setzen (wird auf `draft` gemappt) |
+| `--verbose` | Mehr Log-Ausgabe |
+
+### GitHub Actions Workflow
+
+Der Workflow **Import Masterlist** kann manuell über die GitHub-UI ausgelöst werden:
+
+1. Repository → **Actions** → **Import Masterlist** → **Run workflow**
+2. Parameter eingeben: `limit`, `status`, `dry_run`
+3. Der Workflow führt `gen-masterlist.ts` und `import-masterlist.ts` sequenziell aus.
+
+### Verifizierung
+
+```sql
+-- Anzahl der Artikel prüfen
+SELECT count(*) FROM public.articles;
+
+-- Nur Stubs anzeigen
+SELECT slug, title, status, risk_level FROM public.articles WHERE status = 'draft' LIMIT 20;
+```
