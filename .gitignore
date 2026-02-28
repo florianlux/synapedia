@@ -47,6 +47,9 @@ next-env.d.ts
 # cache
 .cache/
 
+# generated seed data
+seeds/*.json
+
 # Xcode / iOS
 ios/build/
 ios/DerivedData/
