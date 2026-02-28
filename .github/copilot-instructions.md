@@ -161,3 +161,91 @@ Before submitting changes, ensure:
 1. `npm run lint` passes with no errors.
 2. `npm run build` completes successfully.
 3. If you changed any page or component visible in the e2e tests (`/`, `/brain`, `/interactions`, `/compare`, `/glossary`), run `npx playwright test` to verify no regressions.
+
+## Security and Safety Guidelines
+
+### Sensitive Data Protection
+- **Never commit secrets**: Do not commit API keys, tokens, or passwords. Use `.env.local` for local development (already gitignored).
+- **Environment variables**: All secrets must be in `.env.example` (with placeholder values) and `.env.local` (actual values, gitignored).
+- **Supabase credentials**: Service role keys must only be used server-side. Never expose them to the browser.
+- **Admin panel**: The `/admin` route is protected by `ADMIN_TOKEN` via middleware (`src/middleware.ts`). Do not bypass this protection.
+
+### Content Safety
+- **No dosage recommendations**: Synapedia is strictly educational. Never add dosing guides, consumption instructions, or procurement information.
+- **Scientific accuracy**: All pharmacological information must be evidence-based and cite reputable sources (PubMed, clinical trials, peer-reviewed journals).
+- **Harm reduction**: When discussing risks, always frame content around harm reduction, not promotion.
+
+### Database Security
+- **Row Level Security (RLS)**: All Supabase tables have RLS enabled. Do not disable RLS policies.
+- **User data isolation**: Users must only access their own data (`dosing_logs`, `user_profiles`). RLS policies enforce this.
+- **SQL injection**: Use Supabase client parameterized queries. Never construct raw SQL from user input.
+
+## Common Pitfalls and Troubleshooting
+
+### Build Issues
+- **`npm install` first**: Always run `npm install` before `npm run build`, especially after pulling changes.
+- **TailwindCSS v4**: Do NOT create a `tailwind.config.js` file. TailwindCSS v4 uses `@tailwindcss/postcss` configured in `postcss.config.mjs`.
+- **Type errors**: Run `npm run build` (not just `npm run dev`) to catch all TypeScript errors. Dev mode is more lenient.
+
+### Environment Setup
+- **Demo mode vs Live mode**: If Supabase env vars are missing, the app runs in demo mode (3 hardcoded articles). For full functionality, set up Supabase.
+- **Admin panel not showing**: Set `NEXT_PUBLIC_ADMIN_ENABLED=true` and `ADMIN_ENABLED=true` in `.env.local`, and configure `ADMIN_TOKEN`.
+
+### Data Handling
+- **Static JSON data**: `data/*.json` files are imported directly (client-side). These are public data, not secrets.
+- **Article content**: Articles are MDX rendered via `next-mdx-remote`. Test rendering locally before committing.
+
+### Common Errors
+- **"Cannot find module"**: Usually means `npm install` wasn't run or `node_modules` is corrupted. Delete `node_modules` and `.next`, then reinstall.
+- **Supabase client errors**: Check that env vars are correct. For server-side code, use `src/lib/supabase/server.ts`. For browser code, use `src/lib/supabase/client.ts`.
+- **Middleware not applying**: `src/middleware.ts` only runs on certain routes (see `matcher` in the file). Changes to middleware require a server restart.
+
+## Contribution Workflow
+
+### Making Changes
+1. **Branch naming**: Use descriptive names like `feature/glossary-search` or `fix/mobile-nav`.
+2. **Commit messages**: Write clear, concise messages in English. Use conventional commit format when possible (e.g., `feat:`, `fix:`, `docs:`).
+3. **Testing**: Always test changes locally before pushing:
+   - Run `npm run dev` and manually test the feature
+   - Run `npm run lint` to catch style issues
+   - Run `npm run build` to catch type errors
+   - Run `npx playwright test` if you changed user-facing pages
+
+### Pull Request Guidelines
+- **Small, focused PRs**: Keep changes focused on a single feature or fix.
+- **Description**: Explain what changed and why. Link to relevant issues.
+- **Screenshots**: For UI changes, include before/after screenshots.
+- **Checklist**: Confirm lint, build, and tests pass.
+
+### Code Review
+- **Respond to feedback**: Address review comments promptly.
+- **Merge strategy**: Squash and merge is preferred to keep commit history clean.
+
+## AI-Specific Development Patterns
+
+### Using AI Autofill Features
+The codebase includes AI autofill utilities in `src/lib/ai/`. These use OpenAI or Anthropic APIs to generate content.
+
+- **Environment variables**: Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in `.env.local`.
+- **Server-side only**: AI API calls must happen server-side (API routes or Server Components) to protect API keys.
+- **Rate limiting**: Consider rate limiting AI endpoints to prevent abuse.
+- **Content validation**: Always validate and review AI-generated content before saving to the database.
+
+### Best Practices for AI-Generated Content
+- **Human review**: AI-generated article content should be reviewed by a human before publishing.
+- **Source verification**: Always verify scientific claims and add proper citations.
+- **Bias awareness**: Be aware of potential biases in AI-generated text, especially regarding substance use.
+
+## Additional Resources
+
+- **Next.js App Router Docs**: https://nextjs.org/docs/app
+- **Supabase Docs**: https://supabase.com/docs
+- **TailwindCSS v4 Docs**: https://tailwindcss.com/docs
+- **shadcn/ui Components**: https://ui.shadcn.com/
+- **Playwright Testing**: https://playwright.dev/
+
+## Questions or Issues?
+
+- **Bug reports**: Open an issue on GitHub with reproduction steps.
+- **Feature requests**: Discuss in GitHub Discussions or open an issue with the `enhancement` label.
+- **Security issues**: Report via GitHub Security Advisories, not public issues.
