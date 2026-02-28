@@ -128,7 +128,9 @@ function sleep(ms: number): Promise<void> {
 // Sanity check — verify required columns exist in public.articles
 // ---------------------------------------------------------------------------
 
-const REQUIRED_COLUMNS = ["slug", "title", "mdx", "risk", "evidence", "aliases", "tags", "status"] as const;
+const REQUIRED_COLUMNS = [
+  "slug","title","mdx","excerpt","risk","evidence","aliases","tags","status","updated_at",
+] as const;
 
 async function verifySchemaSanity(supabase: SupabaseClient): Promise<boolean> {
   const { error } = await supabase
@@ -233,20 +235,18 @@ async function main(): Promise<void> {
     const mdx = generateMdxStub(title);
 
     // ✅ IMPORTANT: write ONLY real DB columns
-    const row = {
-      slug: entry.slug,
-      title,
-      subtitle: null as string | null,
-      summary: `Automatisch generierter Stub-Artikel für ${title}.`,
-      mdx, // ✅ real column
-      status: dbStatus, // ✅ real column
-      risk: entry.risk ?? "Unbekannt", // ✅ real column
-      evidence: entry.evidence ?? "Unbekannt", // ✅ real column
-      aliases: entry.aliases ?? [], // ✅ real column
-      tags: entry.tags ?? [], // ✅ real column
-      updated_at: new Date().toISOString(), // ✅ real column
-    };
-
+   const row = {
+  slug: entry.slug,
+  title,
+  mdx,
+  excerpt: `Automatisch generierter Stub-Artikel für ${title}.`,
+  status: dbStatus,
+  risk: entry.risk ?? "Unbekannt",
+  evidence: entry.evidence ?? "Unbekannt",
+  aliases: entry.aliases ?? [],
+  tags: entry.tags ?? [],
+  updated_at: new Date().toISOString(),
+};
     if (opts.verbose) {
       console.log(`${idx} preparing ${entry.slug} (tags: ${(entry.tags ?? []).join(", ") || "none"})`);
     }
