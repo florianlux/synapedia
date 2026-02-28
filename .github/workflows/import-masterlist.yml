@@ -35,15 +35,19 @@ jobs:
         run: npm ci
 
       - name: Generate masterlist
-        run: npx tsx scripts/gen-masterlist.ts --limit ${{ inputs.limit }}
+        env:
+          LIMIT: ${{ inputs.limit }}
+        run: npx tsx scripts/gen-masterlist.ts --limit "$LIMIT"
 
       - name: Import masterlist
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STATUS: ${{ inputs.status }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          CMD="npx tsx scripts/import-masterlist.ts --status ${{ inputs.status }}"
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          CMD="npx tsx scripts/import-masterlist.ts --status \"$STATUS\""
+          if [ "$DRY_RUN" = "true" ]; then
             CMD="$CMD --dry-run"
           fi
           $CMD
