@@ -93,6 +93,43 @@ function parseArgs(): CliOptions {
 }
 
 // ---------------------------------------------------------------------------
+// Controlled vocabulary mapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Matches DB constraint:
+ * evidence_level IN ('strong','moderate','limited','preclinical','unknown')
+ */
+function mapEvidenceLevel(
+  input?: string
+): "strong" | "moderate" | "limited" | "preclinical" | "unknown" {
+  const v = (input ?? "").trim().toLowerCase();
+
+  if (["strong", "stark", "hoch", "sehr hoch"].includes(v)) return "strong";
+  if (["moderate", "mittel"].includes(v)) return "moderate";
+  if (["limited", "weak", "schwach", "niedrig", "gering", "unknown", "unbekannt"].includes(v))
+    return "limited";
+  if (["preclinical", "präklinisch", "pre-clinical"].includes(v)) return "preclinical";
+
+  return "unknown";
+}
+
+/**
+ * ⚠️ Make sure this matches your DB constraint for substances.risk_level.
+ * Typical: risk_level IN ('low','moderate','high','unknown')
+ */
+function mapRiskLevel(input?: string): "low" | "moderate" | "high" | "unknown" {
+  const v = (input ?? "").trim().toLowerCase();
+
+  if (["high", "hoch", "sehr hoch"].includes(v)) return "high";
+  if (["moderate", "mittel"].includes(v)) return "moderate";
+  if (["low", "niedrig", "gering"].includes(v)) return "low";
+
+  // if masterlist had “unknown/unbekannt”
+  return "unknown";
+}
+
+// ---------------------------------------------------------------------------
 // Sleep helper
 // ---------------------------------------------------------------------------
 
@@ -116,10 +153,7 @@ const REQUIRED_COLUMNS = [
 ] as const;
 
 async function verifySchemaSanity(supabase: SupabaseClient): Promise<boolean> {
-  const { error } = await supabase
-    .from("substances")
-    .select(REQUIRED_COLUMNS.join(","))
-    .limit(0);
+  const { error } = await supabase.from("substances").select(REQUIRED_COLUMNS.join(",")).limit(0);
 
   if (!error) return true;
 
@@ -133,7 +167,6 @@ async function verifySchemaSanity(supabase: SupabaseClient): Promise<boolean> {
     return false;
   }
 
-  // Non-schema errors shouldn't block imports (RLS etc.)
   console.warn(`[import-substances] ⚠ Schema check error (proceeding): ${msg}`);
   return true;
 }
@@ -145,7 +178,6 @@ async function verifySchemaSanity(supabase: SupabaseClient): Promise<boolean> {
 async function main(): Promise<void> {
   const opts = parseArgs();
 
-  // Read masterlist
   if (!fs.existsSync(MASTERLIST_FILE)) {
     console.error(`[import-substances] File not found: ${MASTERLIST_FILE}`);
     console.error("[import-substances] Run 'npm run gen:masterlist' first.");
@@ -155,13 +187,11 @@ async function main(): Promise<void> {
   const raw = fs.readFileSync(MASTERLIST_FILE, "utf-8");
   let entries: MasterlistEntry[] = JSON.parse(raw);
 
-  // Filter by --only
   if (opts.only.length > 0) {
     const allowed = new Set(opts.only);
     entries = entries.filter((e) => allowed.has(e.slug));
   }
 
-  // Apply --limit
   if (Number.isFinite(opts.limit)) {
     entries = entries.slice(0, opts.limit);
   }
@@ -169,7 +199,6 @@ async function main(): Promise<void> {
   console.log(`[import-substances] ${entries.length} entries to process.`);
   if (opts.dryRun) console.log("[import-substances] DRY RUN — no database writes.");
 
-  // Normalize status to DB-friendly values
   const statusMap: Record<string, "draft" | "review" | "published"> = {
     entwurf: "draft",
     draft: "draft",
@@ -178,7 +207,6 @@ async function main(): Promise<void> {
   };
   const dbStatus = statusMap[opts.status.toLowerCase()] ?? "draft";
 
-  // In dry-run we do not need a DB connection
   let supabase: SupabaseClient | null = null;
 
   if (!opts.dryRun) {
@@ -192,7 +220,6 @@ async function main(): Promise<void> {
 
     supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Sanity check: verify DB schema has expected columns
     const schemaOk = await verifySchemaSanity(supabase);
     if (!schemaOk) {
       console.error("[import-substances] Aborting due to schema mismatch.");
@@ -204,12 +231,15 @@ async function main(): Promise<void> {
   const existingNames = new Map<string, string>();
   if (!opts.dryRun) {
     const slugs = entries.filter((e) => e.title && e.slug).map((e) => e.slug);
-    const { data } = await supabase!
+    const { data, error } = await supabase!
       .from("substances")
       .select("slug,canonical_name")
       .in("slug", slugs);
-    if (data) {
-      for (const row of data) {
+
+    if (error) {
+      console.warn(`[import-substances] ⚠ prefetch canonical_name failed: ${error.message}`);
+    } else if (data) {
+      for (const row of data as Array<{ slug: string; canonical_name: string | null }>) {
         if (row.canonical_name) existingNames.set(row.slug, row.canonical_name);
       }
     }
@@ -237,29 +267,28 @@ async function main(): Promise<void> {
       canonical_name: existingNames.get(entry.slug) || name,
       aliases: entry.aliases ?? [],
       tags: entry.tags ?? [],
-      risk_level: entry.risk ?? "Unbekannt",
-      evidence_level: entry.evidence ?? "Unbekannt",
+      risk_level: mapRiskLevel(entry.risk),
+      evidence_level: mapEvidenceLevel(entry.evidence),
       status: dbStatus,
       updated_at: new Date().toISOString(),
     };
 
     if (opts.verbose) {
-      console.log(`${idx} preparing ${entry.slug} (tags: ${(entry.tags ?? []).join(", ") || "none"})`);
+      console.log(
+        `${idx} preparing ${entry.slug} (risk=${row.risk_level}, evidence=${row.evidence_level})`
+      );
     }
 
     if (opts.dryRun) {
       console.log(`${idx} [dry-run] would upsert ${entry.slug}`);
       upserted++;
     } else {
-      const { error } = await supabase!
-        .from("substances")
-        .upsert(row, { onConflict: "slug" });
+      const { error } = await supabase!.from("substances").upsert(row, { onConflict: "slug" });
 
       if (error) {
         console.error(`${idx} ERROR upserting ${entry.slug}: ${error.message}`);
         errors.push({ slug: entry.slug, error: error.message });
 
-        // Abort early on schema-level errors
         if (error.message.includes("column") && error.message.includes("does not exist")) {
           console.error("[import-substances] ❌ Missing column detected — aborting.");
           break;
@@ -270,11 +299,9 @@ async function main(): Promise<void> {
       }
     }
 
-    // Sequential delay (avoid rate limits)
     if (i < entries.length - 1) await sleep(75);
   }
 
-  // Summary
   console.log("\n=== Import Summary ===");
   console.log(`Total processed: ${entries.length}`);
   console.log(`Upserted:        ${upserted}`);
