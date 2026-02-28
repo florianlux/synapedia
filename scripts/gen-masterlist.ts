@@ -26,8 +26,11 @@ const SPARQL_ENDPOINT_FALLBACK =
 
 const USER_AGENT = "synapedia-import/1.0 (github actions; https://github.com/florianlux/synapedia)";
 const MAX_RETRIES = 6;
-const REQUEST_TIMEOUT_MS = 25_000; // keep below Actions job timeout and WDQS latency spikes
+const REQUEST_TIMEOUT_MS = 60_000; // 60s — generous timeout for WDQS latency spikes
 const BATCH_DELAY_MS = 800; // polite delay between batches
+const RETRY_AFTER_CAP_S = 60; // max seconds we'll honour from Retry-After header
+const BASE_BATCH_SIZE = 50;
+const MIN_BATCH_SIZE = 10;
 
 const SCRIPT_DIR =
   typeof __dirname !== "undefined"
@@ -138,25 +141,40 @@ function backoffMs(attempt: number): number {
   return base + jitter;
 }
 
+function parseRetryAfter(header: string | null): number | undefined {
+  if (!header) return undefined;
+  const seconds = Number(header);
+  if (!isNaN(seconds) && seconds > 0) {
+    return Math.min(seconds, RETRY_AFTER_CAP_S) * 1_000;
+  }
+  // Retry-After can also be an HTTP-date; ignore those and fall back to backoff
+  return undefined;
+}
+
 async function fetchSparqlFromEndpoint(endpoint: string, query: string): Promise<SparqlResponse> {
-  const params = new URLSearchParams({ query, format: "json" });
+  const body = new URLSearchParams({ query });
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const res = await fetch(`${endpoint}?${params.toString()}`, {
+    const res = await fetch(endpoint, {
+      method: "POST",
       headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
         Accept: "application/sparql-results+json",
         "User-Agent": USER_AGENT,
       },
+      body: body.toString(),
       signal: controller.signal,
     });
 
     if (!res.ok) {
+      const retryAfter = parseRetryAfter(res.headers.get("Retry-After"));
       const text = await res.text().catch(() => "");
       throw Object.assign(new Error(`SPARQL error ${res.status}: ${text.slice(0, 300)}`), {
         status: res.status,
+        retryAfterMs: retryAfter,
       });
     }
 
@@ -177,6 +195,8 @@ async function fetchSparql(query: string): Promise<SparqlResponse> {
     const tryBoth = attempt >= 3;
     const toTry = tryBoth ? endpoints : [SPARQL_ENDPOINT_PRIMARY];
 
+    let retryAfterMs: number | undefined;
+
     for (const endpoint of toTry) {
       try {
         return await fetchSparqlFromEndpoint(endpoint, query);
@@ -184,6 +204,11 @@ async function fetchSparql(query: string): Promise<SparqlResponse> {
         lastError = err;
         const msg = err instanceof Error ? err.message : String(err);
         const status = typeof err?.status === "number" ? err.status : undefined;
+
+        // Capture Retry-After from 429/503 errors
+        if ((status === 429 || status === 503) && typeof err?.retryAfterMs === "number") {
+          retryAfterMs = err.retryAfterMs;
+        }
 
         const retryable = status ? isRetryableStatus(status) : msg.toLowerCase().includes("abort");
         console.warn(
@@ -198,8 +223,8 @@ async function fetchSparql(query: string): Promise<SparqlResponse> {
     }
 
     if (attempt < MAX_RETRIES) {
-      const wait = backoffMs(attempt);
-      console.warn(`[gen-masterlist] Retrying in ${wait}ms…`);
+      const wait = retryAfterMs ?? backoffMs(attempt);
+      console.warn(`[gen-masterlist] Retrying in ${wait}ms${retryAfterMs ? " (Retry-After)" : " (backoff)"}…`);
       await sleep(wait);
     }
   }
@@ -307,13 +332,19 @@ function fallbackEntries(limit: number): MasterlistEntry[] {
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// Checkpoint: write accumulated entries to disk
 // ---------------------------------------------------------------------------
 
-function computeBatchSize(targetLimit: number): number {
-  // For limit=10 => 30. For large limits cap at 60 to avoid WDQS timeouts.
-  return Math.min(60, Math.max(20, targetLimit * 3));
+function checkpoint(entries: Map<string, MasterlistEntry>): void {
+  const arr = Array.from(entries.values());
+  fs.mkdirSync(SEEDS_DIR, { recursive: true });
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(arr, null, 2) + "\n");
+  console.log(`[gen-masterlist] ✓ Checkpoint saved: ${arr.length} entries → ${OUTPUT_FILE}`);
 }
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -326,51 +357,74 @@ async function main(): Promise<void> {
   }
 
   console.log(`[gen-masterlist] Fetching up to ${limit} substances from Wikidata SPARQL…`);
+  console.log(`[gen-masterlist] Primary endpoint: ${SPARQL_ENDPOINT_PRIMARY}`);
+  console.log(`[gen-masterlist] Fallback endpoint: ${SPARQL_ENDPOINT_FALLBACK}`);
 
   const allEntries = new Map<string, MasterlistEntry>();
   let offset = 0;
+  let batchSize = BASE_BATCH_SIZE;
 
-  const requestSize = computeBatchSize(limit);
-  console.log(`[gen-masterlist] Using request batch size=${requestSize} (dynamic).`);
+  console.log(`[gen-masterlist] Initial batch size=${batchSize}, min=${MIN_BATCH_SIZE}.`);
 
-  try {
-    while (allEntries.size < limit) {
-      const remaining = limit - allEntries.size;
+  while (allEntries.size < limit) {
+    const remaining = limit - allEntries.size;
 
-      // overfetch slightly to compensate for dedup, but keep it small
-      const batchLimit = Math.min(requestSize, remaining + Math.min(15, Math.ceil(remaining / 2)));
+    // overfetch slightly to compensate for dedup, but keep it small
+    const batchLimit = Math.min(batchSize, remaining + Math.min(15, Math.ceil(remaining / 2)));
 
-      console.log(`[gen-masterlist]   batch offset=${offset}, request size=${batchLimit}…`);
-      const response = await fetchSparql(buildQuery(batchLimit, offset));
-      const bindings = response.results.bindings;
+    console.log(`[gen-masterlist]   batch offset=${offset}, request size=${batchLimit}, batch size=${batchSize}…`);
 
-      if (bindings.length === 0) {
-        console.log("[gen-masterlist]   no more results. Done fetching.");
-        break;
+    let response: SparqlResponse | undefined;
+    try {
+      response = await fetchSparql(buildQuery(batchLimit, offset));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[gen-masterlist] Batch failed (size=${batchSize}): ${msg}`);
+
+      // Adaptive: halve batch size and retry same offset
+      if (batchSize > MIN_BATCH_SIZE) {
+        batchSize = Math.max(MIN_BATCH_SIZE, Math.floor(batchSize / 2));
+        console.warn(`[gen-masterlist] ↓ Reducing batch size to ${batchSize} and retrying same offset…`);
+        continue; // retry same offset with smaller batch
       }
 
-      const batchEntries = parseBindings(bindings);
-      for (const [slug, entry] of batchEntries) {
-        if (allEntries.size >= limit) break;
-        if (!allEntries.has(slug)) allEntries.set(slug, entry);
+      // Min batch size still fails — fall back
+      console.error("[gen-masterlist] Min batch size exhausted. Writing fallback masterlist so pipeline can proceed.");
+      if (allEntries.size > 0) {
+        // We have partial data — use it instead of the hardcoded fallback
+        checkpoint(allEntries);
+        console.log(`[gen-masterlist] Wrote partial results: ${allEntries.size} entries.`);
+      } else {
+        const fallback = fallbackEntries(limit);
+        fs.mkdirSync(SEEDS_DIR, { recursive: true });
+        fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fallback, null, 2) + "\n");
+        console.log(`[gen-masterlist] Wrote fallback ${OUTPUT_FILE} (${fallback.length} entries)`);
       }
-
-      offset += batchLimit;
-
-      // If we got fewer bindings than requested, we likely reached the end
-      if (bindings.length < batchLimit) break;
-
-      if (allEntries.size < limit) await sleep(BATCH_DELAY_MS);
+      return;
     }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[gen-masterlist] WDQS fetch failed: ${msg}`);
-    console.warn("[gen-masterlist] Writing fallback masterlist so pipeline can proceed.");
-    const fallback = fallbackEntries(limit);
-    fs.mkdirSync(SEEDS_DIR, { recursive: true });
-    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fallback, null, 2) + "\n");
-    console.log(`[gen-masterlist] Wrote fallback ${OUTPUT_FILE} (${fallback.length} entries)`);
-    return;
+
+    const bindings = response.results.bindings;
+
+    if (bindings.length === 0) {
+      console.log("[gen-masterlist]   no more results. Done fetching.");
+      break;
+    }
+
+    const batchEntries = parseBindings(bindings);
+    for (const [slug, entry] of batchEntries) {
+      if (allEntries.size >= limit) break;
+      if (!allEntries.has(slug)) allEntries.set(slug, entry);
+    }
+
+    offset += batchLimit;
+
+    // Progressive checkpoint after each successful batch
+    checkpoint(allEntries);
+
+    // If we got fewer bindings than requested, we likely reached the end
+    if (bindings.length < batchLimit) break;
+
+    if (allEntries.size < limit) await sleep(BATCH_DELAY_MS);
   }
 
   const result = Array.from(allEntries.values()).slice(0, limit);
