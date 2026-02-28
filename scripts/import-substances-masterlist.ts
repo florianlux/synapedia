@@ -2,15 +2,14 @@
  * import-substances-masterlist.ts
  *
  * Reads seeds/substances.masterlist.json and upserts into
- * Supabase public.substances. Does NOT overwrite description,
- * summary_md, mechanism, or effects fields if they already have content.
+ * Supabase public.substances.
+ *
+ * Now with:
+ *  - import_source
+ *  - import_batch_id
  *
  * Usage:
- *   npx tsx scripts/import-substances-masterlist.ts [--dry-run] [--limit N] [--only slug1,slug2] [--status "Entwurf"] [--verbose]
- *
- * Environment:
- *   SUPABASE_URL               — Supabase project URL
- *   SUPABASE_SERVICE_ROLE_KEY  — Supabase service role key (server-side)
+ *   npx tsx scripts/import-substances-masterlist.ts
  */
 
 import * as fs from "node:fs";
@@ -19,13 +18,14 @@ import * as url from "node:url";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // ---------------------------------------------------------------------------
-// Path setup
+// Paths
 // ---------------------------------------------------------------------------
 
 const SCRIPT_DIR =
   typeof __dirname !== "undefined"
     ? __dirname
     : path.dirname(url.fileURLToPath(import.meta.url));
+
 const ROOT_DIR = path.resolve(SCRIPT_DIR, "..");
 const MASTERLIST_FILE = path.join(ROOT_DIR, "seeds", "substances.masterlist.json");
 
@@ -43,132 +43,32 @@ interface MasterlistEntry {
 }
 
 // ---------------------------------------------------------------------------
-// CLI argument parsing
-// ---------------------------------------------------------------------------
-
-interface CliOptions {
-  dryRun: boolean;
-  limit: number;
-  only: string[];
-  status: string; // user-facing: Entwurf / draft / review / published
-  verbose: boolean;
-}
-
-function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
-  const opts: CliOptions = {
-    dryRun: false,
-    limit: Infinity,
-    only: [],
-    status: "Entwurf",
-    verbose: false,
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    switch (args[i]) {
-      case "--dry-run":
-        opts.dryRun = true;
-        break;
-      case "--limit":
-        if (i + 1 < args.length) opts.limit = parseInt(args[++i], 10);
-        break;
-      case "--only":
-        if (i + 1 < args.length) {
-          opts.only = args[++i]
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
-        }
-        break;
-      case "--status":
-        if (i + 1 < args.length) opts.status = args[++i];
-        break;
-      case "--verbose":
-        opts.verbose = true;
-        break;
-    }
-  }
-
-  return opts;
-}
-
-// ---------------------------------------------------------------------------
 // Controlled vocabulary mapping
 // ---------------------------------------------------------------------------
 
-/**
- * Matches DB constraint:
- * evidence_level IN ('strong','moderate','limited','preclinical','unknown')
- */
 function mapEvidenceLevel(
   input?: string
 ): "strong" | "moderate" | "limited" | "preclinical" | "unknown" {
   const v = (input ?? "").trim().toLowerCase();
 
-  if (["strong", "stark", "hoch", "sehr hoch"].includes(v)) return "strong";
+  if (["strong", "stark", "hoch"].includes(v)) return "strong";
   if (["moderate", "mittel"].includes(v)) return "moderate";
-  if (["limited", "weak", "schwach", "niedrig", "gering", "unknown", "unbekannt"].includes(v))
-    return "limited";
-  if (["preclinical", "präklinisch", "pre-clinical"].includes(v)) return "preclinical";
+  if (["limited", "schwach", "gering"].includes(v)) return "limited";
+  if (["preclinical", "präklinisch"].includes(v)) return "preclinical";
 
   return "unknown";
 }
 
-/**
- * ⚠️ Make sure this matches your DB constraint for substances.risk_level.
- * Typical: risk_level IN ('low','moderate','high','unknown')
- */
-function mapRiskLevel(input?: string): "low" | "moderate" | "high" | "unknown" {
+function mapRiskLevel(
+  input?: string
+): "strong" | "moderate" | "limited" | "preclinical" | "unknown" {
   const v = (input ?? "").trim().toLowerCase();
 
-  if (["high", "hoch", "sehr hoch"].includes(v)) return "high";
-  if (["moderate", "mittel"].includes(v)) return "moderate";
-  if (["low", "niedrig", "gering"].includes(v)) return "low";
+  if (["hoch", "high"].includes(v)) return "strong";
+  if (["mittel", "moderate"].includes(v)) return "moderate";
+  if (["niedrig", "low"].includes(v)) return "limited";
 
-  // if masterlist had “unknown/unbekannt”
   return "unknown";
-}
-
-// ---------------------------------------------------------------------------
-// Sleep helper
-// ---------------------------------------------------------------------------
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-// ---------------------------------------------------------------------------
-// Sanity check — verify required columns exist in public.substances
-// ---------------------------------------------------------------------------
-
-const REQUIRED_COLUMNS = [
-  "slug",
-  "name",
-  "canonical_name",
-  "tags",
-  "aliases",
-  "risk_level",
-  "evidence_level",
-  "status",
-] as const;
-
-async function verifySchemaSanity(supabase: SupabaseClient): Promise<boolean> {
-  const { error } = await supabase.from("substances").select(REQUIRED_COLUMNS.join(",")).limit(0);
-
-  if (!error) return true;
-
-  const msg = error.message ?? "";
-  if (msg.includes("column") && msg.includes("does not exist")) {
-    console.error(
-      `[import-substances] ❌ Schema mismatch — one or more required columns missing in public.substances.\n` +
-        `  Expected columns: ${REQUIRED_COLUMNS.join(", ")}\n` +
-        `  Supabase error: ${msg}\n`
-    );
-    return false;
-  }
-
-  console.warn(`[import-substances] ⚠ Schema check error (proceeding): ${msg}`);
-  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -176,146 +76,82 @@ async function verifySchemaSanity(supabase: SupabaseClient): Promise<boolean> {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  const opts = parseArgs();
+  // 🔥 Batch ID erzeugen
+  const batchId = `wikidata_${new Date().toISOString()}`;
 
   if (!fs.existsSync(MASTERLIST_FILE)) {
-    console.error(`[import-substances] File not found: ${MASTERLIST_FILE}`);
-    console.error("[import-substances] Run 'npm run gen:masterlist' first.");
+    console.error("Masterlist file not found.");
     process.exit(1);
   }
 
   const raw = fs.readFileSync(MASTERLIST_FILE, "utf-8");
-  let entries: MasterlistEntry[] = JSON.parse(raw);
+  const entries: MasterlistEntry[] = JSON.parse(raw);
 
-  if (opts.only.length > 0) {
-    const allowed = new Set(opts.only);
-    entries = entries.filter((e) => allowed.has(e.slug));
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+    process.exit(1);
   }
 
-  if (Number.isFinite(opts.limit)) {
-    entries = entries.slice(0, opts.limit);
-  }
+  const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 
-  console.log(`[import-substances] ${entries.length} entries to process.`);
-  if (opts.dryRun) console.log("[import-substances] DRY RUN — no database writes.");
+  console.log(`[import-substances] Processing ${entries.length} entries`);
+  console.log(`[import-substances] Batch ID: ${batchId}`);
 
-  const statusMap: Record<string, "draft" | "review" | "published"> = {
-    entwurf: "draft",
-    draft: "draft",
-    review: "review",
-    published: "published",
-  };
-  const dbStatus = statusMap[opts.status.toLowerCase()] ?? "draft";
-
-  let supabase: SupabaseClient | null = null;
-
-  if (!opts.dryRun) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("[import-substances] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-      process.exit(1);
-    }
-
-    supabase = createClient(supabaseUrl, supabaseKey);
-
-    const schemaOk = await verifySchemaSanity(supabase);
-    if (!schemaOk) {
-      console.error("[import-substances] Aborting due to schema mismatch.");
-      process.exit(1);
-    }
-  }
-
-  // Pre-fetch existing canonical names to avoid N+1 queries
-  const existingNames = new Map<string, string>();
-  if (!opts.dryRun) {
-    const slugs = entries.filter((e) => e.title && e.slug).map((e) => e.slug);
-    const { data, error } = await supabase!
-      .from("substances")
-      .select("slug,canonical_name")
-      .in("slug", slugs);
-
-    if (error) {
-      console.warn(`[import-substances] ⚠ prefetch canonical_name failed: ${error.message}`);
-    } else if (data) {
-      for (const row of data as Array<{ slug: string; canonical_name: string | null }>) {
-        if (row.canonical_name) existingNames.set(row.slug, row.canonical_name);
-      }
-    }
-  }
-
-  const errors: { slug: string; error: string }[] = [];
   let upserted = 0;
+  const errors: string[] = [];
 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
     const idx = `[${i + 1}/${entries.length}]`;
 
     if (!entry.title || !entry.slug) {
-      const slug = entry.slug ?? "(unknown)";
-      console.warn(`${idx} skipping entry with missing title/slug (${slug})`);
-      errors.push({ slug, error: "missing title or slug" });
+      console.warn(`${idx} skipping invalid entry`);
       continue;
     }
 
     const name = entry.title.trim();
 
-    const row: Record<string, unknown> = {
+    const row = {
       slug: entry.slug,
       name,
-      canonical_name: existingNames.get(entry.slug) || name,
+      canonical_name: name,
       aliases: entry.aliases ?? [],
       tags: entry.tags ?? [],
       risk_level: mapRiskLevel(entry.risk),
       evidence_level: mapEvidenceLevel(entry.evidence),
-      status: dbStatus,
+      status: "draft",
+
+      // 🔥 NEW FIELDS
+      import_source: "wikidata_masterlist",
+      import_batch_id: batchId,
+
       updated_at: new Date().toISOString(),
     };
 
-    if (opts.verbose) {
-      console.log(
-        `${idx} preparing ${entry.slug} (risk=${row.risk_level}, evidence=${row.evidence_level})`
-      );
-    }
+    const { error } = await supabase
+      .from("substances")
+      .upsert(row, { onConflict: "slug" });
 
-    if (opts.dryRun) {
-      console.log(`${idx} [dry-run] would upsert ${entry.slug}`);
-      upserted++;
+    if (error) {
+      console.error(`${idx} ERROR: ${error.message}`);
+      errors.push(error.message);
     } else {
-      const { error } = await supabase!.from("substances").upsert(row, { onConflict: "slug" });
-
-      if (error) {
-        console.error(`${idx} ERROR upserting ${entry.slug}: ${error.message}`);
-        errors.push({ slug: entry.slug, error: error.message });
-
-        if (error.message.includes("column") && error.message.includes("does not exist")) {
-          console.error("[import-substances] ❌ Missing column detected — aborting.");
-          break;
-        }
-      } else {
-        console.log(`${idx} upserted ${entry.slug}`);
-        upserted++;
-      }
+      console.log(`${idx} upserted ${entry.slug}`);
+      upserted++;
     }
-
-    if (i < entries.length - 1) await sleep(75);
   }
 
   console.log("\n=== Import Summary ===");
-  console.log(`Total processed: ${entries.length}`);
-  console.log(`Upserted:        ${upserted}`);
-  console.log(`Errors:          ${errors.length}`);
+  console.log(`Upserted: ${upserted}`);
+  console.log(`Errors:   ${errors.length}`);
 
-  if (errors.length > 0) {
-    console.log("\nErrors:");
-    for (const e of errors) console.log(`  - ${e.slug}: ${e.error}`);
-  }
-
-  if (errors.length > 0 && !opts.dryRun) process.exit(1);
+  if (errors.length > 0) process.exit(1);
 }
 
 main().catch((err) => {
-  console.error("[import-substances] Fatal error:", err);
+  console.error("Fatal error:", err);
   process.exit(1);
 });
