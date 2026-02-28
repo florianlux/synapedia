@@ -1,0 +1,88 @@
+[
+  {
+    "title": "Psilocybin",
+    "slug": "psilocybin",
+    "summary": "Psilocybin ist ein natürlich vorkommendes Tryptamin-Alkaloid mit psychedelischer Wirkung.",
+    "aliases": ["4-PO-DMT", "Zauberpilze"],
+    "tags": ["psychedelikum", "tryptamin", "serotonerg"],
+    "risk": "moderate",
+    "evidence": "strong"
+  },
+  {
+    "title": "MDMA",
+    "slug": "mdma",
+    "summary": "MDMA ist ein Amphetaminderivat mit entaktogener und empathogener Wirkung.",
+    "aliases": ["Ecstasy", "Molly", "3,4-Methylendioxymethamphetamin"],
+    "tags": ["entaktogen", "amphetamin", "serotonerg"],
+    "risk": "moderate",
+    "evidence": "strong"
+  },
+  {
+    "title": "Ketamin",
+    "slug": "ketamin",
+    "summary": "Ketamin ist ein dissoziatives Anästhetikum mit NMDA-Rezeptor-antagonistischer Wirkung.",
+    "aliases": ["Ketamine", "Special K"],
+    "tags": ["dissoziativum", "anästhetikum", "glutamaterg"],
+    "risk": "moderate",
+    "evidence": "moderate"
+  },
+  {
+    "title": "Amphetamin",
+    "summary": "Amphetamin ist ein zentralnervöses Stimulans aus der Gruppe der Phenylethylamine.",
+    "aliases": ["Speed", "Pep"],
+    "tags": ["stimulans", "phenylethylamin", "dopaminerg"],
+    "risk": "high",
+    "evidence": "strong"
+  },
+  {
+    "title": "LSD",
+    "slug": "lsd",
+    "summary": "LSD (Lysergsäurediethylamid) ist ein halbsynthetisches Psychedelikum der Ergolin-Klasse.",
+    "aliases": ["Acid", "Lysergsäurediethylamid"],
+    "tags": ["psychedelikum", "ergolin", "serotonerg"],
+    "risk": "moderate",
+    "evidence": "strong"
+  },
+  {
+    "title": "Cannabis",
+    "summary": "Cannabis ist eine Pflanzengattung mit psychoaktiven Cannabinoiden, insbesondere THC und CBD.",
+    "aliases": ["Marihuana", "Hanf", "Gras"],
+    "tags": ["cannabinoid", "pflanzlich"],
+    "risk": "moderate",
+    "evidence": "strong"
+  },
+  {
+    "title": "Kokain",
+    "summary": "Kokain ist ein Tropan-Alkaloid mit stark stimulierender und lokalanästhetischer Wirkung.",
+    "aliases": ["Cocaine", "Koks"],
+    "tags": ["stimulans", "tropanalkaloid", "dopaminerg"],
+    "risk": "high",
+    "evidence": "strong"
+  },
+  {
+    "title": "DMT",
+    "slug": "dmt",
+    "summary": "DMT (N,N-Dimethyltryptamin) ist ein potentes, kurz wirksames Tryptamin-Psychedelikum.",
+    "aliases": ["N,N-DMT", "Dimethyltryptamin"],
+    "tags": ["psychedelikum", "tryptamin", "serotonerg"],
+    "risk": "moderate",
+    "evidence": "moderate"
+  },
+  {
+    "title": "GHB",
+    "slug": "ghb",
+    "summary": "GHB (Gamma-Hydroxybuttersäure) ist ein endogener Neurotransmitter mit sedierender Wirkung.",
+    "aliases": ["Gamma-Hydroxybuttersäure", "Liquid Ecstasy"],
+    "tags": ["depressivum", "gabaerg"],
+    "risk": "high",
+    "evidence": "moderate"
+  },
+  {
+    "title": "Methamphetamin",
+    "summary": "Methamphetamin ist ein stark wirksames Stimulans der Amphetamin-Klasse.",
+    "aliases": ["Crystal Meth", "Ice", "Pervitin"],
+    "tags": ["stimulans", "amphetamin", "dopaminerg"],
+    "risk": "high",
+    "evidence": "strong"
+  }
+]

@@ -136,3 +136,31 @@ Generiert einen Artikel-Entwurf.
 | `risk_interactions_v1` | Risiko & Wechselwirkungen | Risikoprofil und Interaktionen |
 | `legal_status_v1` | Recht & Einordnung | Rechtliche Einordnung (neutral) |
 | `myths_facts_v1` | Mythen & Fakten | Aufklärung über Mythen |
+
+## Masterlist Import
+
+Importiert Substanzen aus `seeds/substances.masterlist.json` in `public.articles` (Upsert auf `slug`).
+
+```bash
+# Alle Einträge importieren
+npm run import:masterlist
+
+# Vorschau ohne Datenbankschreibvorgänge
+npm run import:masterlist -- --dry-run
+
+# Nur die ersten 50 Einträge
+npm run import:masterlist -- --limit 50
+
+# Nur bestimmte Substanzen
+npm run import:masterlist -- --only amphetamin,mdma
+
+# Mit benutzerdefiniertem Status
+npm run import:masterlist -- --status "Entwurf"
+
+# Ausführliche Ausgabe
+npm run import:masterlist -- --verbose
+```
+
+Benötigte Umgebungsvariablen:
+- `SUPABASE_URL` oder `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
