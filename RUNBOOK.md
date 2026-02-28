@@ -154,7 +154,7 @@ npm run import:masterlist -- --limit 50
 # Nur bestimmte Substanzen
 npm run import:masterlist -- --only amphetamin,mdma
 
-# Mit benutzerdefiniertem Status
+# Mit benutzerdefiniertem Status (beliebiger Text, Standard: "draft")
 npm run import:masterlist -- --status "Entwurf"
 
 # Ausführliche Ausgabe

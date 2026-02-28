@@ -355,7 +355,7 @@ export async function importMasterlist(
         console.log(`${idx} Updated ${row.slug}`);
         stats.updated++;
       } else {
-        console.log(`${idx} Upserted ${row.slug}`);
+        console.log(`${idx} Inserted ${row.slug}`);
         stats.inserted++;
       }
     } catch (err: unknown) {
