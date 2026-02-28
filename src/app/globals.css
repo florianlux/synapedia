@@ -46,6 +46,17 @@
   50% { transform: translateY(1.5px); }
 }
 
+/* Accordion animations */
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0; }
+}
+
 /* Static high-contrast logo glow (no animation) */
 .brand-logo-glow {
   opacity: var(--brand-logo-opacity, 1);
