@@ -1,18 +1,704 @@
-[
-  {
-    "title": "Amphetamin",
-    "slug": "amphetamin",
-    "aliases": ["Speed"],
-    "tags": ["stimulant"],
-    "risk": "mittel",
-    "evidence": "hoch"
-  },
-  {
-    "title": "MDMA",
-    "slug": "mdma",
-    "aliases": ["Ecstasy"],
-    "tags": ["entactogen"],
-    "risk": "mittel",
-    "evidence": "hoch"
-  }
-]
+{
+  "generated_at": "2026-02-28T15:00:04.745Z",
+  "count": 62,
+  "entries": [
+    {
+      "name": "Amphetamin",
+      "slug": "amphetamin",
+      "aliases": [
+        "Speed"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "stimulant"
+      ]
+    },
+    {
+      "name": "Methamphetamin",
+      "slug": "methamphetamin",
+      "aliases": [
+        "Crystal Meth"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "stimulant"
+      ]
+    },
+    {
+      "name": "MDMA",
+      "slug": "mdma",
+      "aliases": [
+        "Ecstasy"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "entactogen"
+      ]
+    },
+    {
+      "name": "MDA",
+      "slug": "mda",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "entactogen"
+      ]
+    },
+    {
+      "name": "MDEA",
+      "slug": "mdea",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "entactogen"
+      ]
+    },
+    {
+      "name": "Kokain",
+      "slug": "kokain",
+      "aliases": [
+        "Cocaine"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "stimulant"
+      ]
+    },
+    {
+      "name": "Heroin",
+      "slug": "heroin",
+      "aliases": [
+        "Diacetylmorphin"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "opioid"
+      ]
+    },
+    {
+      "name": "Morphin",
+      "slug": "morphin",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "opioid"
+      ]
+    },
+    {
+      "name": "Oxycodon",
+      "slug": "oxycodon",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "opioid"
+      ]
+    },
+    {
+      "name": "Fentanyl",
+      "slug": "fentanyl",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "opioid"
+      ]
+    },
+    {
+      "name": "Tramadol",
+      "slug": "tramadol",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "opioid"
+      ]
+    },
+    {
+      "name": "Buprenorphin",
+      "slug": "buprenorphin",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "opioid"
+      ]
+    },
+    {
+      "name": "Methadon",
+      "slug": "methadon",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "opioid"
+      ]
+    },
+    {
+      "name": "Ketamin",
+      "slug": "ketamin",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "dissociative"
+      ]
+    },
+    {
+      "name": "PCP",
+      "slug": "pcp",
+      "aliases": [
+        "Phencyclidin"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "dissociative"
+      ]
+    },
+    {
+      "name": "3-MeO-PCP",
+      "slug": "3-meo-pcp",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "dissociative",
+        "nps"
+      ]
+    },
+    {
+      "name": "3-HO-PCP",
+      "slug": "3-ho-pcp",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "dissociative",
+        "nps"
+      ]
+    },
+    {
+      "name": "2-FDCK",
+      "slug": "2-fdck",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "dissociative",
+        "nps"
+      ]
+    },
+    {
+      "name": "DCK",
+      "slug": "dck",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "dissociative",
+        "nps"
+      ]
+    },
+    {
+      "name": "MXE",
+      "slug": "mxe",
+      "aliases": [
+        "Methoxetamine"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "dissociative",
+        "nps"
+      ]
+    },
+    {
+      "name": "DXM",
+      "slug": "dxm",
+      "aliases": [
+        "Dextromethorphan"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "dissociative"
+      ]
+    },
+    {
+      "name": "LSD",
+      "slug": "lsd",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic"
+      ]
+    },
+    {
+      "name": "1P-LSD",
+      "slug": "1p-lsd",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "1cP-LSD",
+      "slug": "1cp-lsd",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "AL-LAD",
+      "slug": "al-lad",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "ETH-LAD",
+      "slug": "eth-lad",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "Psilocybin",
+      "slug": "psilocybin",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic"
+      ]
+    },
+    {
+      "name": "Psilocin",
+      "slug": "psilocin",
+      "aliases": [
+        "4-HO-DMT"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic"
+      ]
+    },
+    {
+      "name": "DMT",
+      "slug": "dmt",
+      "aliases": [
+        "N,N-Dimethyltryptamin"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic"
+      ]
+    },
+    {
+      "name": "5-MeO-DMT",
+      "slug": "5-meo-dmt",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic"
+      ]
+    },
+    {
+      "name": "4-AcO-DMT",
+      "slug": "4-aco-dmt",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "4-HO-MET",
+      "slug": "4-ho-met",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "4-AcO-MET",
+      "slug": "4-aco-met",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "5-MeO-MiPT",
+      "slug": "5-meo-mipt",
+      "aliases": [
+        "Moxy"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "DPT",
+      "slug": "dpt",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "Mescalin",
+      "slug": "mescalin",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic"
+      ]
+    },
+    {
+      "name": "2C-B",
+      "slug": "2c-b",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "2C-I",
+      "slug": "2c-i",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "2C-E",
+      "slug": "2c-e",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "25I-NBOMe",
+      "slug": "25i-nbome",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "psychedelic",
+        "nps"
+      ]
+    },
+    {
+      "name": "3-MMC",
+      "slug": "3-mmc",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "stimulant",
+        "cathinone",
+        "nps"
+      ]
+    },
+    {
+      "name": "4-MMC",
+      "slug": "4-mmc",
+      "aliases": [
+        "Mephedron"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "stimulant",
+        "cathinone",
+        "nps"
+      ]
+    },
+    {
+      "name": "NEP",
+      "slug": "nep",
+      "aliases": [
+        "N-Ethylpentedron"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "stimulant",
+        "cathinone",
+        "nps"
+      ]
+    },
+    {
+      "name": "MDPV",
+      "slug": "mdpv",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "stimulant",
+        "cathinone",
+        "nps"
+      ]
+    },
+    {
+      "name": "Alpha-PVP",
+      "slug": "alpha-pvp",
+      "aliases": [
+        "α-PVP",
+        "Flakka"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "stimulant",
+        "cathinone",
+        "nps"
+      ]
+    },
+    {
+      "name": "Alpha-PHP",
+      "slug": "alpha-php",
+      "aliases": [
+        "α-PHP"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "stimulant",
+        "cathinone",
+        "nps"
+      ]
+    },
+    {
+      "name": "Diazepam",
+      "slug": "diazepam",
+      "aliases": [
+        "Valium"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "name": "Lorazepam",
+      "slug": "lorazepam",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "name": "Alprazolam",
+      "slug": "alprazolam",
+      "aliases": [
+        "Xanax"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "name": "Clonazepam",
+      "slug": "clonazepam",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "name": "Etizolam",
+      "slug": "etizolam",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "benzodiazepine",
+        "nps"
+      ]
+    },
+    {
+      "name": "Bromazolam",
+      "slug": "bromazolam",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "benzodiazepine",
+        "nps"
+      ]
+    },
+    {
+      "name": "Clonazolam",
+      "slug": "clonazolam",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "benzodiazepine",
+        "nps"
+      ]
+    },
+    {
+      "name": "Flubromazolam",
+      "slug": "flubromazolam",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "benzodiazepine",
+        "nps"
+      ]
+    },
+    {
+      "name": "GHB",
+      "slug": "ghb",
+      "aliases": [
+        "Gamma-Hydroxybuttersäure"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "depressant"
+      ]
+    },
+    {
+      "name": "GBL",
+      "slug": "gbl",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "depressant"
+      ]
+    },
+    {
+      "name": "1,4-Butandiol",
+      "slug": "1-4-butandiol",
+      "aliases": [
+        "1,4-BDO"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "depressant"
+      ]
+    },
+    {
+      "name": "THC",
+      "slug": "thc",
+      "aliases": [
+        "Delta-9-THC"
+      ],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "cannabinoid"
+      ]
+    },
+    {
+      "name": "CBD",
+      "slug": "cbd",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "cannabinoid"
+      ]
+    },
+    {
+      "name": "HHC",
+      "slug": "hhc",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "cannabinoid",
+        "nps"
+      ]
+    },
+    {
+      "name": "JWH-018",
+      "slug": "jwh-018",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "synthetic-cannabinoid",
+        "nps"
+      ]
+    },
+    {
+      "name": "AB-FUBINACA",
+      "slug": "ab-fubinaca",
+      "aliases": [],
+      "qid": "",
+      "pubchem_cid": null,
+      "tags": [
+        "synthetic-cannabinoid",
+        "nps"
+      ]
+    }
+  ]
+}

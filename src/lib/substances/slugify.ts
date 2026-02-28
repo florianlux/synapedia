@@ -5,7 +5,7 @@
  *  - lowercase, trim
  *  - spaces / underscores → hyphen
  *  - German umlauts: ä→ae, ö→oe, ü→ue, ß→ss
- *  - Greek alpha: α/Α→alpha
+ *  - Greek alpha: α/Α → alpha
  *  - remove parenthetical content
  *  - remove all chars outside [a-z0-9-]
  *  - collapse multiple hyphens
