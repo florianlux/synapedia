@@ -16,8 +16,11 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     const supabase = createClient();
+    // Use NEXT_PUBLIC_SITE_URL for consistent redirect URLs across environments
+    // (production: https://synapedia.com, dev: http://localhost:3000)
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/login`,
+      redirectTo: `${siteUrl}/auth/login`,
     });
 
     if (error) {

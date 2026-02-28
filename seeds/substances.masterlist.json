@@ -1,0 +1,18 @@
+[
+  {
+    "title": "Amphetamin",
+    "slug": "amphetamin",
+    "aliases": ["Speed"],
+    "tags": ["stimulant"],
+    "risk": "mittel",
+    "evidence": "hoch"
+  },
+  {
+    "title": "MDMA",
+    "slug": "mdma",
+    "aliases": ["Ecstasy"],
+    "tags": ["entactogen"],
+    "risk": "mittel",
+    "evidence": "hoch"
+  }
+]

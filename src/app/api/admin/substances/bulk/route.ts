@@ -86,8 +86,7 @@ export async function POST(request: NextRequest) {
     const deduplicated = deduplicateNames(resolvedNames);
 
     // Create admin Supabase client (uses SERVICE_ROLE_KEY, bypasses RLS)
-    const supabase = createAdminClient();
-    const db = supabase.schema("synapedia");
+    const db = createAdminClient();
 
     // Runtime diagnostic (development only)
     if (process.env.NODE_ENV !== "production") {

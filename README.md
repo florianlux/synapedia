@@ -232,9 +232,19 @@ supabase db push
 
 | Variable | Beschreibung |
 |---|---|
+| `NEXT_PUBLIC_SITE_URL` | Site URL für Auth-Redirects (dev: `http://localhost:3000`, prod: `https://synapedia.com`) |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Projekt-URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key (serverseitig) |
+
+### Supabase Auth Dashboard Konfiguration
+
+In der Supabase Console unter **Authentication → URL Configuration**:
+
+| Setting | Wert |
+|---|---|
+| Site URL | `https://synapedia.com` |
+| Redirect URLs | `https://synapedia.com/auth/callback`, `https://synapedia.com/auth/login`, `http://localhost:3000/auth/callback`, `http://localhost:3000/auth/login` |
 
 ## Lizenz
 

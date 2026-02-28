@@ -49,11 +49,20 @@ export default function SignupPage() {
       return;
     }
 
+<<<<<<< Updated upstream
     // Sign up – pass metadata so the handle_new_user trigger creates the profile automatically
+=======
+    // Sign up – pass metadata so the handle_new_user trigger can create the profile
+    // emailRedirectTo ensures the confirmation link points to the correct domain
+    // (production: https://synapedia.com, dev: http://localhost:3000)
+    // configured via NEXT_PUBLIC_SITE_URL environment variable
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+>>>>>>> Stashed changes
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: `${siteUrl}/auth/callback`,
         data: {
           username,
           phone: phone || null,
