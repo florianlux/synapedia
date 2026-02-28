@@ -178,7 +178,7 @@ export default function AdminArticles() {
                       {article.category ?? "–"}
                     </td>
                     <td className="py-3 pr-4">
-                      {article.content_mdx && article.content_mdx.length > 200 ? (
+                      {article.content_mdx && article.content_mdx.trim().length > 0 ? (
                         <Badge variant="default" className="text-xs">Vollständig</Badge>
                       ) : (
                         <div className="flex items-center gap-1.5">
