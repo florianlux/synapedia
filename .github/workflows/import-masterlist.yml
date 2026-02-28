@@ -40,8 +40,8 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          ARGS="--status \"${{ inputs.status }}\""
+          CMD="npx tsx scripts/import-masterlist.ts --status ${{ inputs.status }}"
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            ARGS="$ARGS --dry-run"
+            CMD="$CMD --dry-run"
           fi
-          npx tsx scripts/import-masterlist.ts $ARGS
+          $CMD

@@ -83,6 +83,8 @@ function mapRiskLevel(risk: string): "low" | "moderate" | "high" | "unknown" {
     case "high":
     case "hoch":
       return "high";
+    case "unknown":
+    case "unbekannt":
     default:
       return "unknown";
   }
@@ -97,6 +99,10 @@ function mapEvidenceStrength(evidence: string): "weak" | "moderate" | "strong" {
     case "moderate":
     case "mittel":
       return "moderate";
+    case "weak":
+    case "schwach":
+    case "unknown":
+    case "unbekannt":
     default:
       return "weak";
   }
@@ -130,13 +136,13 @@ function parseArgs(): CliOptions {
         opts.dryRun = true;
         break;
       case "--limit":
-        opts.limit = parseInt(args[++i], 10);
+        if (i + 1 < args.length) opts.limit = parseInt(args[++i], 10);
         break;
       case "--only":
-        opts.only = args[++i].split(",").map((s) => s.trim()).filter(Boolean);
+        if (i + 1 < args.length) opts.only = args[++i].split(",").map((s) => s.trim()).filter(Boolean);
         break;
       case "--status":
-        opts.status = args[++i];
+        if (i + 1 < args.length) opts.status = args[++i];
         break;
       case "--verbose":
         opts.verbose = true;
