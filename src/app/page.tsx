@@ -12,10 +12,10 @@ import {
 import { SearchBar } from "@/components/search-bar";
 import { getAllArticlesAsync, demoTags, allArticleTags } from "@/lib/articles";
 import { riskLabels, evidenceLabels } from "@/lib/types";
-
-export const revalidate = 60;
 import { PublicExperienceSearch } from "@/components/admin/experience-search/PublicExperienceSearch";
 import { SubstanceGroupsSection } from "@/components/home/SubstanceGroupsSection";
+
+export const revalidate = 60;
 
 const showPublicSearch =
   process.env.NEXT_PUBLIC_ENABLE_PUBLIC_EXPERIENCE_SEARCH === "true";

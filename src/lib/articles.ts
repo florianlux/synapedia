@@ -114,8 +114,8 @@ export async function getAllArticlesAsync(): Promise<Article[]> {
         const missing = allArticles.filter((a) => !dbSlugs.has(a.slug));
         return [...dbArticles, ...missing];
       }
-    } catch {
-      // Supabase query failed — fall through to static data
+    } catch (err) {
+      console.error("[getAllArticlesAsync] Supabase query failed, using static data", err);
     }
   }
   return allArticles;
