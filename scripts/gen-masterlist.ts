@@ -1,7 +1,8 @@
 /**
  * gen-masterlist.ts
  *
- * High-precision psychoactive substance importer for Synapedia.
+ * Stable psychoactive substance importer for Synapedia.
+ * Optimized for GitHub Actions + WDQS rate limits.
  */
 
 import * as fs from "node:fs";
@@ -10,18 +11,19 @@ import * as url from "node:url";
 import { slugify } from "./lib/slugify.js";
 
 // ---------------------------------------------------------------------------
-// CONFIG
+// CONFIG – Conservative for WDQS stability
 // ---------------------------------------------------------------------------
 
 const SPARQL_ENDPOINT = "https://query.wikidata.org/sparql";
+
 const USER_AGENT =
-  "synapedia-import/2.0 (github actions; https://github.com/florianlux/synapedia)";
+  "synapedia-import/3.0 (github actions; https://github.com/florianlux/synapedia)";
 
 const MAX_RETRIES = 6;
-const REQUEST_TIMEOUT_MS = 60_000;
-const BATCH_DELAY_MS = 1000;
+const REQUEST_TIMEOUT_MS = 90_000;   // 90s
+const BATCH_DELAY_MS = 2000;         // 2s between batches
 const MIN_BATCH_SIZE = 10;
-const MAX_BATCH_SIZE = 40;
+const MAX_BATCH_SIZE = 15;           // Conservative
 
 // ---------------------------------------------------------------------------
 // PATHS
@@ -62,12 +64,11 @@ function sleep(ms: number) {
 }
 
 function backoffMs(attempt: number) {
-  return Math.min(60_000, 1500 * Math.pow(2, attempt - 1));
+  return Math.min(90_000, 3000 * Math.pow(2, attempt - 1));
 }
 
 // ---------------------------------------------------------------------------
-// 🔥 HIGH-PRECISION SPARQL QUERY
-// Only psychoactive / drug-related classes
+// HIGH PRECISION QUERY – Only psychoactive classes
 // ---------------------------------------------------------------------------
 
 function buildQuery(limit: number, offset: number): string {
@@ -88,7 +89,7 @@ SELECT DISTINCT ?item ?itemLabel ?itemAltLabel WHERE {
 
   ?item wdt:P31/wdt:P279* ?class .
 
-  FILTER NOT EXISTS { ?item wdt:P31 wd:Q16521 }   # taxon (plants)
+  FILTER NOT EXISTS { ?item wdt:P31 wd:Q16521 }   # taxon
   FILTER NOT EXISTS { ?item wdt:P31 wd:Q8054 }    # protein
   FILTER NOT EXISTS { ?item wdt:P31 wd:Q12140 }   # pharmaceutical brand
   FILTER NOT EXISTS { ?item wdt:P31 wd:Q28885102 }# medical device
@@ -102,7 +103,7 @@ OFFSET ${offset}
 }
 
 // ---------------------------------------------------------------------------
-// ROBUST FETCH (POST)
+// ROBUST FETCH (POST + Retry)
 // ---------------------------------------------------------------------------
 
 async function fetchSparql(query: string): Promise<SparqlResponse> {
@@ -129,10 +130,11 @@ async function fetchSparql(query: string): Promise<SparqlResponse> {
       if (!res.ok) {
         if ((res.status === 429 || res.status === 503) && attempt < MAX_RETRIES) {
           const wait = backoffMs(attempt);
-          console.warn(`[gen-masterlist] ${res.status} — retrying in ${wait}ms`);
+          console.warn(`[gen-masterlist] ${res.status} – retrying in ${wait}ms`);
           await sleep(wait);
           continue;
         }
+
         throw new Error(`SPARQL error ${res.status}`);
       }
 
@@ -142,8 +144,10 @@ async function fetchSparql(query: string): Promise<SparqlResponse> {
       console.warn(
         `[gen-masterlist] Attempt ${attempt}/${MAX_RETRIES} failed: ${err.message}`
       );
+
       if (attempt < MAX_RETRIES) {
         const wait = backoffMs(attempt);
+        console.warn(`[gen-masterlist] Retrying in ${wait}ms`);
         await sleep(wait);
       }
     } finally {
@@ -191,7 +195,7 @@ function parseBindings(bindings: any[]): Map<string, MasterlistEntry> {
 async function main() {
   const args = process.argv.slice(2);
   const limitIdx = args.indexOf("--limit");
-  const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 200;
+  const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 100;
 
   console.log(`[gen-masterlist] Fetching up to ${limit} psychoactive substances`);
 
@@ -227,18 +231,15 @@ async function main() {
         JSON.stringify(checkpoint, null, 2) + "\n"
       );
 
-      if (bindings.length < requestSize) break;
-
       await sleep(BATCH_DELAY_MS);
-
-      if (batchSize < MAX_BATCH_SIZE) batchSize += 5;
     } catch (err: any) {
       console.warn(`[gen-masterlist] error: ${err.message}`);
+
       if (batchSize > MIN_BATCH_SIZE) {
         batchSize = Math.max(MIN_BATCH_SIZE, Math.floor(batchSize / 2));
         console.warn(`[gen-masterlist] reducing batch size → ${batchSize}`);
       } else {
-        console.error("[gen-masterlist] Aborting — minimal batch size reached");
+        console.error("[gen-masterlist] minimal batch size reached — stopping");
         break;
       }
     }
