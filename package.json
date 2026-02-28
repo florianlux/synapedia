@@ -11,7 +11,9 @@
     "import:psychonautwiki": "tsx scripts/import-psychonautwiki.ts",
     "import:wikidata": "tsx scripts/fetch_wikidata_list.ts",
     "import:pubchem": "tsx scripts/enrich_pubchem.ts",
-    "validate:substances": "tsx scripts/validate-substances.ts"
+    "validate:substances": "tsx scripts/validate-substances.ts",
+    "gen:masterlist": "tsx scripts/gen-masterlist.ts --limit 1000",
+    "import:masterlist": "tsx scripts/import-masterlist.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",

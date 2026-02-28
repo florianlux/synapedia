@@ -1,0 +1,58 @@
+name: Import Masterlist
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max number of substances to process"
+        required: false
+        default: "1000"
+      status:
+        description: "Article status (draft, review)"
+        required: false
+        default: "draft"
+      dry_run:
+        description: "Dry run (true/false) — skip DB writes"
+        required: false
+        default: "false"
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate masterlist from Wikidata
+        run: npx tsx scripts/gen-masterlist.ts --limit ${{ github.event.inputs.limit }}
+
+      - name: Import masterlist into Supabase
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: >
+          npx tsx scripts/import-masterlist.ts
+          --limit ${{ github.event.inputs.limit }}
+          --status "${{ github.event.inputs.status }}"
+          --verbose
+
+      - name: Dry-run import (no DB writes)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: >
+          npx tsx scripts/import-masterlist.ts
+          --dry-run
+          --limit ${{ github.event.inputs.limit }}
+          --status "${{ github.event.inputs.status }}"
+          --verbose

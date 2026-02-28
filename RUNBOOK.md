@@ -136,3 +136,62 @@ Generiert einen Artikel-Entwurf.
 | `risk_interactions_v1` | Risiko & Wechselwirkungen | Risikoprofil und Interaktionen |
 | `legal_status_v1` | Recht & Einordnung | Rechtliche Einordnung (neutral) |
 | `myths_facts_v1` | Mythen & Fakten | Aufklärung über Mythen |
+
+---
+
+## Masterlist Pipeline (Bulk-Import)
+
+Automatisierte Pipeline zum Erzeugen und Importieren von ~1000 Substanz-Stubs als
+MDX-Entwürfe in `public.articles`. Kein Dosing, keine Konsumanleitungen.
+
+### Benötigte Secrets / Umgebungsvariablen
+
+```env
+# Supabase-Zugang (Pflicht für Live-Import)
+SUPABASE_URL=https://your-project.supabase.co       # oder NEXT_PUBLIC_SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+Für GitHub Actions als Repository-Secrets hinterlegen:
+`SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY`.
+
+### Lokale Ausführung
+
+```bash
+# 1. Masterlist aus Wikidata generieren (Standard: 1000 Einträge)
+npm run gen:masterlist
+
+# Oder mit eigenem Limit:
+npx tsx scripts/gen-masterlist.ts --limit 500 --verbose
+
+# 2. Import in Supabase (Dry-Run zum Testen)
+npx tsx scripts/import-masterlist.ts --dry-run --verbose
+
+# 3. Tatsächlicher Import
+npm run import:masterlist
+
+# Mit Optionen:
+npx tsx scripts/import-masterlist.ts --limit 100 --status "draft" --verbose
+npx tsx scripts/import-masterlist.ts --only psilocybin,mdma,ketamin --verbose
+```
+
+### GitHub Action auslösen
+
+1. Öffne **Actions** → **Import Masterlist** → **Run workflow**
+2. Parameter eingeben:
+   - `limit` — Anzahl der Substanzen (Standard: 1000)
+   - `status` — Artikelstatus (Standard: „draft")
+   - `dry_run` — `true` für Testlauf ohne DB-Schreibzugriff
+
+### Verifizierung
+
+```sql
+-- Anzahl der importierten Artikel prüfen
+SELECT count(*) FROM public.articles;
+
+-- Nur Entwürfe aus dem Masterlist-Import
+SELECT count(*) FROM public.articles WHERE status = 'draft';
+
+-- Stichprobe anzeigen
+SELECT slug, title, status, updated_at FROM public.articles ORDER BY updated_at DESC LIMIT 10;
+```
