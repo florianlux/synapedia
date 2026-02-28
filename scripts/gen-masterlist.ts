@@ -1,25 +1,20 @@
 /**
- * Generate a masterlist of psychoactive substances from Wikidata SPARQL.
+ * gen-masterlist.ts
  *
- * For each substance the script captures:
- *   - Wikidata QID, English label, aliases
- *   - PubChem CID (if available via P662)
- *   - Best-effort category tags derived from Wikidata class hierarchy
- *
- * Output → seeds/substances.masterlist.json  (committed to repo)
+ * Generates seeds/substances.masterlist.json with ~1000 substance entries
+ * sourced from Wikidata SPARQL. Deduplicates by slug.
  *
  * Usage:
  *   npx tsx scripts/gen-masterlist.ts --limit 1000
  *
  * Synapedia is a scientific education platform — no consumption guides,
- * no dosage tables, no procurement hints. Only neutral metadata is exported.
+ * no dosage tables, no procurement hints. Only neutral metadata is imported.
  */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as url from "node:url";
-
-import { slugify } from "../src/lib/substances/slugify";
+import { slugify } from "./lib/slugify.js";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -27,10 +22,8 @@ import { slugify } from "../src/lib/substances/slugify";
 
 const SPARQL_ENDPOINT = "https://query.wikidata.org/sparql";
 const USER_AGENT = "SynapediaBot/1.0 (https://github.com/florianlux/synapedia)";
-
-const DEFAULT_LIMIT = 1000;
-
-/** Delay between SPARQL batches in ms (be polite to Wikidata) */
+const MAX_RETRIES = 3;
+const BATCH_SIZE = 500;
 const BATCH_DELAY_MS = 2000;
 
 const SCRIPT_DIR =
@@ -45,26 +38,19 @@ const OUTPUT_FILE = path.join(SEEDS_DIR, "substances.masterlist.json");
 // Types
 // ---------------------------------------------------------------------------
 
-export interface MasterlistEntry {
-  name: string;
+interface MasterlistEntry {
+  title: string;
   slug: string;
   aliases: string[];
-  qid: string;
-  pubchem_cid: number | null;
   tags: string[];
-}
-
-interface MasterlistFile {
-  generated_at: string;
-  count: number;
-  entries: MasterlistEntry[];
+  risk: string;
+  evidence: string;
 }
 
 interface SparqlBinding {
   item: { value: string };
   itemLabel: { value: string };
   itemAltLabel?: { value: string };
-  pubchemCID?: { value: string };
   classLabel?: { value: string };
 }
 
@@ -73,66 +59,42 @@ interface SparqlResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Wikidata class → tag mapping
+// Tag inference from Wikidata class labels
 // ---------------------------------------------------------------------------
 
-const CLASS_TAG_MAP: Record<string, string> = {
-  stimulant: "stimulant",
-  "psychostimulant": "stimulant",
-  "central nervous system stimulant": "stimulant",
-  amphetamine: "stimulant",
-  opioid: "opioid",
-  "opioid analgesic": "opioid",
-  "opioid receptor agonist": "opioid",
-  benzodiazepine: "benzodiazepine",
-  psychedelic: "psychedelic",
-  "psychedelic drug": "psychedelic",
-  hallucinogen: "psychedelic",
-  "serotonergic psychedelic": "psychedelic",
-  dissociative: "dissociative",
-  "dissociative drug": "dissociative",
-  "dissociative anaesthetic": "dissociative",
-  cannabinoid: "cannabinoid",
-  "synthetic cannabinoid": "cannabinoid",
-  deliriant: "deliriant",
-  "anticholinergic": "deliriant",
-  depressant: "depressant",
-  "central nervous system depressant": "depressant",
-  sedative: "depressant",
-  "sedative-hypnotic": "depressant",
-  barbiturate: "depressant",
-  "designer drug": "nps",
-  "new psychoactive substance": "nps",
-  "research chemical": "nps",
-  entactogen: "entactogen",
-  "empathogen–entactogen": "entactogen",
-  "empathogen-entactogen": "entactogen",
-  "anxiolytic": "anxiolytic",
-  "antidepressant": "antidepressant",
-  "analgesic": "analgesic",
-  "anaesthetic": "anaesthetic",
-  "anesthetic": "anaesthetic",
-  "nootropic": "nootropic",
+const TAG_KEYWORDS: Record<string, string[]> = {
+  stimulant: ["stimulant", "stimulans", "amphetamine", "amphetamin"],
+  opioid: ["opioid", "opiate", "opiat"],
+  benzodiazepine: ["benzodiazepine", "benzodiazepin"],
+  psychedelic: ["psychedelic", "psychedelik", "hallucinogen", "halluzinogen", "tryptamine", "tryptamin", "lysergamide"],
+  dissociative: ["dissociative", "dissociativ", "arylcyclohexylamine"],
+  cannabinoid: ["cannabinoid"],
+  depressant: ["depressant", "sedative", "sedativum", "barbiturate", "barbiturat"],
+  deliriant: ["deliriant", "anticholinergic", "anticholinergikum"],
+  nps: ["new psychoactive", "neue psychoaktive", "designer drug", "research chemical"],
 };
 
-function classToTag(classLabel: string): string | null {
-  const lower = classLabel.toLowerCase().trim();
-  if (CLASS_TAG_MAP[lower]) return CLASS_TAG_MAP[lower];
-
-  // Fuzzy partial match
-  for (const [key, tag] of Object.entries(CLASS_TAG_MAP)) {
-    if (lower.includes(key) || key.includes(lower)) return tag;
+function inferTags(classLabels: string[]): string[] {
+  const tags = new Set<string>();
+  const combined = classLabels.join(" ").toLowerCase();
+  for (const [tag, keywords] of Object.entries(TAG_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (combined.includes(kw)) {
+        tags.add(tag);
+        break;
+      }
+    }
   }
-  return null;
+  return Array.from(tags);
 }
 
 // ---------------------------------------------------------------------------
-// SPARQL Query
+// SPARQL Query — fetch psychoactive substances with class info
 // ---------------------------------------------------------------------------
 
 function buildQuery(limit: number, offset: number): string {
   return `
-SELECT DISTINCT ?item ?itemLabel ?itemAltLabel ?pubchemCID ?classLabel WHERE {
+SELECT DISTINCT ?item ?itemLabel ?itemAltLabel ?classLabel WHERE {
   {
     ?item wdt:P31/wdt:P279* wd:Q8386 .
   } UNION {
@@ -141,9 +103,12 @@ SELECT DISTINCT ?item ?itemLabel ?itemAltLabel ?pubchemCID ?classLabel WHERE {
     ?item wdt:P31/wdt:P279* wd:Q11173 .
     ?item wdt:P31 wd:Q207011 .
   }
-  OPTIONAL { ?item wdt:P662 ?pubchemCID . }
-  OPTIONAL { ?item wdt:P31 ?class . ?class rdfs:label ?classLabel . FILTER(LANG(?classLabel) = "en") }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,de" . }
+  OPTIONAL {
+    ?item wdt:P31 ?class .
+    ?class rdfs:label ?classLabel .
+    FILTER(LANG(?classLabel) = "en")
+  }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "de,en" . }
 }
 ORDER BY ?itemLabel
 LIMIT ${limit}
@@ -152,209 +117,161 @@ OFFSET ${offset}
 }
 
 // ---------------------------------------------------------------------------
-// Fetch helpers
+// Fetch with retries
 // ---------------------------------------------------------------------------
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 async function fetchSparql(query: string): Promise<SparqlResponse> {
   const params = new URLSearchParams({ query, format: "json" });
-  const res = await fetch(`${SPARQL_ENDPOINT}?${params.toString()}`, {
-    headers: {
-      Accept: "application/sparql-results+json",
-      "User-Agent": USER_AGENT,
-    },
-  });
+  let lastError: Error | undefined;
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Wikidata SPARQL error ${res.status}: ${text.slice(0, 300)}`);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(`${SPARQL_ENDPOINT}?${params.toString()}`, {
+        headers: {
+          Accept: "application/sparql-results+json",
+          "User-Agent": USER_AGENT,
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`SPARQL error ${res.status}: ${text.slice(0, 300)}`);
+      }
+
+      return (await res.json()) as SparqlResponse;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[gen-masterlist] Attempt ${attempt}/${MAX_RETRIES} failed: ${lastError.message}`);
+      if (attempt < MAX_RETRIES) {
+        const backoff = attempt * 2000;
+        console.warn(`[gen-masterlist] Retrying in ${backoff}ms…`);
+        await sleep(backoff);
+      }
+    }
   }
 
-  return (await res.json()) as SparqlResponse;
+  throw lastError ?? new Error("SPARQL fetch failed after retries");
 }
 
 // ---------------------------------------------------------------------------
-// Parse & deduplicate
+// Parse SPARQL results into masterlist entries
 // ---------------------------------------------------------------------------
 
 function parseBindings(bindings: SparqlBinding[]): Map<string, MasterlistEntry> {
-  const map = new Map<string, MasterlistEntry>();
+  /** Group by Wikidata QID so we can collect multiple class labels */
+  const grouped = new Map<string, { binding: SparqlBinding; classLabels: string[] }>();
 
   for (const b of bindings) {
     const qid = b.item.value.replace("http://www.wikidata.org/entity/", "");
-    const label = b.itemLabel?.value ?? "";
-    if (!qid || !label || label === qid) continue;
-
-    const slug = slugify(label);
-    if (!slug) continue;
-
-    // Parse aliases from altLabel (Wikidata returns comma-separated)
-    const rawAliases = b.itemAltLabel?.value ?? "";
-    const aliases = rawAliases
-      .split(",")
-      .map((a) => a.trim())
-      .filter((a) => a && a !== label);
-
-    const cidRaw = b.pubchemCID?.value ? parseInt(b.pubchemCID.value, 10) : null;
-    const pubchemCid = cidRaw && !isNaN(cidRaw) ? cidRaw : null;
-
-    const classLabel = b.classLabel?.value ?? "";
-    const tag = classLabel ? classToTag(classLabel) : null;
-
-    if (map.has(slug)) {
-      // Merge: add aliases and tags to existing entry
-      const existing = map.get(slug)!;
-      for (const a of aliases) {
-        if (!existing.aliases.includes(a)) existing.aliases.push(a);
+    const existing = grouped.get(qid);
+    if (existing) {
+      if (b.classLabel?.value) {
+        existing.classLabels.push(b.classLabel.value);
       }
-      if (tag && !existing.tags.includes(tag)) existing.tags.push(tag);
-      if (!existing.pubchem_cid && pubchemCid) existing.pubchem_cid = pubchemCid;
     } else {
-      map.set(slug, {
-        name: label,
-        slug,
-        aliases: aliases.slice(0, 20), // cap aliases
-        qid,
-        pubchem_cid: pubchemCid,
-        tags: tag ? [tag] : [],
+      grouped.set(qid, {
+        binding: b,
+        classLabels: b.classLabel?.value ? [b.classLabel.value] : [],
       });
     }
   }
 
-  return map;
-}
+  const entries = new Map<string, MasterlistEntry>();
 
-// ---------------------------------------------------------------------------
-// CLI argument parsing
-// ---------------------------------------------------------------------------
+  for (const { binding, classLabels } of grouped.values()) {
+    const label = binding.itemLabel?.value ?? "";
+    if (!label || label.startsWith("Q")) continue; // skip if no label resolved
 
-function parseArgs(argv: string[]): { limit: number; verbose: boolean } {
-  let limit = DEFAULT_LIMIT;
-  let verbose = false;
+    const slug = slugify(label);
+    if (!slug) continue;
+    if (entries.has(slug)) continue; // deduplicate by slug
 
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--limit" && argv[i + 1]) {
-      const parsed = parseInt(argv[i + 1], 10);
-      if (isNaN(parsed) || parsed < 1) {
-        console.warn(`[gen-masterlist] Invalid --limit value "${argv[i + 1]}", using default ${DEFAULT_LIMIT}.`);
-      } else {
-        limit = parsed;
+    const aliases: string[] = [];
+    if (binding.itemAltLabel?.value) {
+      for (const a of binding.itemAltLabel.value.split(",")) {
+        const trimmed = a.trim();
+        if (trimmed && trimmed !== label) aliases.push(trimmed);
       }
-      i++;
     }
-    if (argv[i] === "--verbose") verbose = true;
+
+    entries.set(slug, {
+      title: label,
+      slug,
+      aliases,
+      tags: inferTags(classLabels),
+      risk: "Unbekannt",
+      evidence: "Unbekannt",
+    });
   }
 
-  return { limit, verbose };
+  return entries;
 }
 
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
-export async function generateMasterlist(opts: {
-  limit?: number;
-  verbose?: boolean;
-} = {}): Promise<MasterlistEntry[]> {
-  const limit = opts.limit ?? DEFAULT_LIMIT;
-  const verbose = opts.verbose ?? false;
+async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  const limitIdx = args.indexOf("--limit");
+  const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 1000;
 
-  console.log(`[gen-masterlist] Fetching substances from Wikidata SPARQL (target=${limit})…`);
+  if (isNaN(limit) || limit < 1) {
+    console.error("[gen-masterlist] Invalid --limit value");
+    process.exit(1);
+  }
+
+  console.log(`[gen-masterlist] Fetching up to ${limit} substances from Wikidata SPARQL…`);
 
   const allEntries = new Map<string, MasterlistEntry>();
   let offset = 0;
-  const batchSize = Math.min(limit * 2, 2000); // fetch 2× target per batch since JOINs produce duplicates
 
-  // Wikidata OPTIONAL joins can yield multiple rows per substance.
-  // Fetch up to 3× the target limit to collect enough unique entries after dedup.
-  const maxFetch = limit * 3;
+  while (allEntries.size < limit) {
+    const batchLimit = Math.min(BATCH_SIZE, limit - allEntries.size + 200); // over-fetch to compensate dedup
+    console.log(`[gen-masterlist]   batch offset=${offset}, request size=${batchLimit}…`);
 
-  while (offset < maxFetch) {
-    const currentBatch = Math.min(batchSize, maxFetch - offset);
-    console.log(`[gen-masterlist]   batch offset=${offset}, size=${currentBatch}…`);
+    const response = await fetchSparql(buildQuery(batchLimit, offset));
+    const batchEntries = parseBindings(response.results.bindings);
 
-    const query = buildQuery(currentBatch, offset);
-    const response = await fetchSparql(query);
-    const parsed = parseBindings(response.results.bindings);
+    if (response.results.bindings.length === 0) {
+      console.log("[gen-masterlist]   no more results. Done fetching.");
+      break;
+    }
 
-    let newCount = 0;
-    for (const [slug, entry] of parsed) {
+    for (const [slug, entry] of batchEntries) {
+      if (allEntries.size >= limit) break;
       if (!allEntries.has(slug)) {
         allEntries.set(slug, entry);
-        newCount++;
-      } else {
-        // Merge tags and aliases
-        const existing = allEntries.get(slug)!;
-        for (const a of entry.aliases) {
-          if (!existing.aliases.includes(a)) existing.aliases.push(a);
-        }
-        for (const t of entry.tags) {
-          if (!existing.tags.includes(t)) existing.tags.push(t);
-        }
-        if (!existing.pubchem_cid && entry.pubchem_cid) {
-          existing.pubchem_cid = entry.pubchem_cid;
-        }
       }
     }
 
-    if (verbose) {
-      console.log(`[gen-masterlist]     → ${parsed.size} parsed, ${newCount} new (total unique: ${allEntries.size})`);
-    }
+    offset += batchLimit;
 
-    // Stop if we have enough
-    if (allEntries.size >= limit) {
-      console.log(`[gen-masterlist]   reached target ${limit}, stopping.`);
+    // If we got fewer bindings than requested, we're done
+    if (response.results.bindings.length < batchLimit) {
       break;
     }
 
-    // Stop if no results in this batch
-    if (response.results.bindings.length === 0) {
-      console.log(`[gen-masterlist]   no more results at offset=${offset}. Done.`);
-      break;
-    }
-
-    offset += currentBatch;
-
-    // Polite delay between batches
-    if (offset < maxFetch) {
-      await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
+    // Be polite: delay between batches
+    if (allEntries.size < limit) {
+      await sleep(BATCH_DELAY_MS);
     }
   }
 
-  // Convert to sorted array, hard-limit
-  const result = Array.from(allEntries.values())
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .slice(0, limit);
-
-  // Cap aliases per entry
-  for (const entry of result) {
-    entry.aliases = entry.aliases.slice(0, 20);
-  }
-
-  console.log(`[gen-masterlist] Collected ${result.length} unique substances.`);
+  const result = Array.from(allEntries.values()).slice(0, limit);
+  console.log(`[gen-masterlist] Collected ${result.length} unique entries (limit=${limit}).`);
 
   // Write output
   fs.mkdirSync(SEEDS_DIR, { recursive: true });
-  const output: MasterlistFile = {
-    generated_at: new Date().toISOString(),
-    count: result.length,
-    entries: result,
-  };
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2) + "\n");
-  console.log(`[gen-masterlist] Written to ${OUTPUT_FILE}`);
-
-  return result;
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(result, null, 2) + "\n");
+  console.log(`[gen-masterlist] Wrote ${OUTPUT_FILE}`);
 }
 
-// CLI entry point
-const isDirectRun =
-  typeof require !== "undefined"
-    ? require.main === module
-    : process.argv[1] && import.meta.url === url.pathToFileURL(process.argv[1]).href;
-
-if (isDirectRun) {
-  const { limit, verbose } = parseArgs(process.argv.slice(2));
-  generateMasterlist({ limit, verbose }).catch((err) => {
-    console.error("[gen-masterlist] Fatal error:", err);
-    process.exit(1);
-  });
-}
+main().catch((err) => {
+  console.error("[gen-masterlist] Fatal error:", err);
+  process.exit(1);
+});
