@@ -237,7 +237,7 @@ async function main(): Promise<void> {
     const response = await fetchSparql(buildQuery(batchLimit, offset));
     const batchEntries = parseBindings(response.results.bindings);
 
-    if (batchEntries.size === 0 && response.results.bindings.length === 0) {
+    if (response.results.bindings.length === 0) {
       console.log("[gen-masterlist]   no more results. Done fetching.");
       break;
     }
