@@ -11,6 +11,7 @@
     "import:psychonautwiki": "tsx scripts/import-psychonautwiki.ts",
     "import:wikidata": "tsx scripts/fetch_wikidata_list.ts",
     "import:pubchem": "tsx scripts/enrich_pubchem.ts",
+    "import:masterlist": "tsx scripts/import-masterlist.ts",
     "validate:substances": "tsx scripts/validate-substances.ts"
   },
   "dependencies": {
