@@ -10,15 +10,18 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { SearchBar } from "@/components/search-bar";
-import { allArticles, demoTags, allArticleTags } from "@/lib/articles";
+import { getAllArticlesAsync, demoTags, allArticleTags } from "@/lib/articles";
 import { riskLabels, evidenceLabels } from "@/lib/types";
 import { PublicExperienceSearch } from "@/components/admin/experience-search/PublicExperienceSearch";
 import { SubstanceGroupsSection } from "@/components/home/SubstanceGroupsSection";
 
+export const revalidate = 60;
+
 const showPublicSearch =
   process.env.NEXT_PUBLIC_ENABLE_PUBLIC_EXPERIENCE_SEARCH === "true";
 
-export default function Home() {
+export default async function Home() {
+  const allArticles = await getAllArticlesAsync();
   const articles = allArticles.filter((a) => a.status === "published");
 
   return (

@@ -1,11 +1,12 @@
 import type { MetadataRoute } from "next";
-import { allArticles } from "@/lib/articles";
+import { getAllArticlesAsync } from "@/lib/articles";
 import glossaryData from "@/../data/glossary.json";
 import { substances as substancesData } from "@/../data/substances";
 
 const BASE_URL = "https://synapedia.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const allArticles = await getAllArticlesAsync();
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: BASE_URL, changeFrequency: "weekly", priority: 1.0 },
     { url: `${BASE_URL}/articles`, changeFrequency: "weekly", priority: 0.9 },
