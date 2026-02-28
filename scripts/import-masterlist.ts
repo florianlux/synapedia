@@ -301,7 +301,7 @@ export async function importMasterlist(opts: ImportOptions): Promise<void> {
         risk: "Unbekannt",
         evidence: "Unbekannt",
         aliases: entry.aliases ?? [],
-        tags: entry.tags.length > 0 ? entry.tags : [],
+        tags: entry.tags ?? [],
         updated_at: now,
       };
 
