@@ -1,7 +1,7 @@
 /**
  * gen-masterlist.ts
  *
- * Generates seeds/substances.masterlist.json with ~1000 substance entries
+ * Generates seeds/substances.masterlist.json with substance entries
  * sourced from Wikidata SPARQL. Deduplicates by slug.
  *
  * Usage:
@@ -20,11 +20,14 @@ import { slugify } from "./lib/slugify.js";
 // Configuration
 // ---------------------------------------------------------------------------
 
-const SPARQL_ENDPOINT = "https://query.wikidata.org/sparql";
-const USER_AGENT = "SynapediaBot/1.0 (https://github.com/florianlux/synapedia)";
-const MAX_RETRIES = 3;
-const BATCH_SIZE = 500;
-const BATCH_DELAY_MS = 2000;
+const SPARQL_ENDPOINT_PRIMARY = "https://query.wikidata.org/sparql";
+const SPARQL_ENDPOINT_FALLBACK =
+  "https://wikidata-query.wikidata.org/bigdata/namespace/wdq/sparql";
+
+const USER_AGENT = "synapedia-import/1.0 (github actions; https://github.com/florianlux/synapedia)";
+const MAX_RETRIES = 6;
+const REQUEST_TIMEOUT_MS = 25_000; // keep below Actions job timeout and WDQS latency spikes
+const BATCH_DELAY_MS = 800; // polite delay between batches
 
 const SCRIPT_DIR =
   typeof __dirname !== "undefined"
@@ -117,44 +120,91 @@ OFFSET ${offset}
 }
 
 // ---------------------------------------------------------------------------
-// Fetch with retries
+// Fetch with retries, backoff, timeout, endpoint fallback
 // ---------------------------------------------------------------------------
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function fetchSparql(query: string): Promise<SparqlResponse> {
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+function backoffMs(attempt: number): number {
+  // exponential backoff + jitter
+  const base = Math.min(20_000, 2_000 * Math.pow(2, attempt - 1)); // 2s,4s,8s,16s,20s...
+  const jitter = Math.floor(Math.random() * 600);
+  return base + jitter;
+}
+
+async function fetchSparqlFromEndpoint(endpoint: string, query: string): Promise<SparqlResponse> {
   const params = new URLSearchParams({ query, format: "json" });
-  let lastError: Error | undefined;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(`${endpoint}?${params.toString()}`, {
+      headers: {
+        Accept: "application/sparql-results+json",
+        "User-Agent": USER_AGENT,
+      },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw Object.assign(new Error(`SPARQL error ${res.status}: ${text.slice(0, 300)}`), {
+        status: res.status,
+      });
+    }
+
+    return (await res.json()) as SparqlResponse;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchSparql(query: string): Promise<SparqlResponse> {
+  let lastError: unknown;
+
+  // try primary, then fallback (within retry loop)
+  const endpoints = [SPARQL_ENDPOINT_PRIMARY, SPARQL_ENDPOINT_FALLBACK];
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const res = await fetch(`${SPARQL_ENDPOINT}?${params.toString()}`, {
-        headers: {
-          Accept: "application/sparql-results+json",
-          "User-Agent": USER_AGENT,
-        },
-      });
+    // after a few failures, start trying fallback as well
+    const tryBoth = attempt >= 3;
+    const toTry = tryBoth ? endpoints : [SPARQL_ENDPOINT_PRIMARY];
 
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`SPARQL error ${res.status}: ${text.slice(0, 300)}`);
-      }
+    for (const endpoint of toTry) {
+      try {
+        return await fetchSparqlFromEndpoint(endpoint, query);
+      } catch (err: any) {
+        lastError = err;
+        const msg = err instanceof Error ? err.message : String(err);
+        const status = typeof err?.status === "number" ? err.status : undefined;
 
-      return (await res.json()) as SparqlResponse;
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-      console.warn(`[gen-masterlist] Attempt ${attempt}/${MAX_RETRIES} failed: ${lastError.message}`);
-      if (attempt < MAX_RETRIES) {
-        const backoff = attempt * 2000;
-        console.warn(`[gen-masterlist] Retrying in ${backoff}ms…`);
-        await sleep(backoff);
+        const retryable = status ? isRetryableStatus(status) : msg.toLowerCase().includes("abort");
+        console.warn(
+          `[gen-masterlist] Attempt ${attempt}/${MAX_RETRIES} failed on ${endpoint}: ${msg}`
+        );
+
+        if (!retryable) {
+          // Non-retryable errors should fail fast
+          throw err instanceof Error ? err : new Error(String(err));
+        }
       }
+    }
+
+    if (attempt < MAX_RETRIES) {
+      const wait = backoffMs(attempt);
+      console.warn(`[gen-masterlist] Retrying in ${wait}ms…`);
+      await sleep(wait);
     }
   }
 
-  throw lastError ?? new Error("SPARQL fetch failed after retries");
+  throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "SPARQL fetch failed"));
 }
 
 // ---------------------------------------------------------------------------
@@ -162,16 +212,14 @@ async function fetchSparql(query: string): Promise<SparqlResponse> {
 // ---------------------------------------------------------------------------
 
 function parseBindings(bindings: SparqlBinding[]): Map<string, MasterlistEntry> {
-  /** Group by Wikidata QID so we can collect multiple class labels */
+  // Group by QID to accumulate multiple class labels
   const grouped = new Map<string, { binding: SparqlBinding; classLabels: string[] }>();
 
   for (const b of bindings) {
     const qid = b.item.value.replace("http://www.wikidata.org/entity/", "");
     const existing = grouped.get(qid);
     if (existing) {
-      if (b.classLabel?.value) {
-        existing.classLabels.push(b.classLabel.value);
-      }
+      if (b.classLabel?.value) existing.classLabels.push(b.classLabel.value);
     } else {
       grouped.set(qid, {
         binding: b,
@@ -184,11 +232,11 @@ function parseBindings(bindings: SparqlBinding[]): Map<string, MasterlistEntry> 
 
   for (const { binding, classLabels } of grouped.values()) {
     const label = binding.itemLabel?.value ?? "";
-    if (!label || label.startsWith("Q")) continue; // skip if no label resolved
+    if (!label || label.startsWith("Q")) continue;
 
     const slug = slugify(label);
     if (!slug) continue;
-    if (entries.has(slug)) continue; // deduplicate by slug
+    if (entries.has(slug)) continue;
 
     const aliases: string[] = [];
     if (binding.itemAltLabel?.value) {
@@ -212,8 +260,60 @@ function parseBindings(bindings: SparqlBinding[]): Map<string, MasterlistEntry> 
 }
 
 // ---------------------------------------------------------------------------
+// Fallback seed list (only used if WDQS is down repeatedly)
+// ---------------------------------------------------------------------------
+
+function fallbackEntries(limit: number): MasterlistEntry[] {
+  const base = [
+    "Amphetamin",
+    "Methamphetamin",
+    "MDMA",
+    "LSD",
+    "Psilocybin",
+    "Ketamin",
+    "Kokain",
+    "Heroin",
+    "Morphin",
+    "Fentanyl",
+    "THC",
+    "CBD",
+    "Diazepam",
+    "Lorazepam",
+    "Alprazolam",
+    "Clonazepam",
+    "GHB",
+    "GBL",
+    "2C-B",
+    "DMT",
+    "Mescalin",
+    "Salvinorin A",
+    "Ibogaine",
+    "Buprenorphin",
+    "Oxycodon",
+  ];
+
+  const out: MasterlistEntry[] = [];
+  for (const t of base.slice(0, Math.max(1, Math.min(limit, base.length)))) {
+    out.push({
+      title: t,
+      slug: slugify(t),
+      aliases: [],
+      tags: [],
+      risk: "Unbekannt",
+      evidence: "Unbekannt",
+    });
+  }
+  return out.slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
+
+function computeBatchSize(targetLimit: number): number {
+  // For limit=10 => 30. For large limits cap at 60 to avoid WDQS timeouts.
+  return Math.min(60, Math.max(20, targetLimit * 3));
+}
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -230,42 +330,52 @@ async function main(): Promise<void> {
   const allEntries = new Map<string, MasterlistEntry>();
   let offset = 0;
 
-  while (allEntries.size < limit) {
-    const batchLimit = Math.min(BATCH_SIZE, limit - allEntries.size + 200); // over-fetch to compensate dedup
-    console.log(`[gen-masterlist]   batch offset=${offset}, request size=${batchLimit}…`);
+  const requestSize = computeBatchSize(limit);
+  console.log(`[gen-masterlist] Using request batch size=${requestSize} (dynamic).`);
 
-    const response = await fetchSparql(buildQuery(batchLimit, offset));
-    const batchEntries = parseBindings(response.results.bindings);
+  try {
+    while (allEntries.size < limit) {
+      const remaining = limit - allEntries.size;
 
-    if (response.results.bindings.length === 0) {
-      console.log("[gen-masterlist]   no more results. Done fetching.");
-      break;
-    }
+      // overfetch slightly to compensate for dedup, but keep it small
+      const batchLimit = Math.min(requestSize, remaining + Math.min(15, Math.ceil(remaining / 2)));
 
-    for (const [slug, entry] of batchEntries) {
-      if (allEntries.size >= limit) break;
-      if (!allEntries.has(slug)) {
-        allEntries.set(slug, entry);
+      console.log(`[gen-masterlist]   batch offset=${offset}, request size=${batchLimit}…`);
+      const response = await fetchSparql(buildQuery(batchLimit, offset));
+      const bindings = response.results.bindings;
+
+      if (bindings.length === 0) {
+        console.log("[gen-masterlist]   no more results. Done fetching.");
+        break;
       }
-    }
 
-    offset += batchLimit;
+      const batchEntries = parseBindings(bindings);
+      for (const [slug, entry] of batchEntries) {
+        if (allEntries.size >= limit) break;
+        if (!allEntries.has(slug)) allEntries.set(slug, entry);
+      }
 
-    // If we got fewer bindings than requested, we're done
-    if (response.results.bindings.length < batchLimit) {
-      break;
-    }
+      offset += batchLimit;
 
-    // Be polite: delay between batches
-    if (allEntries.size < limit) {
-      await sleep(BATCH_DELAY_MS);
+      // If we got fewer bindings than requested, we likely reached the end
+      if (bindings.length < batchLimit) break;
+
+      if (allEntries.size < limit) await sleep(BATCH_DELAY_MS);
     }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[gen-masterlist] WDQS fetch failed: ${msg}`);
+    console.warn("[gen-masterlist] Writing fallback masterlist so pipeline can proceed.");
+    const fallback = fallbackEntries(limit);
+    fs.mkdirSync(SEEDS_DIR, { recursive: true });
+    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fallback, null, 2) + "\n");
+    console.log(`[gen-masterlist] Wrote fallback ${OUTPUT_FILE} (${fallback.length} entries)`);
+    return;
   }
 
   const result = Array.from(allEntries.values()).slice(0, limit);
   console.log(`[gen-masterlist] Collected ${result.length} unique entries (limit=${limit}).`);
 
-  // Write output
   fs.mkdirSync(SEEDS_DIR, { recursive: true });
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(result, null, 2) + "\n");
   console.log(`[gen-masterlist] Wrote ${OUTPUT_FILE}`);
