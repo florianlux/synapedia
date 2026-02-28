@@ -8,7 +8,7 @@ on:
         required: false
         default: "1000"
       status:
-        description: "Article status (Entwurf → draft)"
+        description: "Article status (Entwurf, review)"
         required: false
         default: "Entwurf"
       dry_run:
@@ -23,6 +23,10 @@ jobs:
     permissions:
       contents: read
 
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -35,19 +39,12 @@ jobs:
         run: npm ci
 
       - name: Generate masterlist
-        env:
-          LIMIT: ${{ inputs.limit }}
-        run: npx tsx scripts/gen-masterlist.ts --limit "$LIMIT"
+        run: npx tsx scripts/gen-masterlist.ts --limit "${{ inputs.limit }}"
 
       - name: Import masterlist
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          STATUS: ${{ inputs.status }}
-          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          CMD="npx tsx scripts/import-masterlist.ts --status \"$STATUS\""
-          if [ "$DRY_RUN" = "true" ]; then
-            CMD="$CMD --dry-run"
+          ARGS=(--status "${{ inputs.status }}")
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS+=(--dry-run)
           fi
-          $CMD
+          npx tsx scripts/import-masterlist.ts "${ARGS[@]}"

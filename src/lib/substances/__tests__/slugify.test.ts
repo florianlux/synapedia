@@ -47,4 +47,9 @@ describe("slugify", () => {
   it("handles special chars like 4-FA", () => {
     expect(slugify("4-FA")).toBe("4-fa");
   });
+
+  it("converts Greek alpha (lower and upper) to 'alpha'", () => {
+    expect(slugify("α-PVP")).toBe("alpha-pvp");
+    expect(slugify("Α-PVP")).toBe("alpha-pvp");
+  });
 });

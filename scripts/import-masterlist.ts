@@ -6,7 +6,7 @@
  * no synthesis — only harm-reduction stub content.
  *
  * Usage:
- *   npx tsx scripts/import-masterlist.ts [--dry-run] [--limit N] [--only slug1,slug2] [--status "draft"] [--verbose]
+ *   npx tsx scripts/import-masterlist.ts [--dry-run] [--limit N] [--only slug1,slug2] [--status "Entwurf"] [--verbose]
  *
  * Environment:
  *   SUPABASE_URL               — Supabase project URL
@@ -16,7 +16,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as url from "node:url";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // ---------------------------------------------------------------------------
 // Path setup
@@ -36,10 +36,10 @@ const MASTERLIST_FILE = path.join(ROOT_DIR, "seeds", "substances.masterlist.json
 interface MasterlistEntry {
   title: string;
   slug: string;
-  aliases: string[];
-  tags: string[];
-  risk: string;
-  evidence: string;
+  aliases?: string[];
+  tags?: string[];
+  risk?: string;
+  evidence?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -50,7 +50,6 @@ function generateMdxStub(title: string): string {
   return `# ${title}
 
 ## Überblick
-
 Automatisch generierter Entwurf. Dieser Artikel wird durch kuratierte Informationen ergänzt.
 
 ## Pharmakologie
@@ -68,47 +67,6 @@ Automatisch generierter Entwurf. Dieser Artikel wird durch kuratierte Informatio
 }
 
 // ---------------------------------------------------------------------------
-// Risk / evidence mapping to DB-compatible values
-// ---------------------------------------------------------------------------
-
-/** Map issue-specified risk labels to DB CHECK constraint values */
-function mapRiskLevel(risk: string): "low" | "moderate" | "high" | "unknown" {
-  switch (risk.toLowerCase()) {
-    case "low":
-    case "niedrig":
-      return "low";
-    case "moderate":
-    case "mittel":
-      return "moderate";
-    case "high":
-    case "hoch":
-      return "high";
-    case "unknown":
-    case "unbekannt":
-    default:
-      return "unknown";
-  }
-}
-
-/** Map issue-specified evidence labels to DB CHECK constraint values */
-function mapEvidenceStrength(evidence: string): "weak" | "moderate" | "strong" {
-  switch (evidence.toLowerCase()) {
-    case "strong":
-    case "stark":
-      return "strong";
-    case "moderate":
-    case "mittel":
-      return "moderate";
-    case "weak":
-    case "schwach":
-    case "unknown":
-    case "unbekannt":
-    default:
-      return "weak";
-  }
-}
-
-// ---------------------------------------------------------------------------
 // CLI argument parsing
 // ---------------------------------------------------------------------------
 
@@ -116,7 +74,7 @@ interface CliOptions {
   dryRun: boolean;
   limit: number;
   only: string[];
-  status: string;
+  status: string; // user-facing: Entwurf / review / published
   verbose: boolean;
 }
 
@@ -126,7 +84,7 @@ function parseArgs(): CliOptions {
     dryRun: false,
     limit: Infinity,
     only: [],
-    status: "draft",
+    status: "Entwurf",
     verbose: false,
   };
 
@@ -139,7 +97,12 @@ function parseArgs(): CliOptions {
         if (i + 1 < args.length) opts.limit = parseInt(args[++i], 10);
         break;
       case "--only":
-        if (i + 1 < args.length) opts.only = args[++i].split(",").map((s) => s.trim()).filter(Boolean);
+        if (i + 1 < args.length) {
+          opts.only = args[++i]
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        }
         break;
       case "--status":
         if (i + 1 < args.length) opts.status = args[++i];
@@ -159,6 +122,35 @@ function parseArgs(): CliOptions {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// ---------------------------------------------------------------------------
+// Sanity check — verify required columns exist in public.articles
+// ---------------------------------------------------------------------------
+
+const REQUIRED_COLUMNS = ["slug", "title", "mdx", "risk", "evidence", "aliases", "tags", "status"] as const;
+
+async function verifySchemaSanity(supabase: SupabaseClient): Promise<boolean> {
+  const { error } = await supabase
+    .from("articles")
+    .select(REQUIRED_COLUMNS.join(","))
+    .limit(0);
+
+  if (!error) return true;
+
+  const msg = error.message ?? "";
+  if (msg.includes("column") && msg.includes("does not exist")) {
+    console.error(
+      `[import-masterlist] ❌ Schema mismatch — one or more required columns missing in public.articles.\n` +
+        `  Expected columns: ${REQUIRED_COLUMNS.join(", ")}\n` +
+        `  Supabase error: ${msg}\n`
+    );
+    return false;
+  }
+
+  // Non-schema errors shouldn't block imports (RLS etc. should not apply with service role)
+  console.warn(`[import-masterlist] ⚠ Schema check error (proceeding): ${msg}`);
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -185,15 +177,15 @@ async function main(): Promise<void> {
   }
 
   // Apply --limit
-  if (opts.limit !== Infinity) {
+  if (Number.isFinite(opts.limit)) {
     entries = entries.slice(0, opts.limit);
   }
 
   console.log(`[import-masterlist] ${entries.length} entries to process.`);
   if (opts.dryRun) console.log("[import-masterlist] DRY RUN — no database writes.");
 
-  // Map status: the DB CHECK constraint expects 'draft', 'review', or 'published'
-  const statusMap: Record<string, string> = {
+  // Normalize status to DB-friendly values
+  const statusMap: Record<string, "draft" | "review" | "published"> = {
     entwurf: "draft",
     draft: "draft",
     review: "review",
@@ -201,8 +193,9 @@ async function main(): Promise<void> {
   };
   const dbStatus = statusMap[opts.status.toLowerCase()] ?? "draft";
 
-  // Initialize Supabase client (only if not dry-run)
-  let supabase: ReturnType<typeof createClient> | null = null;
+  // In dry-run we do not need a DB connection
+  let supabase: SupabaseClient | null = null;
+
   if (!opts.dryRun) {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -213,6 +206,13 @@ async function main(): Promise<void> {
     }
 
     supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Sanity check: verify DB schema has expected columns
+    const schemaOk = await verifySchemaSanity(supabase);
+    if (!schemaOk) {
+      console.error("[import-masterlist] Aborting due to schema mismatch.");
+      process.exit(1);
+    }
   }
 
   const errors: { slug: string; error: string }[] = [];
@@ -223,55 +223,59 @@ async function main(): Promise<void> {
     const idx = `[${i + 1}/${entries.length}]`;
 
     if (!entry.title || !entry.slug) {
-      console.warn(`${idx} skipping entry with missing title/slug`);
-      errors.push({ slug: entry.slug ?? "(unknown)", error: "missing title or slug" });
+      const slug = entry.slug ?? "(unknown)";
+      console.warn(`${idx} skipping entry with missing title/slug (${slug})`);
+      errors.push({ slug, error: "missing title or slug" });
       continue;
     }
 
+    const title = entry.title.trim();
+    const mdx = generateMdxStub(title);
+
+    // ✅ IMPORTANT: write ONLY real DB columns
     const row = {
       slug: entry.slug,
-      title: entry.title,
-      subtitle: null,
-      summary: `Automatisch generierter Stub-Artikel für ${entry.title}.`,
-      content_mdx: generateMdxStub(entry.title),
-      status: dbStatus,
-      risk_level: mapRiskLevel(entry.risk),
-      evidence_strength: mapEvidenceStrength(entry.evidence),
-      tags: entry.tags.length > 0 ? entry.tags : [],
-      updated_at: new Date().toISOString(),
+      title,
+      subtitle: null as string | null,
+      summary: `Automatisch generierter Stub-Artikel für ${title}.`,
+      mdx, // ✅ real column
+      status: dbStatus, // ✅ real column
+      risk: entry.risk ?? "Unbekannt", // ✅ real column
+      evidence: entry.evidence ?? "Unbekannt", // ✅ real column
+      aliases: entry.aliases ?? [], // ✅ real column
+      tags: entry.tags ?? [], // ✅ real column
+      updated_at: new Date().toISOString(), // ✅ real column
     };
 
     if (opts.verbose) {
-      console.log(`${idx} preparing ${entry.slug} (tags: ${entry.tags.join(", ") || "none"})`);
+      console.log(`${idx} preparing ${entry.slug} (tags: ${(entry.tags ?? []).join(", ") || "none"})`);
     }
 
     if (opts.dryRun) {
       console.log(`${idx} [dry-run] would upsert ${entry.slug}`);
       upserted++;
     } else {
-      try {
-        const { error } = await supabase!
-          .from("articles")
-          .upsert(row as Record<string, unknown>, { onConflict: "slug" });
+      const { error } = await supabase!
+        .from("articles")
+        .upsert(row, { onConflict: "slug" });
 
-        if (error) {
-          console.error(`${idx} ERROR upserting ${entry.slug}: ${error.message}`);
-          errors.push({ slug: entry.slug, error: error.message });
-        } else {
-          console.log(`${idx} upserted ${entry.slug}`);
-          upserted++;
+      if (error) {
+        console.error(`${idx} ERROR upserting ${entry.slug}: ${error.message}`);
+        errors.push({ slug: entry.slug, error: error.message });
+
+        // abort early on schema-level errors (otherwise we spam 1000 failures)
+        if (error.message.includes("column") && error.message.includes("does not exist")) {
+          console.error("[import-masterlist] ❌ Missing column detected — aborting.");
+          break;
         }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error(`${idx} EXCEPTION upserting ${entry.slug}: ${msg}`);
-        errors.push({ slug: entry.slug, error: msg });
+      } else {
+        console.log(`${idx} upserted ${entry.slug}`);
+        upserted++;
       }
     }
 
-    // Sequential delay (50–100ms)
-    if (i < entries.length - 1) {
-      await sleep(75);
-    }
+    // Sequential delay (avoid rate limits)
+    if (i < entries.length - 1) await sleep(75);
   }
 
   // Summary
@@ -282,14 +286,10 @@ async function main(): Promise<void> {
 
   if (errors.length > 0) {
     console.log("\nErrors:");
-    for (const e of errors) {
-      console.log(`  - ${e.slug}: ${e.error}`);
-    }
+    for (const e of errors) console.log(`  - ${e.slug}: ${e.error}`);
   }
 
-  if (errors.length > 0 && !opts.dryRun) {
-    process.exit(1);
-  }
+  if (errors.length > 0 && !opts.dryRun) process.exit(1);
 }
 
 main().catch((err) => {
