@@ -200,6 +200,21 @@ async function main(): Promise<void> {
     }
   }
 
+  // Pre-fetch existing canonical names to avoid N+1 queries
+  const existingNames = new Map<string, string>();
+  if (!opts.dryRun) {
+    const slugs = entries.filter((e) => e.title && e.slug).map((e) => e.slug);
+    const { data } = await supabase!
+      .from("substances")
+      .select("slug,canonical_name")
+      .in("slug", slugs);
+    if (data) {
+      for (const row of data) {
+        if (row.canonical_name) existingNames.set(row.slug, row.canonical_name);
+      }
+    }
+  }
+
   const errors: { slug: string; error: string }[] = [];
   let upserted = 0;
 
@@ -219,7 +234,7 @@ async function main(): Promise<void> {
     const row: Record<string, unknown> = {
       slug: entry.slug,
       name,
-      canonical_name: name, // will be overridden below for existing rows
+      canonical_name: existingNames.get(entry.slug) || name,
       aliases: entry.aliases ?? [],
       tags: entry.tags ?? [],
       risk_level: entry.risk ?? "Unbekannt",
@@ -236,18 +251,6 @@ async function main(): Promise<void> {
       console.log(`${idx} [dry-run] would upsert ${entry.slug}`);
       upserted++;
     } else {
-      // Fetch existing row to preserve canonical_name and content fields
-      const { data: existing } = await supabase!
-        .from("substances")
-        .select("canonical_name")
-        .eq("slug", entry.slug)
-        .maybeSingle();
-
-      // Keep existing canonical_name if already set
-      if (existing?.canonical_name) {
-        row.canonical_name = existing.canonical_name;
-      }
-
       const { error } = await supabase!
         .from("substances")
         .upsert(row, { onConflict: "slug" });
