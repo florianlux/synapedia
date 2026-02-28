@@ -1,8 +1,14 @@
 /**
  * gen-masterlist.ts
  *
- * REST-based Wikidata importer (no SPARQL).
- * Stable for GitHub Actions.
+ * Generates seeds/substances.masterlist.json with psychoactive substance entries
+ * sourced from Wikidata SPARQL. Deduplicates by slug.
+ *
+ * Usage:
+ *   npx tsx scripts/gen-masterlist.ts --limit 500
+ *
+ * Synapedia is a scientific education platform — no consumption guides,
+ * no dosage tables, no procurement hints. Only neutral metadata is imported.
  */
 
 import * as fs from "node:fs";
@@ -11,43 +17,37 @@ import * as url from "node:url";
 import { slugify } from "./lib/slugify.js";
 
 // ---------------------------------------------------------------------------
-// CONFIG
+// Configuration
 // ---------------------------------------------------------------------------
 
+const SPARQL_ENDPOINT_PRIMARY = "https://query.wikidata.org/sparql";
+const SPARQL_ENDPOINT_FALLBACK =
+  "https://wikidata-query.wikidata.org/bigdata/namespace/wdq/sparql";
+
+// IMPORTANT: be polite; WDQS will throttle
 const USER_AGENT =
-  "synapedia-import/REST-1.0 (https://github.com/florianlux/synapedia)";
+  "synapedia-import/1.0 (github actions; https://github.com/florianlux/synapedia)";
 
-const REQUEST_DELAY_MS = 300;
-const MAX_BATCH = 50;
+const MAX_RETRIES = 8; // slightly higher; WDQS can be flaky
+const REQUEST_TIMEOUT_MS = 35_000;
+const BATCH_DELAY_MS = 1200;
 
-// Psychoactive relevant class QIDs
-const TARGET_CLASSES = [
-  "Q204082", // psychoactive drug
-  "Q207011", // recreational drug
-  "Q189092", // hallucinogen
-  "Q12029",  // stimulant
-  "Q205989", // depressant
-  "Q11254",  // opioid
-  "Q409199", // benzodiazepine
-  "Q4164871",// dissociative
-  "Q40050",  // cannabinoid
-];
-
-// ---------------------------------------------------------------------------
-// PATHS
-// ---------------------------------------------------------------------------
+// You can override in Actions if needed:
+//   BATCH_SIZE=15
+const ENV_BATCH_SIZE = process.env.BATCH_SIZE
+  ? Math.max(5, Math.min(50, parseInt(process.env.BATCH_SIZE, 10)))
+  : null;
 
 const SCRIPT_DIR =
   typeof __dirname !== "undefined"
     ? __dirname
     : path.dirname(url.fileURLToPath(import.meta.url));
-
 const ROOT_DIR = path.resolve(SCRIPT_DIR, "..");
 const SEEDS_DIR = path.join(ROOT_DIR, "seeds");
 const OUTPUT_FILE = path.join(SEEDS_DIR, "substances.masterlist.json");
 
 // ---------------------------------------------------------------------------
-// TYPES
+// Types
 // ---------------------------------------------------------------------------
 
 interface MasterlistEntry {
@@ -59,135 +59,357 @@ interface MasterlistEntry {
   evidence: string;
 }
 
+interface SparqlBinding {
+  item: { value: string };
+  itemLabel: { value: string };
+  itemAltLabel?: { value: string };
+  classLabel?: { value: string };
+}
+
+interface SparqlResponse {
+  results: { bindings: SparqlBinding[] };
+}
+
 // ---------------------------------------------------------------------------
-// HELPERS
+// Tag inference from Wikidata class labels
 // ---------------------------------------------------------------------------
 
-function sleep(ms: number) {
+const TAG_KEYWORDS: Record<string, string[]> = {
+  stimulant: ["stimulant", "stimulans", "amphetamine", "amphetamin"],
+  opioid: ["opioid", "opiate", "opiat"],
+  benzodiazepine: ["benzodiazepine", "benzodiazepin"],
+  psychedelic: [
+    "psychedelic",
+    "psychedelik",
+    "hallucinogen",
+    "halluzinogen",
+    "tryptamine",
+    "tryptamin",
+    "lysergamide",
+  ],
+  dissociative: ["dissociative", "dissociativ", "arylcyclohexylamine"],
+  cannabinoid: ["cannabinoid"],
+  depressant: ["depressant", "sedative", "sedativum", "barbiturate", "barbiturat"],
+  deliriant: ["deliriant", "anticholinergic", "anticholinergikum"],
+  nps: ["new psychoactive", "neue psychoaktive", "designer drug", "research chemical"],
+  entactogen: ["entactogen", "empatogen"],
+};
+
+function inferTags(classLabels: string[]): string[] {
+  const tags = new Set<string>();
+  const combined = classLabels.join(" ").toLowerCase();
+  for (const [tag, keywords] of Object.entries(TAG_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (combined.includes(kw)) {
+        tags.add(tag);
+        break;
+      }
+    }
+  }
+  return Array.from(tags);
+}
+
+// ---------------------------------------------------------------------------
+// SPARQL Query — STRICT psychoactive drugs only
+// ---------------------------------------------------------------------------
+//
+// Key fixes:
+// - Use psychoactive drug Q3706669 (NOT random QIDs)   [oai_citation:1‡Wikidata](https://www.wikidata.org/wiki/Q3706669)
+// - Require chemical compound Q11173
+// - Require at least one chemical identifier (PubChem/ChEMBL/DrugBank/CAS)
+// - Exclude humans / occupations etc by simple "chemical identifier" gate
+//
+
+function buildQuery(limit: number, offset: number): string {
+  return `
+SELECT DISTINCT ?item ?itemLabel ?itemAltLabel ?classLabel WHERE {
+  # psychoactive drug
+  ?item wdt:P31/wdt:P279* wd:Q3706669 .
+
+  # chemical compound
+  ?item wdt:P31/wdt:P279* wd:Q11173 .
+
+  # require at least one common chemical/drug identifier to avoid garbage items
+  FILTER(
+    EXISTS { ?item wdt:P662 ?pubchemCid } ||
+    EXISTS { ?item wdt:P592 ?chemblId } ||
+    EXISTS { ?item wdt:P715 ?drugbankId } ||
+    EXISTS { ?item wdt:P231 ?casNumber }
+  )
+
+  OPTIONAL {
+    ?item wdt:P31 ?class .
+    ?class rdfs:label ?classLabel .
+    FILTER(LANG(?classLabel) = "en")
+  }
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "de,en" . }
+}
+ORDER BY ?itemLabel
+LIMIT ${limit}
+OFFSET ${offset}
+`.trim();
+}
+
+// ---------------------------------------------------------------------------
+// Fetch with retries, backoff, timeout, endpoint fallback
+// ---------------------------------------------------------------------------
+
+async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function fetchJSON(urlStr: string) {
-  const res = await fetch(urlStr, {
-    headers: {
-      "User-Agent": USER_AGENT,
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-
-  return res.json();
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
 }
 
-// ---------------------------------------------------------------------------
-// Fetch members of a class via REST
-// ---------------------------------------------------------------------------
-
-async function fetchClassMembers(qid: string): Promise<string[]> {
-  const urlStr = `https://www.wikidata.org/w/api.php?action=query&list=search&srsearch=haswbstatement:P31=${qid}&format=json&srlimit=50`;
-  const json = await fetchJSON(urlStr);
-
-  if (!json.query?.search) return [];
-
-  return json.query.search.map((item: any) => item.title);
+function backoffMs(attempt: number): number {
+  const base = Math.min(30_000, 2_000 * Math.pow(2, attempt - 1)); // 2s,4s,8s,16s,30s...
+  const jitter = Math.floor(Math.random() * 900);
+  return base + jitter;
 }
 
-// ---------------------------------------------------------------------------
-// Fetch entity details
-// ---------------------------------------------------------------------------
+async function fetchSparqlFromEndpoint(endpoint: string, query: string): Promise<SparqlResponse> {
+  const params = new URLSearchParams({ query, format: "json" });
 
-async function fetchEntities(qids: string[]) {
-  const chunks = [];
-  for (let i = 0; i < qids.length; i += MAX_BATCH) {
-    chunks.push(qids.slice(i, i + MAX_BATCH));
-  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  const results: any[] = [];
+  try {
+    const res = await fetch(`${endpoint}?${params.toString()}`, {
+      headers: {
+        Accept: "application/sparql-results+json",
+        "User-Agent": USER_AGENT,
+      },
+      signal: controller.signal,
+    });
 
-  for (const chunk of chunks) {
-    const ids = chunk.join("|");
-    const urlStr = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids}&languages=de|en&format=json&props=labels|aliases`;
-    const json = await fetchJSON(urlStr);
-
-    if (json.entities) {
-      results.push(...Object.values(json.entities));
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw Object.assign(new Error(`SPARQL error ${res.status}: ${text.slice(0, 300)}`), {
+        status: res.status,
+      });
     }
 
-    await sleep(REQUEST_DELAY_MS);
+    return (await res.json()) as SparqlResponse;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return results;
 }
 
-// ---------------------------------------------------------------------------
-// MAIN
-// ---------------------------------------------------------------------------
+async function fetchSparql(query: string): Promise<SparqlResponse> {
+  let lastError: unknown;
 
-async function main() {
-  const args = process.argv.slice(2);
-  const limitIdx = args.indexOf("--limit");
-  const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 100;
+  const endpoints = [SPARQL_ENDPOINT_PRIMARY, SPARQL_ENDPOINT_FALLBACK];
 
-  console.log(`[gen-masterlist] REST mode – limit ${limit}`);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const tryBoth = attempt >= 2;
+    const toTry = tryBoth ? endpoints : [SPARQL_ENDPOINT_PRIMARY];
 
-  const collectedQids = new Set<string>();
+    for (const endpoint of toTry) {
+      try {
+        return await fetchSparqlFromEndpoint(endpoint, query);
+      } catch (err: any) {
+        lastError = err;
+        const msg = err instanceof Error ? err.message : String(err);
+        const status = typeof err?.status === "number" ? err.status : undefined;
 
-  for (const cls of TARGET_CLASSES) {
-    console.log(`[gen-masterlist] Fetching members of ${cls}`);
-    try {
-      const members = await fetchClassMembers(cls);
-      members.forEach((m) => collectedQids.add(m));
-      await sleep(REQUEST_DELAY_MS);
-    } catch (err: any) {
-      console.warn(`Failed fetching class ${cls}: ${err.message}`);
+        const retryable =
+          status ? isRetryableStatus(status) : msg.toLowerCase().includes("abort") || msg.toLowerCase().includes("fetch failed");
+
+        console.warn(`[gen-masterlist] Attempt ${attempt}/${MAX_RETRIES} failed on ${endpoint}: ${msg}`);
+
+        if (!retryable) throw err instanceof Error ? err : new Error(String(err));
+      }
+    }
+
+    if (attempt < MAX_RETRIES) {
+      const wait = backoffMs(attempt);
+      console.warn(`[gen-masterlist] Retrying in ${wait}ms…`);
+      await sleep(wait);
     }
   }
 
-  const qidArray = Array.from(collectedQids).slice(0, limit);
+  throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "SPARQL fetch failed"));
+}
 
-  console.log(`[gen-masterlist] Fetching entity details (${qidArray.length})`);
+// ---------------------------------------------------------------------------
+// Parse SPARQL results into masterlist entries
+// ---------------------------------------------------------------------------
 
-  const entities = await fetchEntities(qidArray);
+function parseBindings(bindings: SparqlBinding[]): Map<string, MasterlistEntry> {
+  // Group by QID to accumulate multiple class labels
+  const grouped = new Map<string, { binding: SparqlBinding; classLabels: string[] }>();
 
-  const entries: MasterlistEntry[] = [];
+  for (const b of bindings) {
+    const qid = b.item.value.replace("http://www.wikidata.org/entity/", "");
+    const existing = grouped.get(qid);
+    if (existing) {
+      if (b.classLabel?.value) existing.classLabels.push(b.classLabel.value);
+    } else {
+      grouped.set(qid, {
+        binding: b,
+        classLabels: b.classLabel?.value ? [b.classLabel.value] : [],
+      });
+    }
+  }
 
-  for (const e of entities) {
-    const label =
-      e.labels?.de?.value ??
-      e.labels?.en?.value;
+  const entries = new Map<string, MasterlistEntry>();
 
-    if (!label) continue;
+  for (const { binding, classLabels } of grouped.values()) {
+    const label = binding.itemLabel?.value ?? "";
+    if (!label || label.startsWith("Q")) continue;
 
     const slug = slugify(label);
     if (!slug) continue;
+    if (entries.has(slug)) continue;
 
-    const aliases =
-      e.aliases?.de?.map((a: any) => a.value) ??
-      e.aliases?.en?.map((a: any) => a.value) ??
-      [];
+    const aliases: string[] = [];
+    if (binding.itemAltLabel?.value) {
+      for (const a of binding.itemAltLabel.value.split(",")) {
+        const trimmed = a.trim();
+        if (trimmed && trimmed !== label) aliases.push(trimmed);
+      }
+    }
 
-    entries.push({
+    entries.set(slug, {
       title: label,
       slug,
       aliases,
-      tags: [],
+      tags: inferTags(classLabels),
       risk: "Unbekannt",
       evidence: "Unbekannt",
     });
   }
 
-  fs.mkdirSync(SEEDS_DIR, { recursive: true });
-  fs.writeFileSync(
-    OUTPUT_FILE,
-    JSON.stringify(entries.slice(0, limit), null, 2) + "\n"
-  );
+  return entries;
+}
 
-  console.log(`[gen-masterlist] Done. Wrote ${entries.length} entries.`);
+// ---------------------------------------------------------------------------
+// Fallback seed list (only used if WDQS is down repeatedly)
+// ---------------------------------------------------------------------------
+
+function fallbackEntries(limit: number): MasterlistEntry[] {
+  const base = [
+    "Amphetamin",
+    "Methamphetamin",
+    "MDMA",
+    "LSD",
+    "Psilocybin",
+    "Ketamin",
+    "Kokain",
+    "Heroin",
+    "Morphin",
+    "Fentanyl",
+    "THC",
+    "CBD",
+    "Diazepam",
+    "Lorazepam",
+    "Alprazolam",
+    "Clonazepam",
+    "GHB",
+    "GBL",
+    "2C-B",
+    "DMT",
+    "Mescalin",
+    "Salvinorin A",
+    "Ibogaine",
+    "Buprenorphin",
+    "Oxycodon",
+  ];
+
+  const out: MasterlistEntry[] = [];
+  for (const t of base.slice(0, Math.max(1, Math.min(limit, base.length)))) {
+    out.push({
+      title: t,
+      slug: slugify(t),
+      aliases: [],
+      tags: [],
+      risk: "Unbekannt",
+      evidence: "Unbekannt",
+    });
+  }
+  return out.slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+function computeBatchSize(targetLimit: number): number {
+  // Conservative to avoid WDQS timeouts. Override via BATCH_SIZE env var.
+  if (ENV_BATCH_SIZE) return ENV_BATCH_SIZE;
+
+  if (targetLimit <= 50) return 15;
+  if (targetLimit <= 200) return 20;
+  return 25; // cap for bigger runs
+}
+
+async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  const limitIdx = args.indexOf("--limit");
+  const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 500;
+
+  if (isNaN(limit) || limit < 1) {
+    console.error("[gen-masterlist] Invalid --limit value");
+    process.exit(1);
+  }
+
+  console.log(`[gen-masterlist] Fetching up to ${limit} psychoactive substances from Wikidata SPARQL…`);
+
+  const allEntries = new Map<string, MasterlistEntry>();
+  let offset = 0;
+
+  const requestSize = computeBatchSize(limit);
+  console.log(`[gen-masterlist] Using request batch size=${requestSize} (set BATCH_SIZE to override).`);
+
+  try {
+    while (allEntries.size < limit) {
+      const remaining = limit - allEntries.size;
+
+      // Keep batchLimit stable; dedup happens after.
+      const batchLimit = Math.min(requestSize, remaining);
+
+      console.log(`[gen-masterlist]   batch offset=${offset}, request size=${batchLimit}…`);
+      const response = await fetchSparql(buildQuery(batchLimit, offset));
+      const bindings = response.results.bindings;
+
+      if (bindings.length === 0) {
+        console.log("[gen-masterlist]   no more results. Done fetching.");
+        break;
+      }
+
+      const batchEntries = parseBindings(bindings);
+      for (const [slug, entry] of batchEntries) {
+        if (allEntries.size >= limit) break;
+        if (!allEntries.has(slug)) allEntries.set(slug, entry);
+      }
+
+      offset += batchLimit;
+
+      if (bindings.length < batchLimit) break;
+      if (allEntries.size < limit) await sleep(BATCH_DELAY_MS);
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[gen-masterlist] WDQS fetch failed: ${msg}`);
+    console.warn("[gen-masterlist] Writing fallback masterlist so pipeline can proceed.");
+    const fallback = fallbackEntries(limit);
+    fs.mkdirSync(SEEDS_DIR, { recursive: true });
+    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fallback, null, 2) + "\n");
+    console.log(`[gen-masterlist] Wrote fallback ${OUTPUT_FILE} (${fallback.length} entries)`);
+    return;
+  }
+
+  const result = Array.from(allEntries.values()).slice(0, limit);
+  console.log(`[gen-masterlist] Collected ${result.length} unique entries (limit=${limit}).`);
+
+  fs.mkdirSync(SEEDS_DIR, { recursive: true });
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(result, null, 2) + "\n");
+  console.log(`[gen-masterlist] Wrote ${OUTPUT_FILE}`);
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error("[gen-masterlist] Fatal error:", err);
   process.exit(1);
 });
