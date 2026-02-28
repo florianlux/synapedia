@@ -1,8 +1,12 @@
 # Copilot Instructions for Synapedia
 
+## Purpose
+
+Guide Copilot coding agents to produce safe, idiomatic changes for Synapedia.
+
 ## Project Summary
 
-Synapedia is a **scientific knowledge platform for psychoactive substances** (in German), built with Next.js App Router. It provides evidence-based information on pharmacology, risks, interactions, and research chemicals. It has no consumption guides, dosage recommendations, or procurement hints.
+Synapedia is a **scientific knowledge platform for psychoactive substances** (in German), built with Next.js App Router. It provides evidence-based information on pharmacology, risks, interactions, and research chemicals. It has no consumption guides, dosage recommendations, or procurement hints. Keep all user-facing copy in German and avoid adding consumption/dosage/procurement guidance.
 
 The site operates in two modes:
 - **Demo mode** (default, no Supabase required): uses built-in demo data from `src/lib/demo-data.ts` (3 articles: Psilocybin, MDMA, Ketamin).
@@ -24,6 +28,10 @@ The site operates in two modes:
 
 ## Environment Setup
 
+- Always install dependencies before building: `npm install`
+- Demo mode works without Supabase env vars; live mode needs Supabase credentials in `.env.local`.
+- Do not add a `tailwind.config.js` (Tailwind v4 uses `@tailwindcss/postcss`).
+
 ```bash
 # Install dependencies (always run before building)
 npm install
@@ -40,16 +48,12 @@ Required environment variables (see `.env.example`):
 - `NEXT_PUBLIC_ADMIN_ENABLED` / `ADMIN_ENABLED` — set to `"true"` to enable `/admin`
 - `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` — optional, for AI autofill features
 
-## Build & Development Commands
+## Quick Commands
 
-```bash
-npm run dev      # Start dev server at http://localhost:3000
-npm run build    # Production build (runs Next.js compiler + type checks)
-npm run start    # Start production server
-npm run lint     # Run ESLint (eslint-config-next/core-web-vitals + typescript)
-```
-
-Always run `npm install` before `npm run build`.
+- Dev server: `npm run dev`
+- Lint: `npm run lint`
+- Build (runs TS checks): `npm run build`
+- Start production server: `npm run start`
 
 ## Testing
 
@@ -64,6 +68,13 @@ npx playwright test e2e/mobile-responsive.spec.ts
 ```
 
 There are **no unit tests** in this repository. The only automated tests are Playwright e2e tests.
+
+## Workflow Expectations
+
+- Run `npm run lint` and `npm run build` before and after changes; fix only issues related to your edits.
+- If you touch pages/components covered by e2e flows (`/`, `/brain`, `/interactions`, `/compare`, `/glossary`), prefer running `npx playwright test`.
+- Keep changes minimal; do not upgrade dependencies unless required for the task.
+- Do not add secrets or modify files under `.github/agents/`.
 
 ## Lint
 
