@@ -14,7 +14,9 @@
     "validate:substances": "tsx scripts/validate-substances.ts",
     "gen:masterlist": "tsx scripts/gen-masterlist.ts --limit 1000",
     "import:masterlist": "tsx scripts/import-masterlist.ts",
-    "import:masterlist:dry": "tsx scripts/import-masterlist.ts --dry-run"
+    "import:masterlist:dry": "tsx scripts/import-masterlist.ts --dry-run",
+    "import:substances": "tsx scripts/import-substances-masterlist.ts",
+    "import:substances:dry": "tsx scripts/import-substances-masterlist.ts --dry-run"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
