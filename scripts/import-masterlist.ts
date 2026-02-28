@@ -135,11 +135,16 @@ function parseArgs(argv: string[]): ImportOptions {
       case "--dry-run":
         opts.dryRun = true;
         break;
-      case "--limit":
-        opts.limit = parseInt(argv[i + 1], 10);
-        if (isNaN(opts.limit) || opts.limit < 1) opts.limit = Infinity;
+      case "--limit": {
+        const parsed = parseInt(argv[i + 1], 10);
+        if (isNaN(parsed) || parsed < 1) {
+          console.warn(`[import-masterlist] Invalid --limit value "${argv[i + 1]}", using no limit.`);
+        } else {
+          opts.limit = parsed;
+        }
         i++;
         break;
+      }
       case "--only":
         opts.only = (argv[i + 1] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
         i++;
@@ -277,7 +282,8 @@ export async function importMasterlist(opts: ImportOptions): Promise<void> {
         console.log(`[import-masterlist]   progress: ${i + 1}/${entries.length} (ok=${upserted}, err=${errors})`);
       }
 
-      // Small delay to avoid rate limits (75ms)
+      // Polite delay between upserts to stay well within Supabase rate limits
+      // (Supabase free tier allows ~100 req/sec; 75ms ≈ 13 req/sec is very conservative)
       if (i < entries.length - 1) {
         await sleep(75);
       }

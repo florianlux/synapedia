@@ -233,8 +233,12 @@ function parseArgs(argv: string[]): { limit: number; verbose: boolean } {
 
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--limit" && argv[i + 1]) {
-      limit = parseInt(argv[i + 1], 10);
-      if (isNaN(limit) || limit < 1) limit = DEFAULT_LIMIT;
+      const parsed = parseInt(argv[i + 1], 10);
+      if (isNaN(parsed) || parsed < 1) {
+        console.warn(`[gen-masterlist] Invalid --limit value "${argv[i + 1]}", using default ${DEFAULT_LIMIT}.`);
+      } else {
+        limit = parsed;
+      }
       i++;
     }
     if (argv[i] === "--verbose") verbose = true;
@@ -258,10 +262,10 @@ export async function generateMasterlist(opts: {
 
   const allEntries = new Map<string, MasterlistEntry>();
   let offset = 0;
-  const batchSize = Math.min(limit * 2, 2000); // fetch more to account for dedup
+  const batchSize = Math.min(limit * 2, 2000); // fetch 2× target per batch since JOINs produce duplicates
 
-  // Wikidata can return duplicates across batches due to OPTIONAL joins
-  // Fetch up to 3× the limit to ensure we get enough unique entries
+  // Wikidata OPTIONAL joins can yield multiple rows per substance.
+  // Fetch up to 3× the target limit to collect enough unique entries after dedup.
   const maxFetch = limit * 3;
 
   while (offset < maxFetch) {
