@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: "Max number of substances to process"
+        description: "Maximum number of substances to generate/import"
         required: false
         default: "1000"
       status:
@@ -12,16 +12,20 @@ on:
         required: false
         default: "Entwurf"
       dry_run:
-        description: "Dry run (true/false) — skip DB writes"
+        description: "Dry run (no DB writes)"
         required: false
         default: "false"
 
 jobs:
-  import:
+  generate-and-import:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -34,25 +38,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate masterlist from Wikidata
-        run: npx tsx scripts/gen-masterlist.ts --limit ${{ github.event.inputs.limit }}
+      - name: Generate masterlist
+        run: npx tsx scripts/gen-masterlist.ts --limit "${{ inputs.limit }}"
 
-      - name: Import masterlist into Supabase
-        if: ${{ github.event.inputs.dry_run != 'true' }}
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: >
-          npx tsx scripts/import-masterlist.ts
-          --limit ${{ github.event.inputs.limit }}
-          --status "${{ github.event.inputs.status }}"
-          --verbose
-
-      - name: Dry-run import (no DB writes)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        run: >
-          npx tsx scripts/import-masterlist.ts
-          --dry-run
-          --limit ${{ github.event.inputs.limit }}
-          --status "${{ github.event.inputs.status }}"
-          --verbose
+      - name: Import masterlist
+        run: |
+          ARGS=(--status "${{ inputs.status }}")
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS+=(--dry-run)
+          fi
+          npx tsx scripts/import-masterlist.ts "${ARGS[@]}"

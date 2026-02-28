@@ -139,59 +139,57 @@ Generiert einen Artikel-Entwurf.
 
 ---
 
-## Masterlist Pipeline (Bulk-Import)
+## Masterlist-Pipeline (Bulk-Artikel-Stubs)
 
-Automatisierte Pipeline zum Erzeugen und Importieren von ~1000 Substanz-Stubs als
-MDX-Entwürfe in `public.articles`. Kein Dosing, keine Konsumanleitungen.
+Generiert ~1000 Substanz-Artikel als sichere MDX-Stubs (kein Dosing, keine
+Konsumanleitungen, keine Synthese) und importiert sie in `public.articles`.
 
 ### Benötigte Secrets / Umgebungsvariablen
 
-```env
-# Supabase-Zugang (Pflicht für Live-Import)
-SUPABASE_URL=https://your-project.supabase.co       # oder NEXT_PUBLIC_SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
+| Variable | Beschreibung |
+|---|---|
+| `SUPABASE_URL` | Supabase-Projekt-URL (z. B. `https://xyz.supabase.co`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service-Role-Key (nur server-seitig, **geheim halten**) |
 
-Für GitHub Actions als Repository-Secrets hinterlegen:
-`SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY`.
+Für GitHub Actions: Settings → Secrets and variables → Actions → **New repository secret**.
 
 ### Lokale Ausführung
 
 ```bash
-# 1. Masterlist aus Wikidata generieren (Standard: 1000 Einträge)
+# 1. Masterlist generieren (Wikidata SPARQL)
 npm run gen:masterlist
 
-# Oder mit eigenem Limit:
-npx tsx scripts/gen-masterlist.ts --limit 500 --verbose
+# 2. Import in Supabase (Dry-Run — keine DB-Schreibvorgänge)
+npm run import:masterlist:dry
 
-# 2. Import in Supabase (Dry-Run zum Testen)
-npx tsx scripts/import-masterlist.ts --dry-run --verbose
-
-# 3. Tatsächlicher Import
-npm run import:masterlist
-
-# Mit Optionen:
-npx tsx scripts/import-masterlist.ts --limit 100 --status "draft" --verbose
-npx tsx scripts/import-masterlist.ts --only psilocybin,mdma,ketamin --verbose
+# 3. Import in Supabase (Live)
+SUPABASE_URL=https://… SUPABASE_SERVICE_ROLE_KEY=… npm run import:masterlist
 ```
 
-### GitHub Action auslösen
+Weitere CLI-Optionen für den Import:
 
-1. Öffne **Actions** → **Import Masterlist** → **Run workflow**
-2. Parameter eingeben:
-   - `limit` — Anzahl der Substanzen (Standard: 1000)
-   - `status` — Artikelstatus (Standard: „draft")
-   - `dry_run` — `true` für Testlauf ohne DB-Schreibzugriff
+| Flag | Beschreibung |
+|---|---|
+| `--dry-run` | Kein DB-Zugriff, nur Simulation |
+| `--limit N` | Nur die ersten N Einträge importieren |
+| `--only slug1,slug2` | Nur bestimmte Slugs importieren |
+| `--status "Entwurf"` | Artikel-Status setzen (wird auf `draft` gemappt) |
+| `--verbose` | Mehr Log-Ausgabe |
+
+### GitHub Actions Workflow
+
+Der Workflow **Import Masterlist** kann manuell über die GitHub-UI ausgelöst werden:
+
+1. Repository → **Actions** → **Import Masterlist** → **Run workflow**
+2. Parameter eingeben: `limit`, `status`, `dry_run`
+3. Der Workflow führt `gen-masterlist.ts` und `import-masterlist.ts` sequenziell aus.
 
 ### Verifizierung
 
 ```sql
--- Anzahl der importierten Artikel prüfen
+-- Anzahl der Artikel prüfen
 SELECT count(*) FROM public.articles;
 
--- Nur Entwürfe aus dem Masterlist-Import
-SELECT count(*) FROM public.articles WHERE status = 'draft';
-
--- Stichprobe anzeigen
-SELECT slug, title, status, updated_at FROM public.articles ORDER BY updated_at DESC LIMIT 10;
+-- Nur Stubs anzeigen
+SELECT slug, title, status, risk_level FROM public.articles WHERE status = 'draft' LIMIT 20;
 ```
